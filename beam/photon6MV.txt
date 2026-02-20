@@ -1,0 +1,39 @@
+# Beam file for NP1
+#
+# Gamma Beam
+/gps/particle gamma
+/gps/ene/type Arb
+/gps/hist/type arb
+# spectra
+/gps/hist/point 0 0
+/gps/hist/point 0.2 15
+/gps/hist/point 0.4 28
+/gps/hist/point 0.6 34
+/gps/hist/point 0.8 39
+/gps/hist/point 1 43
+/gps/hist/point 1.2 45
+/gps/hist/point 1.4 48
+/gps/hist/point 1.6 49
+/gps/hist/point 1.8 50
+/gps/hist/point 2 51
+/gps/hist/point 2.2 50
+/gps/hist/point 2.4 49
+/gps/hist/point 2.6 48
+/gps/hist/point 2.8 47
+/gps/hist/point 3 46
+/gps/hist/point 3.2 44
+/gps/hist/point 3.4 42
+/gps/hist/point 3.6 40
+/gps/hist/point 3.8 38
+/gps/hist/point 4 35
+/gps/hist/point 4.2 32
+/gps/hist/point 4.4 29
+/gps/hist/point 4.6 26
+/gps/hist/point 4.8 23
+/gps/hist/point 5 19
+/gps/hist/point 5.2 13
+/gps/hist/point 5.4 9
+/gps/hist/point 5.6 5
+/gps/hist/point 5.8 2
+/gps/hist/point 6 0
+/gps/hist/inter Lin

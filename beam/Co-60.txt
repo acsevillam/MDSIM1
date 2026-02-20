@@ -1,0 +1,31 @@
+# Beam file for NP1
+# 
+# Co-60 source
+
+# First Co-60 line at 1.17 MeV
+
+/gps/source/intensity 1.
+/gps/particle gamma
+/gps/ene/type Mono
+/gps/ene/mono 1.17 MeV
+
+/gps/pos/type Beam
+/gps/pos/shape Square
+/gps/pos/centre 0. 0. 100. cm
+/gps/pos/halfx 20. cm
+/gps/pos/halfy 20. cm
+/gps/direction 0 0 -1
+
+# Second Co-60 line at 1.33 MeV
+
+/gps/source/add 1.
+/gps/particle gamma
+/gps/ene/type Mono
+/gps/ene/mono 1.33 MeV
+
+/gps/pos/type Beam
+/gps/pos/shape Square
+/gps/pos/centre 0. 0. 100. cm
+/gps/pos/halfx 20. cm
+/gps/pos/halfy 20. cm
+/gps/direction 0 0 -1

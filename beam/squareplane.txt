@@ -1,0 +1,8 @@
+# Beam file for NP1
+#
+/gps/pos/type Beam
+/gps/pos/shape Square
+/gps/pos/centre 0. 0. 100. cm
+/gps/pos/halfx 20. cm
+/gps/pos/halfy 20. cm
+/gps/direction 0 0 -1

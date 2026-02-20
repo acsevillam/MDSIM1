@@ -1,0 +1,69 @@
+# Macro file for the initialization of example B1
+# in interactive session
+#
+# Set some default verbose
+/control/verbose 0
+/run/verbose 0
+
+##################### G4State_PreInit ###################
+
+# ================= Phase Space settings ===============
+
+/MultiDetector1/control/SetPhspFileName **PhspFileName**
+
+##################### Initialization ###################
+#
+# Initialize kernel
+/run/initialize
+/run/printProgress 10000
+#
+
+##################### G4State_Idle ###################
+
+# ==================== Beam settings ==================
+
+/MultiDetector1/run/SetMU 1
+
+/MultiDetector1/Clinac/setJaw1X 2 cm
+/MultiDetector1/Clinac/setJaw2X 2 cm
+/MultiDetector1/Clinac/setJaw1Y 2 cm
+/MultiDetector1/Clinac/setJaw2Y 2 cm
+
+# ================== Geometry settings ================
+
+/MultiDetector1/WaterBox/addGeometryTo world_log 0
+/MultiDetector1/WaterBox/phantomID 0
+/MultiDetector1/WaterBox/translateTo 0 0 -10 cm # SSD = 100 cm
+
+# ================== Scoring settings =================
+
+# Primitive scorers
+/control/execute mac/scorers1.mac
+
+/score/create/boxMesh pddBuildup
+/score/mesh/boxSize 1.2 1.2 1.2 cm
+/score/mesh/translate/xyz 0 0 -1.2 cm
+/score/mesh/nBin 1 1 12 // x y z
+/score/quantity/doseDeposit dose
+/score/close
+
+/score/create/boxMesh pdd
+/score/mesh/boxSize 1.2 1.2 25. cm
+/score/mesh/translate/xyz 0 0 -25 cm
+/score/mesh/nBin 1 1 125 // x y z
+/score/quantity/doseDeposit dose
+/score/close
+
+/score/create/boxMesh latProfile_y
+/score/mesh/boxSize 1.2 25. 0.6 cm
+/score/mesh/translate/xyz 0 0 -2.5 cm
+/score/mesh/nBin 1 125 1 // x y z
+/score/quantity/doseDeposit dose
+/score/close
+
+/score/create/boxMesh latProfile_x
+/score/mesh/boxSize 25 1.2 0.6 cm
+/score/mesh/translate/xyz 0 0 -2.5 cm
+/score/mesh/nBin 125 1 1 // x y z
+/score/quantity/doseDeposit dose
+/score/close

@@ -1,0 +1,50 @@
+# Macro file for the initialization of example B1
+# in interactive session
+#
+# Set some default verbose
+/control/verbose 2
+/run/verbose 2
+
+##################### G4State_PreInit ###################
+
+# ================= Phase Space settings ===============
+
+/MultiDetector1/control/SetPhspFileName **PhspFileName**
+
+##################### Initialization ###################
+#
+# Initialize kernel
+/run/initialize
+/run/printProgress 10000
+#
+
+##################### G4State_Idle ###################
+
+# ==================== Beam settings ==================
+
+/MultiDetector1/run/SetMU 100
+
+/MultiDetector1/Clinac/setJaw1X **Jaw1X** cm
+/MultiDetector1/Clinac/setJaw2X **Jaw2X** cm
+/MultiDetector1/Clinac/setJaw1Y **Jaw1Y** cm
+/MultiDetector1/Clinac/setJaw2Y **Jaw2Y** cm
+
+# ================== Geometry settings ================
+
+/MultiDetector1/Clinac/rotateGantry **GantryAngle** deg
+/MultiDetector1/Clinac/rotateGantryPhSp **GantryAngle** deg
+/MultiDetector1/Clinac/rotateCollimator **CollimatorAngle** deg
+/MultiDetector1/Clinac/rotateCollimatorPhSp **CollimatorAngle** deg
+
+/MultiDetector1/WaterBox/addGeometryTo world_log 0
+/MultiDetector1/WaterBox/phantomID 0
+/MultiDetector1/WaterBox/translateTo 0 0 10 cm
+
+/MultiDetector1/DualBB7/addGeometryTo WaterBox 0
+/MultiDetector1/DualBB7/detectorID 0
+/MultiDetector1/DualBB7/translateTo 0 0 -10 cm
+/MultiDetector1/DualBB7/rotateX **DetectorAngle** deg
+
+# ================== Scoring settings =================
+# Primitive scorers
+/control/execute mac/scorers1.mac
