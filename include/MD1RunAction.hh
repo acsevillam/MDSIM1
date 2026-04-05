@@ -19,14 +19,33 @@
 // Geant4 Headers
 #include "G4UserRunAction.hh"
 #include "G4Accumulable.hh"
+#include "G4StatDouble.hh"
 #include "globals.hh"
 #include "G4SystemOfUnits.hh"
 
 // MultiDetector Headers
+#include "analysis/MD1StatAccumulable.hh"
 #include "MD1DetectorConstruction.hh"
 #include "MD1RunActionMessenger.hh"
 
 namespace MD1 {
+
+struct DetectorRunAccumulables {
+    G4String name;
+    G4Accumulable<G4int> events;
+    MD1StatAccumulable totalEdep;
+    MD1StatAccumulable collectedCharge;
+    MD1StatAccumulable dose;
+    MD1StatAccumulable estimatedDoseToWater;
+
+    explicit DetectorRunAccumulables(const G4String& detectorName)
+        : name(detectorName),
+          events(0),
+          totalEdep(detectorName + "_Edep"),
+          collectedCharge(detectorName + "_Charge"),
+          dose(detectorName + "_Dose"),
+          estimatedDoseToWater(detectorName + "_EstimatedDoseToWater") {}
+};
 
 class MD1RunAction : public G4UserRunAction {
   public:
@@ -49,13 +68,20 @@ class MD1RunAction : public G4UserRunAction {
     void CountEdepEvent() { fEDepEvents += 1; }
 
     // Method to add total energy deposition
-    void AddTotalEdep(G4double Edep) { fTotalEdep += Edep; fTotalEdep2 += Edep * Edep; }
+    void AddTotalEdep(G4double Edep) { fTotalEdep.Fill(Edep); }
 
     // Method to add total collected charge
-    void AddTotalCollectedCharge(G4double CollectedCharge) { fCollectedCharge += CollectedCharge; fCollectedCharge2 += CollectedCharge * CollectedCharge; }
+    void AddTotalCollectedCharge(G4double CollectedCharge) { fCollectedCharge.Fill(CollectedCharge); }
 
     // Method to add total dose
-    void AddTotalDose(G4double Dose) { fDose += Dose; fDose2 += Dose * Dose; }
+    void AddTotalDose(G4double dose) { fDose.Fill(dose); }
+    void AddTotalEstimatedDoseToWater(G4double dose) { fEstimatedDoseToWater.Fill(dose); }
+
+    void AddDetectorTotals(const G4String& detectorName,
+                           G4double edep,
+                           G4double collectedCharge,
+                           G4double dose,
+                           G4double estimatedDoseToWater);
 
     // Method to set monitor units
     void SetMU(G4int MU) { fSimulatedMU = MU; }
@@ -65,24 +91,19 @@ class MD1RunAction : public G4UserRunAction {
     // Accumulable for counting energy deposition events
     G4Accumulable<G4int> fEDepEvents;
 
-    // Accumulables for total energy deposition and its square
-    G4Accumulable<G4double> fTotalEdep;
-    G4Accumulable<G4double> fTotalEdep2;
-
-    // Accumulables for total collected charge and its square
-    G4Accumulable<G4double> fCollectedCharge;
-    G4Accumulable<G4double> fCollectedCharge2;
-
-    // Accumulables for total dose and its square
-    G4Accumulable<G4double> fDose;
-    G4Accumulable<G4double> fDose2;
+    // Statistical accumulables for energy deposition, collected charge and dose
+    MD1StatAccumulable fTotalEdep;
+    MD1StatAccumulable fCollectedCharge;
+    MD1StatAccumulable fDose;
+    MD1StatAccumulable fEstimatedDoseToWater;
 
     // Accumulables for total energy deposition and its square
     G4int fSimulatedMU = 1; //
-    G4double fScaleFactorMU = 1/2.3514811546434146e-13; // [cGy/ev -> cGy/UM (dmax)] =  1/2.3514811546434146e-13
+    G4double fScaleFactorMU = 1; // [cGy/ev -> cGy/UM (dmax)] =  1/2.385e-13
 
     // Run action messenger
     G4UImessenger* 	 				fRunActionMessenger ;
+    std::vector<DetectorRunAccumulables> fDetectorAccumulables;
 };
 
 } // namespace MD1

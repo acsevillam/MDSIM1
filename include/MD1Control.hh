@@ -37,9 +37,6 @@ public:
 
     void Setup(int argc,char** argv);
 
-    inline void SetPhspFileName (const G4String aFileName) { fPhspFileName=aFileName;};
-    inline G4String GetPhspFileName () { return fPhspFileName;};
-
     inline G4UserTrackingAction* GetTrackingAction() const { return fTrackingAction;}
 
     inline void SetTrackingAction(G4UserTrackingAction* aTrackingAction){fTrackingAction=aTrackingAction;}
@@ -67,13 +64,11 @@ private:
 
     MD1ControlMessenger*		fMD1ControlMessenger ;
 
-    G4String					fPhspFileName ;
-
     G4UserTrackingAction*		fTrackingAction ;
     G4UserSteppingAction*    	fSteppingAction ;
     G4UserSteppingAction*    	fSensitiveDetectorAction ;
 
-    G4int                       fPrimaryGeneratorType;
+    G4int                       fPrimaryGeneratorType = 1;
 
 };
 

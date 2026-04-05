@@ -55,7 +55,6 @@ public:
 private:
 
 	MD1Control*								fMD1Control ;
-	G4UIcmdWithAString* fSetPhspFileNameCmd; ///< Command to set the phase space filename
 	G4UIcmdWithAnInteger* fSetPrimaryGeneratorTypeCmd; ///< Command to set the phase space filename
 
 

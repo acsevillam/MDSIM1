@@ -61,6 +61,8 @@
 #include "iaea_record.h"
 
 #include <cstdlib>
+#include <fstream>
+#include <string>
 #include <vector>
 
 #include "G4Gamma.hh"
@@ -74,7 +76,13 @@
 #include "G4String.hh"
 #include "G4ThreeVector.hh"
 #include "G4SystemOfUnits.hh"
+#include "G4AutoLock.hh"
 #include "Randomize.hh"
+
+namespace {
+G4Mutex g4iaeaReaderIdMutex = G4MUTEX_INITIALIZER;
+G4int g4iaeaNextSourceReadId = 0;
+}
 
 // ==================================================================================
 //  G4IAEAphspReader::G4IAEAphspReader(char* filename, const G4int sourceId)
@@ -168,7 +176,7 @@ G4IAEAphspReader::~G4IAEAphspReader()
     }
 
   // IAEA file have to be closed
-  const IAEA_I32 sourceRead = static_cast<const IAEA_I32>( theSourceReadId );
+  IAEA_I32 sourceRead = static_cast<IAEA_I32>( theSourceReadId );
   IAEA_I32 result;
 
   iaea_destroy_source(&sourceRead, &result);
@@ -196,6 +204,11 @@ void G4IAEAphspReader::InitializeMembers()
   G4ThreeVector yAxis(0.0, 1.0, 0.0);
   G4ThreeVector zAxis(0.0, 0.0, 1.0);
 
+  {
+    G4AutoLock lock(&g4iaeaReaderIdMutex);
+    theSourceReadId = g4iaeaNextSourceReadId++;
+  }
+
   particle_time = 0.0;
   particle_position = zeroVec;
 
@@ -219,6 +232,8 @@ void G4IAEAphspReader::InitializeMembers()
   theCurrentParticle = 100e6;
   theEndOfFile = false;
   theLastGenerated = true; //MAC to make the file 'restart' in the first event.
+  theAbortOnNextReuseAfterEOF = false;
+  theHasGeneratedAtLeastOneEvent = false;
 
   theGlobalPhspTranslation = zeroVec;
   theRotationOrder = 123;
@@ -236,6 +251,27 @@ void G4IAEAphspReader::InitializeMembers()
 
 void G4IAEAphspReader::InitializeSource(char* filename)
 {
+  // Git LFS pointer files are plain text placeholders, not real IAEA phase spaces.
+  // Detect them early so the run aborts with a clear message instead of crashing
+  // later while decoding bogus particle records.
+  {
+    std::ifstream phspFile((theFileName + ".IAEAphsp").c_str());
+    if (!phspFile)
+      {
+        G4Exception("G4IAEAphspReader::InitializeSource()",
+                    "IAEAreader002", RunMustBeAborted, "Could not open IAEA source file to read");
+      }
+
+    std::string firstLine;
+    std::getline(phspFile, firstLine);
+    if (firstLine.rfind("version https://git-lfs.github.com/spec/v1", 0) == 0)
+      {
+        G4Exception("G4IAEAphspReader::InitializeSource()",
+                    "IAEAreaderLFS", RunMustBeAborted,
+                    "The .IAEAphsp file is a Git LFS pointer, not the real binary phase-space file. Fetch the LFS object before running.");
+      }
+  }
+
   // Now try to open file, and check if all it's OK
 
   IAEA_I32 sourceRead = static_cast<IAEA_I32>( theSourceReadId );
@@ -352,6 +388,14 @@ void G4IAEAphspReader::GeneratePrimaryVertex(G4Event* evt)
     //std::cout <<"current particle: " << theCurrentParticle<< "nStat: " << evt->GetEventID() << std::endl;
   if (theLastGenerated) 
     {
+      if (theAbortOnNextReuseAfterEOF && theHasGeneratedAtLeastOneEvent)
+        {
+          G4Exception("G4IAEAphspReader::GeneratePrimaryVertex()",
+                      "IAEAreaderEOF",
+                      RunMustBeAborted,
+                      ("End of phase-space file reached for " + theFileName + ".IAEAphsp").c_str());
+          return;
+        }
       RestartSourceFile();
       ReadAndStoreFirstParticle();
     }
@@ -365,6 +409,8 @@ void G4IAEAphspReader::GeneratePrimaryVertex(G4Event* evt)
       ReadThisEvent();
       GeneratePrimaryParticles(evt);
     }
+
+  theHasGeneratedAtLeastOneEvent = true;
 }
 
 
@@ -690,12 +736,21 @@ void G4IAEAphspReader::GeneratePrimaryParticles(G4Event* evt)
 	  break;
 	case 5:
 	  partDef = G4Proton::Definition();
+	  break;
 	default:
 	  G4cout << "Exception occurred at event " << evt->GetEventID() << "\n"
 		 << "reading particle code " << (*theParticleTypeVector)[k] << "." << G4endl;
 	  G4Exception("G4IAEAphspReader::GeneratePrimaryParticles()",
 		      "IAEAreader011", EventMustBeAborted, "Unknown particle code in IAEA file");
+          return;
 	}
+
+      if (!partDef)
+        {
+          G4Exception("G4IAEAphspReader::GeneratePrimaryParticles()",
+                      "IAEAreader012", EventMustBeAborted, "Null particle definition while reading IAEA file");
+          return;
+        }
 
       // Second: Particle position, time and momentum
       // --------------------------------------------
@@ -922,7 +977,7 @@ G4long G4IAEAphspReader::GetTotalParticlesOfType(G4String type) const
     }
 
   IAEA_I64 nParticles;
-  const IAEA_I32 sourceRead = static_cast<const IAEA_I32>( theSourceReadId );
+  IAEA_I32 sourceRead = static_cast<IAEA_I32>( theSourceReadId );
   iaea_get_max_particles(&sourceRead, &particleType, &nParticles);
 
   if (nParticles < 0)
@@ -946,7 +1001,7 @@ G4long G4IAEAphspReader::GetTotalParticlesOfType(G4String type) const
 
 G4double G4IAEAphspReader::GetConstantVariable(const G4int index) const
 {
-  const IAEA_I32 sourceRead = static_cast<const IAEA_I32>( theSourceReadId );
+  IAEA_I32 sourceRead = static_cast<IAEA_I32>( theSourceReadId );
   const IAEA_I32 idx = static_cast<const IAEA_I32>( index );
   IAEA_Float constVariable;
   IAEA_I32 result;

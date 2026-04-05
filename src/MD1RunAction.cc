@@ -13,18 +13,17 @@
  *
  */
 
-// Geant4 Headers
-#include "G4RunManager.hh"
-#include "G4Run.hh"
 #include "G4AccumulableManager.hh"
-#include "G4LogicalVolumeStore.hh"
-#include "G4LogicalVolume.hh"
-#include "G4UnitsTable.hh"
-#include "G4SystemOfUnits.hh"
 #include "G4AnalysisManager.hh"
+#include "G4LogicalVolume.hh"
+#include "G4LogicalVolumeStore.hh"
+#include "G4Run.hh"
+#include "G4RunManager.hh"
 #include "G4ScoringManager.hh"
+#include "G4SystemOfUnits.hh"
+#include "G4UnitsTable.hh"
 
-// MultiDetector Headers
+#include "geometry/base/DetectorRegistry.hh"
 #include "MD1PrimaryGeneratorAction1.hh"
 #include "MD1RunAction.hh"
 
@@ -32,50 +31,132 @@ using namespace std;
 
 namespace MD1 {
 
+namespace {
+
+struct StatDisplayValues {
+    G4double meanPerEvent = 0.;
+    G4double rms = 0.;
+    G4double mcError = 0.;
+    G4double relativeMcErrorPercent = 0.;
+};
+
+StatDisplayValues BuildStatDisplayValues(const G4StatDouble& stat,
+                                         G4int nofEvents,
+                                         G4double scale = 1.) {
+    StatDisplayValues values;
+    if (nofEvents <= 0) {
+        return values;
+    }
+
+    G4StatDouble scaledStat = stat;
+    scaledStat.scale(scale);
+    values.meanPerEvent = scaledStat.mean(nofEvents);
+    values.rms = scaledStat.rms(nofEvents, nofEvents);
+    if (nofEvents > 0) {
+        values.mcError = values.rms / std::sqrt(static_cast<G4double>(nofEvents));
+    }
+    if (values.meanPerEvent != 0.) {
+        values.relativeMcErrorPercent = 100. * values.mcError / std::abs(values.meanPerEvent);
+    }
+    return values;
+}
+
+void PrintDetectorSummary(const DetectorRunAccumulables& detectorAccumulables,
+                          G4int nofEvents,
+                          G4int simulatedMU,
+                          G4double scaleFactorMU) {
+    const G4int detectedEvents = detectorAccumulables.events.GetValue();
+    const auto edepValues = BuildStatDisplayValues(detectorAccumulables.totalEdep.GetStat(), nofEvents);
+    const auto chargeValues = BuildStatDisplayValues(detectorAccumulables.collectedCharge.GetStat(), nofEvents);
+    const auto doseValues = BuildStatDisplayValues(detectorAccumulables.dose.GetStat(), nofEvents);
+    const auto estimatedDoseToWaterValues = BuildStatDisplayValues(detectorAccumulables.estimatedDoseToWater.GetStat(), nofEvents);
+
+    G4cout << G4endl
+           << "---------------- Detector Summary: " << detectorAccumulables.name << " ----------------" << G4endl
+           << "(1)  Events with signal: " << detectedEvents << G4endl
+           << "(2)  Fraction with signal: " << G4double(detectedEvents) / G4double(nofEvents) << G4endl
+           << "(3)  Mean deposited energy per event: "
+           << G4BestUnit(edepValues.meanPerEvent, "Energy")
+           << " err = " << G4BestUnit(edepValues.mcError, "Energy")
+           << " (" << edepValues.relativeMcErrorPercent << " %)"
+           << " rms = " << G4BestUnit(edepValues.rms, "Energy") << G4endl
+           << "(4)  Mean dose per event in detector sensitive volume: "
+           << G4BestUnit(doseValues.meanPerEvent, "Dose")
+           << " err = " << G4BestUnit(doseValues.mcError, "Dose")
+           << " (" << doseValues.relativeMcErrorPercent << " %)"
+           << " rms = " << G4BestUnit(doseValues.rms, "Dose") << G4endl
+           << "(5)  Mean collected charge per event: "
+           << chargeValues.meanPerEvent / (1e-9*coulomb) << " nC"
+           << " err = " << chargeValues.mcError / (1e-9*coulomb) << " nC"
+           << " (" << chargeValues.relativeMcErrorPercent << " %)"
+           << " rms = " << chargeValues.rms / (1e-9*coulomb) << " nC" << G4endl
+           << "(6)  Calculated total dose in detector sensitive volume (" << simulatedMU << "UM): "
+           << doseValues.meanPerEvent * scaleFactorMU * simulatedMU / (1e-2*gray) << " cGy"
+           << " err = " << doseValues.mcError * scaleFactorMU * simulatedMU / (1e-2*gray) << " cGy"
+           << " (" << doseValues.relativeMcErrorPercent << " %)"
+           << " rms = " << doseValues.rms * scaleFactorMU * simulatedMU / (1e-2*gray) << " cGy" << G4endl
+           << "(7)  Scaled charge (" << simulatedMU << "UM): "
+           << chargeValues.meanPerEvent / (1e-9*coulomb) * scaleFactorMU * simulatedMU << " nC"
+           << " err = " << chargeValues.mcError / (1e-9*coulomb) * scaleFactorMU * simulatedMU << " nC"
+           << " (" << chargeValues.relativeMcErrorPercent << " %)"
+           << " rms = " << chargeValues.rms / (1e-9*coulomb) * scaleFactorMU * simulatedMU << " nC" << G4endl
+           << "(8)  Estimated total absorbed dose in water (" << simulatedMU << "UM): "
+           << estimatedDoseToWaterValues.meanPerEvent * scaleFactorMU * simulatedMU / (1e-2*gray) << " cGy"
+           << " err = " << estimatedDoseToWaterValues.mcError * scaleFactorMU * simulatedMU / (1e-2*gray) << " cGy"
+           << " (" << estimatedDoseToWaterValues.relativeMcErrorPercent << " %)"
+           << " rms = " << estimatedDoseToWaterValues.rms * scaleFactorMU * simulatedMU / (1e-2*gray) << " cGy" << G4endl
+           << "------------------------------------------------------------------" << G4endl
+           << "Notes: rms = G4StatDouble::rms(nofEvents, nofEvents);"
+           << " err = rms / sqrt(N) (" << "100 * err / |mean| %" << "), with N = total events per run."
+           << G4endl;
+}
+
+} // namespace
+
 MD1RunAction::MD1RunAction()
     : G4UserRunAction(),
       fEDepEvents(0),
-      fTotalEdep(0.),
-      fTotalEdep2(0.),
-      fCollectedCharge(0.),
-      fCollectedCharge2(0.),
-      fDose(0.),
-      fDose2(0.){
+      fTotalEdep("TotalEdep"),
+      fCollectedCharge("CollectedCharge"),
+      fDose("Dose"),
+      fEstimatedDoseToWater("EstimatedDoseToWater") {
 
-    fRunActionMessenger = new MD1RunActionMessenger(this) ;
+    fRunActionMessenger = new MD1RunActionMessenger(this);
 
-    G4AccumulableManager* accumulableManager = G4AccumulableManager::Instance();
-    // Register accumulable to the accumulable manager
+    auto* accumulableManager = G4AccumulableManager::Instance();
     accumulableManager->Register(fEDepEvents);
-    accumulableManager->Register(fTotalEdep);
-    accumulableManager->Register(fTotalEdep2);
-    accumulableManager->Register(fCollectedCharge);
-    accumulableManager->Register(fCollectedCharge2);
-    accumulableManager->Register(fDose);
-    accumulableManager->Register(fDose2);
+    accumulableManager->Register(&fTotalEdep);
+    accumulableManager->Register(&fCollectedCharge);
+    accumulableManager->Register(&fDose);
+    accumulableManager->Register(&fEstimatedDoseToWater);
 
-    G4AnalysisManager* analysisManager = G4AnalysisManager::Instance();
+    for (auto* detector : DetectorRegistry::GetInstance()->GetActiveDetectors()) {
+        fDetectorAccumulables.emplace_back(detector->GetName());
+        auto& accumulators = fDetectorAccumulables.back();
+        accumulableManager->Register(accumulators.events);
+        accumulableManager->Register(&accumulators.totalEdep);
+        accumulableManager->Register(&accumulators.collectedCharge);
+        accumulableManager->Register(&accumulators.dose);
+        accumulableManager->Register(&accumulators.estimatedDoseToWater);
+    }
+
+    auto* analysisManager = G4AnalysisManager::Instance();
     analysisManager->SetActivation(true);
     G4cout << "Using " << analysisManager->GetType() << G4endl;
     analysisManager->SetVerboseLevel(0);
-    analysisManager->SetFileName("analysis/BB7Readout.root");
+    analysisManager->SetFileName("analysis/DetectorReadout.root");
 
-    // Create Histograms and N-Tuples
     CreateNTuples();
     CreateHistos();
 }
 
 void MD1RunAction::BeginOfRunAction(const G4Run*) {
+    auto* analysisManager = G4AnalysisManager::Instance();
+    if (analysisManager->IsActive()) {
+        analysisManager->OpenFile();
+    }
 
-    G4AnalysisManager* analysisManager = G4AnalysisManager::Instance();
-
-	if(analysisManager->IsActive()){
-		// Open an output file
-		analysisManager->OpenFile();
-	}
-
-    // Reset accumulables to their initial values
-    G4AccumulableManager* accumulableManager = G4AccumulableManager::Instance();
+    auto* accumulableManager = G4AccumulableManager::Instance();
     accumulableManager->Reset();
 }
 
@@ -83,58 +164,21 @@ void MD1RunAction::EndOfRunAction(const G4Run* run) {
     G4int nofEvents = run->GetNumberOfEvent();
     if (nofEvents == 0) return;
 
-	G4AnalysisManager* analysisManager = G4AnalysisManager::Instance();
+    auto* analysisManager = G4AnalysisManager::Instance();
+    if (analysisManager->IsActive()) {
+        analysisManager->Write();
+        analysisManager->CloseFile();
+    }
 
-	if(analysisManager->IsActive()){
-		// Save histograms and ntuples
-		analysisManager->Write();
-		analysisManager->CloseFile();
-	}
-
-    // Merge accumulables
-    G4AccumulableManager* accumulableManager = G4AccumulableManager::Instance();
+    auto* accumulableManager = G4AccumulableManager::Instance();
     accumulableManager->Merge();
 
-    // Compute energy deposited event
     G4int eDepEvents = fEDepEvents.GetValue();
+    const auto edepValues = BuildStatDisplayValues(fTotalEdep.GetStat(), nofEvents);
+    const auto chargeValues = BuildStatDisplayValues(fCollectedCharge.GetStat(), nofEvents);
+    const auto doseValues = BuildStatDisplayValues(fDose.GetStat(), nofEvents);
+    const auto estimatedDoseToWaterValues = BuildStatDisplayValues(fEstimatedDoseToWater.GetStat(), nofEvents);
 
-    // Total energy deposit in a run and its variance
-    G4double TotalEdep = fTotalEdep.GetValue();
-    G4double TotalEdep2 = fTotalEdep2.GetValue();
-    G4double rmsTotalEdep = 0.;
-
-    if (eDepEvents > 0) {
-        rmsTotalEdep = TotalEdep2 - TotalEdep * TotalEdep / eDepEvents;
-        if (rmsTotalEdep > 0.) {
-            rmsTotalEdep = std::sqrt(rmsTotalEdep);
-        }
-    }
-
-    // Total collected charge in a run and its variance
-    G4double CollectedCharge = fCollectedCharge.GetValue();
-    G4double CollectedCharge2 = fCollectedCharge2.GetValue();
-    G4double rmsCollectedCharge = 0.;
-
-    if (eDepEvents > 0) {
-        rmsCollectedCharge = CollectedCharge2 - CollectedCharge * CollectedCharge / eDepEvents;
-        if (rmsCollectedCharge > 0.) {
-            rmsCollectedCharge = std::sqrt(rmsCollectedCharge);
-        }
-    }
-
-    // Total collected charge in a run and its variance
-    G4double Dose = fDose.GetValue();
-    G4double Dose2 = fDose2.GetValue();
-    G4double rmsDose = 0.;
-
-    if (eDepEvents > 0) {
-        rmsDose = Dose2 - Dose * Dose / eDepEvents;
-        if (rmsDose > 0.) {
-            rmsDose = std::sqrt(rmsDose);
-        }
-    }
-
-    // Print results
     if (IsMaster()) {
         G4cout << G4endl
                << "--------------------End of Global Run-----------------------" << G4endl
@@ -142,91 +186,106 @@ void MD1RunAction::EndOfRunAction(const G4Run* run) {
                << "(2)  Number of detected events per event: "
                << G4double(eDepEvents) / G4double(nofEvents) << G4endl
                << "     [Total number of detected events (2) / Total events per run (1)]" << G4endl
-               << "(3)  Total deposited energy per event in sensitive volume: "
-               << G4BestUnit(TotalEdep / nofEvents, "Energy") << " rms = "
-               << G4BestUnit(rmsTotalEdep / nofEvents, "Energy") << G4endl
-               << "     [Total deposited energy in sensitive volume / Total events per run (1)]" << G4endl
-               << "(4)  Total collected charge per event in sensitive volume: "
-               << CollectedCharge / nofEvents / (10e-9*coulomb) << " nC rms = " << rmsCollectedCharge / nofEvents / (10e-9*coulomb) << " nC" << G4endl
-               << "     [Total collected charge in sensitive volume / Total events per run (1)]" << G4endl
-               << "(5)  Total dose per event in sensitive volume: "
-               << G4BestUnit(Dose / nofEvents, "Dose")  << " rms = " << G4BestUnit(rmsDose / nofEvents, "Dose") << G4endl
-               << "     [Total collected charge in sensitive volume / Total events per run (1)]" << G4endl
-               << "(6)  Calculated total collected charge ("<<fSimulatedMU<<"UM): "
-               << CollectedCharge / nofEvents  / (10e-9*coulomb) * fScaleFactorMU * fSimulatedMU << "nC" << " rms = " << rmsCollectedCharge / nofEvents / (10e-9*coulomb) * fScaleFactorMU * fSimulatedMU << " nC" << G4endl
-               << "     [Total collected charge per event in sensitive volume (4) * fScaleFactorMU * fSimulatedMU]" << G4endl
-               << "(7)  Calculated total dose ("<<fSimulatedMU<<"UM): "
-               << Dose / nofEvents * fScaleFactorMU * fSimulatedMU / (10e-2*gray) <<" cGy"<< " rms = " << rmsDose / nofEvents * fScaleFactorMU * fSimulatedMU / (10e-2*gray) << " cGy" << G4endl
-               << "     [Total dose per event in sensitive volume (4) * fScaleFactorMU * fSimulatedMU]"
+               << "(3)  Mean deposited energy per event in sensitive volume: "
+               << G4BestUnit(edepValues.meanPerEvent, "Energy")
+               << " err = " << G4BestUnit(edepValues.mcError, "Energy")
+               << " (" << edepValues.relativeMcErrorPercent << " %)"
+               << " rms = " << G4BestUnit(edepValues.rms, "Energy") << G4endl
+               << "     [Statistics computed with G4StatDouble normalized to the full run]" << G4endl
+               << "(4)  Mean dose per event in detector sensitive volume: "
+               << G4BestUnit(doseValues.meanPerEvent, "Dose")
+               << " err = " << G4BestUnit(doseValues.mcError, "Dose")
+               << " (" << doseValues.relativeMcErrorPercent << " %)"
+               << " rms = " << G4BestUnit(doseValues.rms, "Dose") << G4endl
+               << "     [Statistics computed with G4StatDouble normalized to the full run]" << G4endl
+               << "(5)  Mean collected charge per event in sensitive volume: "
+               << chargeValues.meanPerEvent / (1e-9*coulomb) << " nC"
+               << " err = " << chargeValues.mcError / (1e-9*coulomb) << " nC"
+               << " (" << chargeValues.relativeMcErrorPercent << " %)"
+               << " rms = " << chargeValues.rms / (1e-9*coulomb) << " nC" << G4endl
+               << "     [Statistics computed with G4StatDouble normalized to the full run]" << G4endl
+               << "(6)  Calculated total dose in detector sensitive volume ("<<fSimulatedMU<<"UM): "
+               << doseValues.meanPerEvent * fScaleFactorMU * fSimulatedMU / (1e-2*gray) <<" cGy"
+               << " err = " << doseValues.mcError * fScaleFactorMU * fSimulatedMU / (1e-2*gray) << " cGy"
+               << " (" << doseValues.relativeMcErrorPercent << " %)"
+               << " rms = " << doseValues.rms * fScaleFactorMU * fSimulatedMU / (1e-2*gray) << " cGy" << G4endl
+               << "     [Mean dose per event in detector sensitive volume (4) * fScaleFactorMU * fSimulatedMU]" << G4endl
+               << "(7)  Calculated total collected charge ("<<fSimulatedMU<<"UM): "
+               << chargeValues.meanPerEvent / (1e-9*coulomb) * fScaleFactorMU * fSimulatedMU << " nC"
+               << " err = " << chargeValues.mcError / (1e-9*coulomb) * fScaleFactorMU * fSimulatedMU << " nC"
+               << " (" << chargeValues.relativeMcErrorPercent << " %)"
+               << " rms = " << chargeValues.rms / (1e-9*coulomb) * fScaleFactorMU * fSimulatedMU << " nC" << G4endl
+               << "     [Mean collected charge per event (5) * fScaleFactorMU * fSimulatedMU]" << G4endl
+               << "(8)  Estimated total absorbed dose in water ("<<fSimulatedMU<<"UM): "
+               << estimatedDoseToWaterValues.meanPerEvent * fScaleFactorMU * fSimulatedMU / (1e-2*gray) <<" cGy"
+               << " err = " << estimatedDoseToWaterValues.mcError * fScaleFactorMU * fSimulatedMU / (1e-2*gray) << " cGy"
+               << " (" << estimatedDoseToWaterValues.relativeMcErrorPercent << " %)"
+               << " rms = " << estimatedDoseToWaterValues.rms * fScaleFactorMU * fSimulatedMU / (1e-2*gray) << " cGy" << G4endl
+               << "     [Estimated absorbed dose in water per event from detector calibration * fScaleFactorMU * fSimulatedMU]"
                << G4endl
                << "------------------------------------------------------------" << G4endl;
 
-            G4double scale_factor = (1./nofEvents)*fScaleFactorMU*fSimulatedMU;
-            G4ScoringManager* scoringManager = G4ScoringManager::GetScoringManager();
-        
-            G4double sum_wx, sum_wx2, nEntries, wx_rms;
+        G4double scale_factor = fScaleFactorMU * fSimulatedMU;
+        G4ScoringManager* scoringManager = G4ScoringManager::GetScoringManager();
 
-            for (auto itr = 0; itr < scoringManager->GetNumberOfMesh(); ++itr){
-                scoringManager->SetFactor(scale_factor);
-                G4String meshName = scoringManager->GetMesh(itr)->GetWorldName();
-                if(meshName.find("at") != std::string::npos){
-                    auto scoringMesh = scoringManager->FindMesh(meshName);
-                    auto scoreMap = scoringMesh->GetScoreMap();
-                    G4String psName = "dose";
-                    auto score = scoreMap[psName]->GetMap();
-                    G4cout << G4endl
-                        << "------------------ Dose " << meshName << " ---------------------" << G4endl;
-                    for (auto itr = score->begin(); itr != score->end(); ++itr){
-                        if(itr->second->n()>0){
-                            //G4cout<<itr->first<<"\t"<< itr->second->sum_wx()/(1e-2*gray) <<" cGy"<< " total(val^2) = " << itr->second->sum_wx2()/(1e-2*gray)/(1e-2*gray) <<" cGy^2" << " nEntries = " << itr->second->n() <<" (without scaling to MU)"<< G4endl;
-                            sum_wx = itr->second->sum_wx();
-                            sum_wx2 = itr->second->sum_wx2();
-                            nEntries = itr->second->n();
-                            wx_rms = std::sqrt(sum_wx2 - sum_wx*sum_wx/nEntries);
-                            G4cout<<itr->first<<"\t"<< sum_wx*scale_factor/(1e-2*gray) <<" cGy"<< " rms = " << wx_rms*scale_factor*scale_factor/(1e-2*gray)<<" cGy" << " nEntries = " << itr->second->n() << G4endl;
-                        }
+        for (auto itr = 0; itr < scoringManager->GetNumberOfMesh(); ++itr){
+            scoringManager->SetFactor(scale_factor);
+            G4String meshName = scoringManager->GetMesh(itr)->GetWorldName();
+            if(meshName.find("at") != std::string::npos){
+                auto scoringMesh = scoringManager->FindMesh(meshName);
+                auto scoreMap = scoringMesh->GetScoreMap();
+                G4String psName = "dose";
+                auto score = scoreMap[psName]->GetMap();
+                G4cout << G4endl
+                    << "------------------ Dose " << meshName << " ---------------------" << G4endl;
+                for (auto itr = score->begin(); itr != score->end(); ++itr){
+                    if(itr->second->n()>0){
+                        G4StatDouble stat = *(itr->second);
+                        stat.scale(scale_factor);
+                        const auto meanDose = stat.mean(nofEvents);
+                        const auto rms = stat.rms(nofEvents, nofEvents);
+                        G4cout<<itr->first<<"\t"<< meanDose/(1e-2*gray) <<" cGy"
+                              << " rms = " << rms/(1e-2*gray) << " cGy"
+                              << " nEntries = " << itr->second->n() << G4endl;
                     }
-                    G4cout << "------------------------------------------------------------" << G4endl;  
                 }
-                scoringManager->DumpAllQuantitiesToFile(meshName,"analysis/"+meshName+".out");
+                G4cout << "------------------------------------------------------------" << G4endl;
             }
+            scoringManager->DumpAllQuantitiesToFile(meshName,"analysis/"+meshName+".out");
+        }
 
+        for (const auto& detectorAccumulables : fDetectorAccumulables) {
+            PrintDetectorSummary(detectorAccumulables, nofEvents, fSimulatedMU, fScaleFactorMU);
+        }
+    }
+}
+
+void MD1RunAction::AddDetectorTotals(const G4String& detectorName,
+                                     G4double edep,
+                                     G4double collectedCharge,
+                                     G4double dose,
+                                     G4double estimatedDoseToWater) {
+    for (auto& accumulators : fDetectorAccumulables) {
+        if (accumulators.name == detectorName) {
+            accumulators.events += 1;
+            accumulators.totalEdep.Fill(edep);
+            accumulators.collectedCharge.Fill(collectedCharge);
+            accumulators.dose.Fill(dose);
+            accumulators.estimatedDoseToWater.Fill(estimatedDoseToWater);
+            return;
+        }
     }
 }
 
 void MD1RunAction::CreateNTuples() {
-    G4AnalysisManager* analysisManager = G4AnalysisManager::Instance();
+    auto* analysisManager = G4AnalysisManager::Instance();
     analysisManager->SetNtupleMerging(true);
 
-    // Creating ntuples
-    analysisManager->SetFirstNtupleId(0);
-
-    // id = 0
-    analysisManager->CreateNtuple("BB7Hits", "Variables related to BB7 detector hits");
-    //analysisManager->SetNtupleActivation(false);
-    analysisManager->CreateNtupleDColumn("DetectorID");
-    analysisManager->CreateNtupleDColumn("SensorID");
-    analysisManager->CreateNtupleDColumn("StripID");
-    analysisManager->CreateNtupleDColumn("Edep[eV]");
-    analysisManager->CreateNtupleDColumn("Charge[coulomb]");
-    analysisManager->CreateNtupleDColumn("Dose[Gy]");
-    analysisManager->CreateNtupleDColumn("EventID");
-    analysisManager->FinishNtuple();
-
+    for (auto* detector : DetectorRegistry::GetInstance()->GetActiveDetectors()) {
+        detector->CreateAnalysis(analysisManager);
+    }
 }
 
-void MD1RunAction::CreateHistos() {
-    G4AnalysisManager* analysisManager = G4AnalysisManager::Instance();
-
-    // Creating histos
-    analysisManager->SetFirstHistoId(0);
-
-    // id = 0
-    analysisManager->CreateH2("CollectedChargeMap",
-                              "2D collected charge map reconstruction", 
-                              32, 0, 32, 32, 0, 32);
-    analysisManager->SetH2Activation(true);
-
-}
+void MD1RunAction::CreateHistos() {}
 
 } // namespace MD1

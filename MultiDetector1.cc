@@ -14,20 +14,17 @@
  */
 
 // Geant4 Headers
+#include <cerrno>
+#include <ctime>
+#include <cstdlib>
+
 #include "G4RunManagerFactory.hh"
 #include "G4SteppingVerbose.hh"
 #include "G4UImanager.hh"
 #include "G4VisExecutive.hh"
 #include "G4UIExecutive.hh"
 #include "Randomize.hh"
-#include "QBBC.hh"
-#include "G4PhysListFactory.hh"
 #include "G4VModularPhysicsList.hh"
-#include "G4ProductionCutsTable.hh"
-#include "G4RegionStore.hh"
-#include "G4Region.hh"
-#include "G4MaterialCutsCouple.hh"
-#include "G4UserLimits.hh"
 #include "G4ScoringManager.hh"
 #include "G4SystemOfUnits.hh"
 #include "G4GenericBiasingPhysics.hh"
@@ -37,76 +34,125 @@
 #include "MD1DetectorConstruction.hh"
 #include "MD1ActionInitialization.hh"
 #include "MD1Control.hh"
+#include "MD1PhspSourceConfig.hh"
+#include "geometry/base/DetectorRegistry.hh"
 
 using namespace MD1;
 
+namespace {
+
+struct ProgramOptions {
+  G4String macro = "mac/init.mac";
+  G4String visMacro = "mac/vis.mac";
+  G4String biasing = "off";
+  G4String visualization = "off";
+  G4int numberOfEvents = 0;
+  bool interactive = false;
+};
+
+bool IsOnOffValue(const G4String& value) {
+  return value == "on" || value == "off";
+}
+
+bool ParseNonNegativeInt(const G4String& value, G4int& parsedValue) {
+  errno = 0;
+  char* end = nullptr;
+  const long converted = std::strtol(value.c_str(), &end, 10);
+  if (errno != 0 || end == value.c_str() || *end != '\0' || converted < 0) {
+    return false;
+  }
+
+  parsedValue = static_cast<G4int>(converted);
+  return true;
+}
+
+bool ParseCommandLine(int argc, char** argv, ProgramOptions& options) {
+  if (argc == 1) {
+    options.interactive = true;
+    options.visualization = "on";
+    return true;
+  }
+
+  if (((argc - 1) % 2) != 0) {
+    G4cerr << "Error: command-line options must be provided as -flag value pairs." << G4endl;
+    return false;
+  }
+
+  for (G4int i = 1; i < argc; i += 2) {
+    const G4String flag = argv[i];
+    const G4String value = argv[i + 1];
+
+    if (flag == "-m") {
+      options.macro = value;
+    } else if (flag == "-v") {
+      if (!IsOnOffValue(value)) {
+        G4cerr << "Error: -v expects 'on' or 'off'." << G4endl;
+        return false;
+      }
+      options.visualization = value;
+    } else if (flag == "-vm") {
+      options.visMacro = value;
+      options.visualization = "on";
+    } else if (flag == "-b") {
+      if (!IsOnOffValue(value)) {
+        G4cerr << "Error: -b expects 'on' or 'off'." << G4endl;
+        return false;
+      }
+      options.biasing = value;
+    } else if (flag == "-n") {
+      G4int parsedEvents = 0;
+      if (!ParseNonNegativeInt(value, parsedEvents)) {
+        G4cerr << "Error: -n expects a non-negative integer." << G4endl;
+        return false;
+      }
+      options.numberOfEvents = parsedEvents;
+    } else {
+      G4cerr << "Error: unknown option '" << flag << "'." << G4endl;
+      return false;
+    }
+  }
+
+  if (options.visualization == "on") {
+    options.interactive = true;
+  }
+
+  return true;
+}
+
+}  // namespace
+
 void PrintUsage() {
 	G4cerr << " Usage: " << G4endl;
-	G4cerr << " ./Multidetector1 [-m macro ] "
-			<< " [-v visualization {'on','off'}]"
-			<< " [-vm vis_macro ]"
-			<< " [-b biasing {'on','off'}]"
-			<< " [-n numberOfEvent ]"
-			<< "\n or\n ./Multidetector1 [macro.mac]"
+	G4cerr << " ./MultiDetector1"
+			<< " [-m macro]"
+			<< " [-v on|off]"
+			<< " [-vm vis_macro]"
+			<< " [-b on|off]"
+			<< " [-n numberOfEvents]"
 			<< G4endl;
 }
 
 int main(int argc,char** argv)
 {
-  // Detect interactive mode (if no arguments) and define UI session
-  //
-  G4UIExecutive* ui = 0;
+  ProgramOptions options;
+  if (!ParseCommandLine(argc, argv, options)) {
+    PrintUsage();
+    return 1;
+  }
 
-	// Evaluate arguments
-	//
-	if ( argc > 10 ) {
-		PrintUsage();
-		return 1;
-	}
-
-	G4String macro("");
-	G4String vis_macro("");
-	G4String onOffBiasing("");
-	G4String onOffVisualization("");
-	G4int numberOfEvent(0);
-
-	if (argc == 1) {
-		ui = new G4UIExecutive(argc, argv);
-		onOffVisualization="on";
-	}
-	for ( G4int i=1; i<argc; i=i+2 )
-	{
-		if ( G4String(argv[i]) == "-m" ) macro = argv[i+1];
-		else if (G4String(argv[i]) == "-v" ) {
-			onOffVisualization=argv[i+1];
-			if(onOffVisualization=="on"){
-				ui = new G4UIExecutive(argc, argv);
-			}
-		}
-		else if ( G4String(argv[i]) == "-vm" ) {
-			if(!ui) ui = new G4UIExecutive(argc, argv);
-			if(G4String(argv[i]) == "-vm") vis_macro = argv[i+1];
-			onOffVisualization="on";
-		}
-		else if ( G4String(argv[i]) == "-b" ) onOffBiasing	= argv[i+1];
-		else if ( G4String(argv[i]) == "-n" ) numberOfEvent = G4UIcommand::ConvertToInt(argv[i+1]);
-		else{
-			PrintUsage();
-			return 1;
-		}
-	}
-
-	if(macro == "") macro = "mac/init.mac";
-	if(vis_macro == "") vis_macro = "mac/vis.mac";
-	if(onOffBiasing == "") onOffBiasing = "off";
-	if(onOffVisualization == "") onOffVisualization = "off";
+  G4UIExecutive* ui = nullptr;
+  if (options.interactive) {
+    ui = new G4UIExecutive(argc, argv);
+  }
 
   // Construct Control and ControlMessenger
   MD1Control::GetInstance();
+  MD1PhspSourceConfig::GetInstance();
+  DetectorRegistry::GetInstance();
 
   // Optionally: choose a different Random engine...
   G4Random::setTheEngine(new CLHEP::MTwistEngine);
-  G4int seed = time( NULL );
+  G4int seed = static_cast<G4int>(std::time(nullptr));
   G4Random::setTheSeed( seed );
 
   //use G4SteppingVerboseWithUnits
@@ -129,8 +175,7 @@ int main(int argc,char** argv)
   runManager->SetUserInitialization(new MD1DetectorConstruction());
 
   // Physics list
-  G4PhysListFactory factory;
-  G4VModularPhysicsList* physicsList = new FTFP_BERT;//factory.GetReferencePhysList("QGSP_BIC_EMY");
+  G4VModularPhysicsList* physicsList = new FTFP_BERT;
 	physicsList->SetDefaultCutValue(1*mm);
 	//physicsList->SetCutValue(4*um,"e-");
 	//physicsList->SetCutValue(4*um,"e+");
@@ -139,7 +184,7 @@ int main(int argc,char** argv)
 	physicsList->DumpCutValuesTable();
   
   G4GenericBiasingPhysics* biasingPhysics = new G4GenericBiasingPhysics();
-	if ( onOffBiasing == "on" )
+	if ( options.biasing == "on" )
 	{
 		//biasingPhysics->NonPhysicsBiasAllCharged();
 		biasingPhysics->Bias("gamma");
@@ -171,20 +216,20 @@ int main(int argc,char** argv)
 
 	// Process macro or start UI session
 	//
-	if ( macro != "" )
+	if (!options.macro.empty())
 	{
 		G4String command = "/control/execute ";
-		UImanager->ApplyCommand(command+macro);
+		UImanager->ApplyCommand(command + options.macro);
 	}
 
-	if (onOffVisualization=="on"){
+	if (options.interactive) {
 		// interactive mode
 		G4String command = "/control/execute ";
-		UImanager->ApplyCommand(command+vis_macro);
+		UImanager->ApplyCommand(command + options.visMacro);
 		ui->SessionStart();
 		delete ui;
 	}else{
-		if ( numberOfEvent >= 0 ) runManager->BeamOn(numberOfEvent);
+		runManager->BeamOn(options.numberOfEvents);
 	}
 
   // Job termination
@@ -194,4 +239,6 @@ int main(int argc,char** argv)
 
   delete visManager;
   delete runManager;
+  DetectorRegistry::Kill();
+  MD1Control::Kill();
 }

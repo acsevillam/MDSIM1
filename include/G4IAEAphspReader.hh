@@ -133,6 +133,7 @@ public:
   void SetGantryRotationAxis(const G4ThreeVector & axis);
   inline void SetCollimatorAngle(G4double ang) {theCollimatorAngle = ang;}
   inline void SetGantryAngle(G4double ang) {theGantryAngle = ang;}
+  inline void SetAbortOnNextReuseAfterEOF(G4bool abortOnReuse) { theAbortOnNextReuseAfterEOF = abortOnReuse; }
 
 
   inline G4String GetFileName() const {return theFileName;}
@@ -182,7 +183,7 @@ private:
   G4String theFileName;
   // Must include the path, but NOT the IAEA extension
 
-  static const G4int theSourceReadId = 0;
+  G4int theSourceReadId;
   // The Id the file source has for the IAEA routines
 
   static const G4int theAccessRead = 1;
@@ -240,6 +241,12 @@ private:
 
   G4bool theLastGenerated;
   // Flag active only when the last particle has been simulated
+
+  G4bool theAbortOnNextReuseAfterEOF;
+  // Abort instead of restarting once the file has been exhausted
+
+  G4bool theHasGeneratedAtLeastOneEvent;
+  // Tracks whether the source has already generated at least one event
 
   // ------------------------
   // SPATIAL TRANSFORMATIONS

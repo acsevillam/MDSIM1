@@ -1,0 +1,94 @@
+# Macro file for the initialization of example B1
+# in interactive session
+#
+# Set some default verbose
+/control/verbose 2
+/run/verbose 2
+
+##################### G4State_PreInit ###################
+
+# ================= Primary generator settings ===============
+
+/MultiDetector1/control/SetPrimaryGeneratorType 2
+
+# ================= Phase Space settings ===============
+
+#/MultiDetector1/beamline/clinac/phsp/clearFiles
+/MultiDetector1/beamline/clinac/phsp/addFile **PhspFileName**
+#/MultiDetector1/beamline/clinac/setJaw1X **Jaw1X** cm
+#/MultiDetector1/beamline/clinac/setJaw2X **Jaw2X** cm
+#/MultiDetector1/beamline/clinac/setJaw1Y **Jaw1Y** cm
+#/MultiDetector1/beamline/clinac/setJaw2Y **Jaw2Y** cm
+/MultiDetector1/beamline/clinac/rotateGantry **GantryAngle** deg
+/MultiDetector1/beamline/clinac/rotateCollimator **CollimatorAngle** deg
+
+##################### Initialization ###################
+#
+# Initialize kernel
+/run/initialize
+/run/printProgress 10000
+#
+
+##################### G4State_Idle ###################
+
+# ==================== Beam settings ==================
+
+/MultiDetector1/run/SetMU 1
+# PHSP rotations are only supported in Idle with the current architecture.
+#/MultiDetector1/beamline/clinac/rotateGantryPhSp **GantryAngle** deg
+#/MultiDetector1/beamline/clinac/rotateCollimatorPhSp **CollimatorAngle** deg
+
+# Co-60 source
+
+# First Co-60 line at 1.17 MeV
+
+/gps/source/intensity 1.
+/gps/particle gamma
+/gps/ene/type Mono
+/gps/ene/mono 1.17 MeV
+
+/gps/pos/type Beam
+/gps/pos/shape Square
+/gps/pos/centre **BeamCentre** cm
+/gps/pos/halfx 30. cm
+/gps/pos/halfy 30. cm
+/gps/pos/rot1 **BeamRot1**
+/gps/pos/rot2 **BeamRot2**
+/gps/direction **BeamDirection**
+
+# Second Co-60 line at 1.33 MeV
+
+/gps/source/add 1.
+/gps/particle gamma
+/gps/ene/type Mono
+/gps/ene/mono 1.33 MeV
+
+/gps/pos/type Beam
+/gps/pos/shape Square
+/gps/pos/centre **BeamCentre** cm
+/gps/pos/halfx 30. cm
+/gps/pos/halfy 30. cm
+/gps/pos/rot1 **BeamRot1**
+/gps/pos/rot2 **BeamRot2**
+/gps/direction **BeamDirection**
+
+# ================== Geometry settings ================
+
+/MultiDetector1/phantoms/waterbox/phantomID 0
+/MultiDetector1/phantoms/waterbox/translateTo 0 0 10 cm
+
+/MultiDetector1/detectors/BB7/detectorID 0
+/MultiDetector1/detectors/BB7/translateTo 0 0 **DetectorDepth** cm
+/MultiDetector1/detectors/BB7/rotateX **DetectorAngle** deg
+
+# ================== Scoring settings =================
+# Primitive scorers
+/control/execute mac/scorers1.mac
+
+# Energy deposit
+/score/create/boxMesh 2Dmap20cm
+/score/mesh/boxSize 33.6 33.6 0.75 mm
+/score/mesh/translate/xyz 0 0 0 cm
+/score/mesh/nBin 32 32 1 // x y z
+/score/quantity/doseDeposit dose
+/score/close

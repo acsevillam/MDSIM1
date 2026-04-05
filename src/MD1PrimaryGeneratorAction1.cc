@@ -15,99 +15,187 @@
 
 // Geant4 Headers
 #include "G4SystemOfUnits.hh"
-#include "G4ParticleTable.hh"
 #include "G4Threading.hh"
-#include "G4AutoDelete.hh"
 #include "G4AutoLock.hh"
 #include "G4GenericMessenger.hh"
+#include "G4Exception.hh"
 
 // MultiDetector Headers
 #include "MD1PrimaryGeneratorAction1.hh"
 #include "MD1Control.hh"
-#include "G4IAEAphspReader.hh"
+#include "MD1PhspSourceConfig.hh"
 
-// Espacio de nombres MD1
+#include <memory>
+#include <vector>
+
 namespace MD1 {
-  // Declarar la variable thread-local dentro del espacio de nombres MD1
-  G4ThreadLocal G4IAEAphspReader* fIAEAReader = nullptr;
-  G4Mutex aMutex=G4MUTEX_INITIALIZER;
 
-  MD1PrimaryGeneratorAction1::MD1PrimaryGeneratorAction1()
-    : G4VUserPrimaryGeneratorAction()
-  {
+namespace {
 
-  fRotateGantryToMessenger = 
-    new G4GenericMessenger(this, "/MultiDetector1/Clinac/" );
+struct SharedPhspSourceState {
+  std::vector<std::unique_ptr<G4IAEAphspReader>> readers;
+  std::vector<G4String> sourceFiles;
+  std::size_t nextReaderIndex = 0;
+  G4double gantryAngle = 0.;
+  G4double collimatorAngle = 0.;
+  G4ThreeVector phspShift = G4ThreeVector(0., 0., 0. * cm);
+  G4bool initialized = false;
+  G4Mutex mutex = G4MUTEX_INITIALIZER;
+};
 
-  G4GenericMessenger::Command& fRotateGantryToCmd = 
-  fRotateGantryToMessenger->DeclareMethodWithUnit("rotateGantryPhSpTo", "deg", &MD1PrimaryGeneratorAction1::RotateGantryTo,
-                                "Rotate the clinac phase space around X-axis to the specified angle." );
-  fRotateGantryToCmd.SetStates(G4State_PreInit, G4State_Idle);
+SharedPhspSourceState& GetSharedPhspSourceState() {
+  static SharedPhspSourceState state;
+  return state;
+}
 
-  fRotateGantryMessenger = 
-    new G4GenericMessenger(this, "/MultiDetector1/Clinac/" );
+void ApplySharedTransforms(SharedPhspSourceState& state) {
+  for (auto& reader : state.readers) {
+    reader->SetGlobalPhspTranslation(state.phspShift);
+    reader->SetIsocenterPosition(state.phspShift);
+    reader->SetGantryAngle(state.gantryAngle);
+    reader->SetCollimatorAngle(state.collimatorAngle);
+    reader->SetAbortOnNextReuseAfterEOF(true);
+  }
+}
 
-  G4GenericMessenger::Command& fRotateGantryCmd = 
-  fRotateGantryMessenger->DeclareMethodWithUnit("rotateGantryPhSp", "deg", &MD1PrimaryGeneratorAction1::RotateGantry,
-                                "Rotate the clinac phase space around X-axis." );
-  fRotateGantryCmd.SetStates(G4State_PreInit, G4State_Idle);
-
-  fRotateCollimatorMessenger = 
-    new G4GenericMessenger(this, "/MultiDetector1/Clinac/" );
-
-  G4GenericMessenger::Command& fRotateCollimatorToCmd = 
-  fRotateCollimatorMessenger->DeclareMethodWithUnit("rotateCollimatorPhSpTo", "deg", &MD1PrimaryGeneratorAction1::RotateCollimatorTo,
-                                "Rotate the clinac phase space around Z'-axis to the specified angle." );
-  fRotateCollimatorToCmd.SetStates(G4State_PreInit, G4State_Idle);
-
-  fRotateCollimatorMessenger = 
-    new G4GenericMessenger(this, "/MultiDetector1/Clinac/" );
-
-  G4GenericMessenger::Command& fRotateCollimatorCmd = 
-  fRotateCollimatorMessenger->DeclareMethodWithUnit("rotateCollimatorPhSp", "deg", &MD1PrimaryGeneratorAction1::RotateCollimator,
-                                "Rotate the clinac phase space around Z'-axis." );
-  fRotateCollimatorCmd.SetStates(G4State_PreInit, G4State_Idle);
-
-    G4cout << "MD1PrimaryGeneratorAction1 constructor called on thread " << G4Threading::G4GetThreadId() << G4endl;
-    G4AutoLock l(&aMutex);
-    if (!fIAEAReader)
-    {
-	    fFileName = MD1::MD1Control::GetInstance()->GetPhspFileName(); 
-      fIAEAReader = new G4IAEAphspReader(fFileName);
-
-		G4ThreeVector psfShift(0., 0., 0.*cm);
-		fIAEAReader->SetGlobalPhspTranslation(psfShift);
-		fIAEAReader->SetIsocenterPosition(psfShift);
-		G4cout << "IAEA Reader initialized with file: " << fFileName << " on thread " << G4Threading::G4GetThreadId() << G4endl;
-		G4AutoDelete::Register(fIAEAReader);
-    }
+void InitializeReadersLocked(SharedPhspSourceState& state) {
+  if (state.initialized) {
+    return;
   }
 
-  MD1PrimaryGeneratorAction1::~MD1PrimaryGeneratorAction1()
-  {}
+  state.sourceFiles = MD1PhspSourceConfig::GetInstance()->ResolveSourceBaseNames();
 
-  void MD1PrimaryGeneratorAction1::GeneratePrimaries(G4Event* anEvent)
-  {
-   G4AutoLock l(&aMutex);
-   fIAEAReader->GeneratePrimaryVertex(anEvent);
-
+  if (state.sourceFiles.empty()) {
+    G4Exception("MD1PrimaryGeneratorAction1::InitializeReadersLocked",
+                "PHSPSourceListEmpty",
+                FatalException,
+                "No phase-space sources were configured. Use /MultiDetector1/beamline/clinac/phsp/* commands.");
+    return;
   }
+
+  state.readers.clear();
+  state.readers.reserve(state.sourceFiles.size());
+
+  for (const auto& file : state.sourceFiles) {
+    state.readers.push_back(std::make_unique<G4IAEAphspReader>(file));
+    G4cout << "IAEA Reader initialized with file: " << file << G4endl;
+  }
+
+  ApplySharedTransforms(state);
+  state.nextReaderIndex = 0;
+  state.initialized = true;
+}
+
+} // namespace
+
+MD1PrimaryGeneratorAction1::MD1PrimaryGeneratorAction1()
+  : G4VUserPrimaryGeneratorAction(),
+    fGantryAngle(0.),
+    fCollimatorAngle(0.) {
+
+  fRotateGantryToMessenger =
+    new G4GenericMessenger(this, "/MultiDetector1/beamline/clinac/" );
+
+  G4GenericMessenger::Command& fRotateGantryToCmd =
+    fRotateGantryToMessenger->DeclareMethodWithUnit("rotateGantryPhSpTo", "deg",
+                                                    &MD1PrimaryGeneratorAction1::RotateGantryTo,
+                                                    "Rotate the clinac phase space around X-axis to the specified angle.");
+  fRotateGantryToCmd.SetStates(G4State_Idle);
+
+  fRotateGantryMessenger =
+    new G4GenericMessenger(this, "/MultiDetector1/beamline/clinac/" );
+
+  G4GenericMessenger::Command& fRotateGantryCmd =
+    fRotateGantryMessenger->DeclareMethodWithUnit("rotateGantryPhSp", "deg",
+                                                  &MD1PrimaryGeneratorAction1::RotateGantry,
+                                                  "Rotate the clinac phase space around X-axis.");
+  fRotateGantryCmd.SetStates(G4State_Idle);
+
+  fRotateCollimatorToMessenger =
+    new G4GenericMessenger(this, "/MultiDetector1/beamline/clinac/" );
+
+  G4GenericMessenger::Command& fRotateCollimatorToCmd =
+    fRotateCollimatorToMessenger->DeclareMethodWithUnit("rotateCollimatorPhSpTo", "deg",
+                                                        &MD1PrimaryGeneratorAction1::RotateCollimatorTo,
+                                                        "Rotate the clinac phase space around Z'-axis to the specified angle.");
+  fRotateCollimatorToCmd.SetStates(G4State_Idle);
+
+  fRotateCollimatorMessenger =
+    new G4GenericMessenger(this, "/MultiDetector1/beamline/clinac/" );
+
+  G4GenericMessenger::Command& fRotateCollimatorCmd =
+    fRotateCollimatorMessenger->DeclareMethodWithUnit("rotateCollimatorPhSp", "deg",
+                                                      &MD1PrimaryGeneratorAction1::RotateCollimator,
+                                                      "Rotate the clinac phase space around Z'-axis.");
+  fRotateCollimatorCmd.SetStates(G4State_Idle);
+
+  G4cout << "MD1PrimaryGeneratorAction1 constructor called on thread "
+         << G4Threading::G4GetThreadId() << G4endl;
+
+  auto& state = GetSharedPhspSourceState();
+  G4AutoLock l(&state.mutex);
+  InitializeReadersLocked(state);
+}
+
+MD1PrimaryGeneratorAction1::~MD1PrimaryGeneratorAction1() {
+  delete fRotateGantryToMessenger;
+  delete fRotateGantryMessenger;
+  delete fRotateCollimatorToMessenger;
+  delete fRotateCollimatorMessenger;
+}
+
+void MD1PrimaryGeneratorAction1::GeneratePrimaries(G4Event* anEvent) {
+  auto& state = GetSharedPhspSourceState();
+  G4AutoLock l(&state.mutex);
+  InitializeReadersLocked(state);
+
+  if (state.readers.empty()) {
+    G4Exception("MD1PrimaryGeneratorAction1::GeneratePrimaries",
+                "PHSPNoReaders",
+                FatalException,
+                "No phase-space readers are available.");
+    return;
+  }
+
+  auto& reader = state.readers[state.nextReaderIndex];
+  reader->GeneratePrimaryVertex(anEvent);
+  state.nextReaderIndex = (state.nextReaderIndex + 1) % state.readers.size();
+}
 
 void MD1PrimaryGeneratorAction1::RotateGantryTo(const G4double& angle) {
-  fIAEAReader->SetGantryAngle(angle);
+  auto& state = GetSharedPhspSourceState();
+  G4AutoLock l(&state.mutex);
+  state.gantryAngle = angle;
+  ApplySharedTransforms(state);
 }
 
 void MD1PrimaryGeneratorAction1::RotateGantry(const G4double& delta) {
-  fGantryAngle += delta;
-  fIAEAReader->SetGantryAngle(fGantryAngle);
+  auto& state = GetSharedPhspSourceState();
+  G4AutoLock l(&state.mutex);
+  state.gantryAngle += delta;
+  ApplySharedTransforms(state);
 }
 
 void MD1PrimaryGeneratorAction1::RotateCollimatorTo(const G4double& angle) {
-  fIAEAReader->SetCollimatorAngle(angle);
+  auto& state = GetSharedPhspSourceState();
+  G4AutoLock l(&state.mutex);
+  state.collimatorAngle = angle;
+  ApplySharedTransforms(state);
 }
 
 void MD1PrimaryGeneratorAction1::RotateCollimator(const G4double& delta) {
-  fCollimatorAngle += delta;
-  fIAEAReader->SetCollimatorAngle(fCollimatorAngle);
+  auto& state = GetSharedPhspSourceState();
+  G4AutoLock l(&state.mutex);
+  state.collimatorAngle += delta;
+  ApplySharedTransforms(state);
 }
+
+const G4IAEAphspReader* MD1PrimaryGeneratorAction1::GetParticleSource() const {
+  auto& state = GetSharedPhspSourceState();
+  if (state.readers.empty()) {
+    return nullptr;
+  }
+  return state.readers.front().get();
 }
+
+} // namespace MD1

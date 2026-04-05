@@ -14,7 +14,6 @@
  */
 
 #include "MD1ControlMessenger.hh"
-
 namespace MD1 {
 
 MD1ControlMessenger::MD1ControlMessenger(MD1Control* aMD1Control) {
@@ -26,23 +25,16 @@ MD1ControlMessenger::MD1ControlMessenger(MD1Control* aMD1Control) {
     fSetPrimaryGeneratorTypeCmd->SetParameterName("PrimaryGeneratorType", false);
     fSetPrimaryGeneratorTypeCmd->AvailableForStates(G4State_PreInit);
 
-    fSetPhspFileNameCmd = new G4UIcmdWithAString("/MultiDetector1/control/SetPhspFileName", this);
-    fSetPhspFileNameCmd->SetGuidance("Set the phase space filename");
-    fSetPhspFileNameCmd->SetParameterName("PhspFileName", false);
-    fSetPhspFileNameCmd->AvailableForStates(G4State_PreInit);
 }
 
 MD1ControlMessenger::~MD1ControlMessenger() {
-    delete fSetPhspFileNameCmd;  
+    delete fSetPrimaryGeneratorTypeCmd;
 }
 
 void MD1ControlMessenger::SetNewValue(G4UIcommand* command,G4String newValue ){
-    if (command == fSetPhspFileNameCmd) {
-        fMD1Control->SetPhspFileName(newValue);
-    } 
     if (command == fSetPrimaryGeneratorTypeCmd) {
         fMD1Control->SetPrimaryGeneratorType(fSetPrimaryGeneratorTypeCmd->GetNewIntValue(newValue));
-    } 
+    }
 }
 
 }

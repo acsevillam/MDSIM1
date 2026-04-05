@@ -1,0 +1,49 @@
+# Macro file for the initialization of example B1
+# in interactive session
+#
+# Set some default verbose
+/control/verbose 0
+/run/verbose 0
+
+##################### G4State_PreInit ###################
+
+# ================= Phase Space settings ===============
+
+/MultiDetector1/beamline/clinac/phsp/clearFiles
+/MultiDetector1/beamline/clinac/phsp/setPrefix beam/Varian_TrueBeam6MV_
+/MultiDetector1/beamline/clinac/setJaw1X 5 cm
+/MultiDetector1/beamline/clinac/setJaw2X 5 cm
+/MultiDetector1/beamline/clinac/setJaw1Y 5 cm
+/MultiDetector1/beamline/clinac/setJaw2Y 5 cm
+
+##################### Initialization ###################
+#
+# Initialize kernel
+/run/initialize
+/run/printProgress 10000
+#
+
+##################### G4State_Idle ###################
+
+# ==================== Beam settings ==================
+
+/MultiDetector1/run/SetMU 100
+
+
+# ================== Geometry settings ================
+
+/MultiDetector1/phantoms/waterbox/phantomID 0
+/MultiDetector1/phantoms/waterbox/translateTo 0 0 0 cm
+
+# ================== Scoring settings =================
+
+# Primitive scorers
+/control/execute mac/scorers1.mac
+
+# Energy deposit
+/score/create/boxMesh map4mm
+/score/mesh/boxSize 25. 25. 25. cm
+/score/mesh/translate/xyz 0 0 -15 cm
+/score/mesh/nBin 125 125 125 // x y z
+/score/quantity/doseDeposit dose
+/score/close

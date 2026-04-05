@@ -1,0 +1,20 @@
+#!/bin/bash
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(cd "${script_dir}/../../.." && pwd)"
+
+run_type="BB7"
+
+# Path to the output folder
+output_dir="${repo_root}/output"
+
+# Create the output folder if it does not exist
+mkdir -p "$output_dir"
+
+timestamp=$(date +"%Y%m%d_%H%M%S")
+
+# Create a results folder for this execution
+job_dir="${output_dir}/${run_type}/${timestamp}"
+mkdir -p "$job_dir"
+
+source "${script_dir}/run_collimator_angle_sweep.sh" "${run_type}" "${output_dir}" "${timestamp}" "${job_dir}" > "${job_dir}"/collimator_angle_sweep.log

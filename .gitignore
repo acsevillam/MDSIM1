@@ -48,3 +48,6 @@ __pycache__/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Codex agent files
+.codex/

@@ -37,7 +37,7 @@ public:
     void GeneratePrimaries(G4Event*) override;
 
 	// method to access particle gun
-    inline const G4IAEAphspReader* GetParticleSource() const {return fIAEAReader; } ;
+    const G4IAEAphspReader* GetParticleSource() const;
 
     /**
      * @brief Rotate the gantry around the Y-axis to the specified angle.
@@ -64,7 +64,6 @@ public:
     void RotateCollimator(const G4double& delta);
 
 private:
-    G4IAEAphspReader* fIAEAReader;
     G4String fFileName;
     G4double fGantryAngle; ///< Gantry angle around X-axis
     G4double fCollimatorAngle; ///< Collimator angle around Z'-axis

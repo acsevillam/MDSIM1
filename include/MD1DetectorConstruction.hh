@@ -16,31 +16,32 @@
 #ifndef MD1_DETECTOR_CONSTRUCTION_H
 #define MD1_DETECTOR_CONSTRUCTION_H
 
-// Standard Headers
-#include <vector>
 #include <memory>
 
-// Geant4 Headers
-#include "G4VUserDetectorConstruction.hh"
 #include "G4LogicalVolume.hh"
+#include "G4VUserDetectorConstruction.hh"
 #include "globals.hh"
 
 class G4LogicalVolume;
+class ClinacTrueBeam;
+class PhantomWaterBox;
 
 namespace MD1 {
 
 class MD1DetectorConstruction : public G4VUserDetectorConstruction {
 public:
-    MD1DetectorConstruction() = default;
-    ~MD1DetectorConstruction() override = default;
+    MD1DetectorConstruction();
+    ~MD1DetectorConstruction() override;
 
     G4VPhysicalVolume* Construct() override;
     void ConstructSDandField() override;
 
 private:
     void SetupGeometry(G4LogicalVolume* motherVolume);
-    G4LogicalVolume* fBiasingVolume;
 
+    G4LogicalVolume* fBiasingVolume = nullptr;
+    std::unique_ptr<ClinacTrueBeam> fClinacTrueBeam;
+    std::unique_ptr<PhantomWaterBox> fPhantomWaterBox;
 };
 
 } // namespace MD1

@@ -20,36 +20,36 @@
 #include "MD1Control.hh"
 #include "G4SystemOfUnits.hh"
 
-using namespace std ;
-
 namespace MD1 {
 
 // Define Static Variables
-MD1Control* MD1Control::instance = NULL;
+MD1Control* MD1Control::instance = nullptr;
 
 MD1Control::MD1Control() {
-	fMD1ControlMessenger = new MD1ControlMessenger(this) ;
-	fTrackingAction = NULL ;
-	fSteppingAction = NULL ;
-	fSensitiveDetectorAction = NULL ;
-	fPhspFileName = "beam/Varian_TrueBeam6MV_01";
+	fMD1ControlMessenger = new MD1ControlMessenger(this);
+	fTrackingAction = nullptr;
+	fSteppingAction = nullptr;
+	fSensitiveDetectorAction = nullptr;
 }
 
 MD1Control::~MD1Control()
-{ }
+{
+	delete fMD1ControlMessenger;
+	fMD1ControlMessenger = nullptr;
+}
 
 MD1Control* MD1Control::GetInstance() {
 
-	if (instance == NULL) instance =  new MD1Control() ;
+	if (instance == nullptr) instance =  new MD1Control();
 	return instance ;
 
 }
 
 void MD1Control::Kill() {
 
-	if(instance!=NULL){
+	if(instance!=nullptr){
 		delete instance ;
-		instance = NULL ;
+		instance = nullptr ;
 	}
 }
 
