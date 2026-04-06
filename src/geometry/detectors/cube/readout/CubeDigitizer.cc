@@ -13,6 +13,8 @@
  *
  */
 
+#include <cmath>
+
 // Geant4 Headers
 #include "G4DigiManager.hh"
 #include "G4LogicalVolumeStore.hh"
@@ -56,6 +58,10 @@ void CubeDigitizer::Digitize() {
     const G4double sensitiveMass = GetSensitiveVolumeMass("DetectorCube");
 
     const G4int hcID = digitManager->GetHitsCollectionID("CubeHitsCollection");
+    if (hcID < 0) {
+        StoreDigiCollection(fDigitsCollection);
+        return;
+    }
     fHitsCollection = static_cast<const CubeHitsCollection*>(digitManager->GetHitsCollection(hcID));
 
     if (fHitsCollection != nullptr) {
@@ -70,12 +76,17 @@ void CubeDigitizer::Digitize() {
                     fReadoutParameters.elementaryCharge;
                 const G4double weightedEdep = edep * weight;
                 const G4double weightedCollectedCharge = collectedCharge * weight;
+                const G4double estimatedDoseToWater =
+                    weightedCollectedCharge * fReadoutParameters.calibrationFactor;
+                const G4double estimatedDoseToWaterCalibrationError =
+                    std::abs(weightedCollectedCharge) * fReadoutParameters.calibrationFactorError;
                 auto newDigit = std::make_unique<CubeDigit>();
                 newDigit->SetDetectorID(hit->GetDetectorID());
                 newDigit->SetEdep(weightedEdep);
                 newDigit->SetCollectedCharge(weightedCollectedCharge);
                 newDigit->SetDose(weightedEdep / sensitiveMass);
-                newDigit->SetEstimatedDoseToWater(weightedCollectedCharge * fReadoutParameters.calibrationFactor);
+                newDigit->SetEstimatedDoseToWater(estimatedDoseToWater);
+                newDigit->SetEstimatedDoseToWaterCalibrationError(estimatedDoseToWaterCalibrationError);
                 fDigitsCollection->insert(newDigit.release());
             }
         }

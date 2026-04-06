@@ -17,6 +17,7 @@
 // Standard Headers
 #include <map>
 #include <string>
+#include <vector>
 
 // Geant4 Headers
 #include "globals.hh"
@@ -195,6 +196,7 @@ public:
 
     G4bool HasPlacementRequests() const;
     G4bool HasAssembledGeometry() const;
+    std::vector<G4int> GetPlacementCopyNumbers() const;
     void AssembleRequestedGeometries();
 
 protected:

@@ -24,7 +24,7 @@
                             // 3 positrons
                             // 4 neutrons
                             // 5 protons
-#define MAX_NUM_SOURCES 30
+#define MAX_NUM_SOURCES 256
 
 #define OK     0
 #define FAIL  -1

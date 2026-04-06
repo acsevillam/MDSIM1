@@ -19,13 +19,157 @@ La carpeta `jobs/` contiene lanzadores reproducibles para campañas batch.
 
 En dosimetría, además del barrido de validación, existe:
 
-- [launch_calibration_dmax_average.sh](/Users/acsevillam/workspace/Geant4/MDSIM1/jobs/dosimetry/launch_calibration_dmax_average.sh): ejecuta 5 réplicas de `input/dosimetry/Calibration.in` con `-b on -v off -n 300000000` y calcula el promedio de `Dose atDepth1.4cm` (`dmax` en este caso).
+- [launch_calibration_dmax_average.sh](/Users/acsevillam/workspace/Geant4/MDSIM1/jobs/dosimetry/launch_calibration_dmax_average.sh): ejecuta 5 réplicas de `input/dosimetry/Calibration.in` con `-b on -v off -n 300000000` y calcula promedios para `Dose atDepth1.4cm` (`dmax` en este caso) y `Dose atDepth10cm`.
 
 Este job escribe:
 
 - una carpeta por réplica con `output.log`, `macro.in` y los archivos de `analysis/`
 - `dmax_summary.csv` con una fila por réplica
-- `dmax_average.txt` con el promedio final de `Dose atDepth1.4cm`
+- `dmax_average.txt` con media, desviación estándar entre réplicas, `err = stddev / sqrt(n)` y error relativo para `Dose atDepth1.4cm` y `Dose atDepth10cm`
+
+Para el detector `cube`, existen jobs de calibración por material en:
+
+- [launch_calibration_charge_average_water.sh](/Users/acsevillam/workspace/Geant4/MDSIM1/jobs/detectors/cube/launch_calibration_charge_average_water.sh): ejecuta 5 réplicas de `CubeCalibration.intmp` con cubo de `G4_WATER`, lado `5.0 mm` y `translateTo 0 0 0 cm`, y calcula el promedio de `(7) Calculated total collected charge`.
+- [launch_calibration_charge_average_air.sh](/Users/acsevillam/workspace/Geant4/MDSIM1/jobs/detectors/cube/launch_calibration_charge_average_air.sh): igual que el anterior, pero con cubo de `G4_AIR`.
+
+Estos jobs escriben:
+
+- una carpeta por réplica con `output.log`, `macro.in` y los archivos de `analysis/`
+- `calculated_total_collected_charge_summary.csv` con una fila por réplica
+- `calculated_total_collected_charge_average.txt` con media, desviación estándar entre réplicas, `err = stddev / sqrt(n)` y error relativo para `(7) Calculated total collected charge`
+
+## Manejo de errores
+
+En los resúmenes de corrida y por detector, MDSIM1 distingue entre incertidumbre estadística Monte Carlo e incertidumbres paramétricas de escalado y calibración.
+
+### Etiquetas
+
+MDSIM1 usa el siguiente patrón de etiquetas para incertidumbres:
+
+- `mc_err`: incertidumbre estadística Monte Carlo del estimador, obtenida como `rms / sqrt(N)` sobre la magnitud por evento.
+- `mu_err`: incertidumbre propagada del factor de escala por monitor units, a partir de `fScaleFactorMUError`.
+- `det_err`: incertidumbre propia del detector o de su calibración. Actualmente se usa para `Estimated total absorbed dose in water`, a partir del error del factor de calibración del detector en `cGy/nC`.
+- `total_err`: combinación en cuadratura de las contribuciones independientes que aplican a la magnitud reportada.
+
+### Regla base
+
+Para una magnitud por evento `X_per_event`, MDSIM1 calcula:
+
+```text
+mean = mean(X_per_event)
+rms = G4StatDouble::rms(N, N)
+mc_err = rms / sqrt(N)
+```
+
+donde `N` es el número total de eventos del run.
+
+Si luego la magnitud se escala como:
+
+```text
+X_scaled = X_per_event * fScaleFactorMU * simulatedMU
+```
+
+entonces:
+
+```text
+mc_err_scaled = mc_err(X_per_event) * fScaleFactorMU * simulatedMU
+mu_err = |X_per_event| * simulatedMU * fScaleFactorMUError
+```
+
+Si además existe una incertidumbre relativa del detector `relative_detector_error`, entonces:
+
+```text
+det_err = |X_per_event| * relative_detector_error * fScaleFactorMU * simulatedMU
+```
+
+Cuando aplican varias contribuciones independientes, `total_err` se calcula en cuadratura.
+
+### Magnitudes reportadas
+
+Para la magnitud:
+
+- `(6) Calculated total dose in detector sensitive volume (...UM)`
+
+la salida combina:
+
+- `mc_err`
+- `mu_err`
+- `total_err`
+
+con:
+
+```text
+D_total = D_per_event * fScaleFactorMU * simulatedMU
+mc_err_scaled = mc_err(D_per_event) * fScaleFactorMU * simulatedMU
+mu_err = |D_per_event| * simulatedMU * fScaleFactorMUError
+total_err = sqrt(mc_err_scaled^2 + mu_err^2)
+```
+
+Para la magnitud:
+
+- `(7) Calculated total collected charge (...UM)`
+
+la salida combina:
+
+- `mc_err`
+- `mu_err`
+- `total_err`
+
+con:
+
+```text
+Q_total = Q_per_event * fScaleFactorMU * simulatedMU
+mc_err_scaled = mc_err(Q_per_event) * fScaleFactorMU * simulatedMU
+mu_err = |Q_per_event| * simulatedMU * fScaleFactorMUError
+total_err = sqrt(mc_err_scaled^2 + mu_err^2)
+```
+
+Para la magnitud:
+
+- `(8) Estimated total absorbed dose in water (...UM)`
+
+la salida combina:
+
+- `mc_err`
+- `mu_err`
+- `det_err`
+- `total_err`
+
+con:
+
+```text
+D_water = D_water,per_event * fScaleFactorMU * simulatedMU
+mc_err_scaled = mc_err(D_water,per_event) * fScaleFactorMU * simulatedMU
+mu_err = |D_water,per_event| * simulatedMU * fScaleFactorMUError
+det_err = |D_water,per_event| * relative_calibration_error * fScaleFactorMU * simulatedMU
+total_err = sqrt(mc_err_scaled^2 + mu_err^2 + det_err^2)
+```
+
+En el resumen por detector, `det_err` se obtiene a partir de la incertidumbre relativa de calibración de ese detector. En el resumen global, `det_err` se construye sumando en cuadratura los aportes absolutos de calibración de todos los detectores activos antes de combinarlos con `mc_err` y `mu_err`.
+
+Cuando un módulo tiene varias copias geométricas activas, el bloque `Detector Summary` se emite por copia usando el formato `<detector>[copyNo]`, por ejemplo `cube[0]`, `cube[1]` o `BB7[3]`.
+
+### Lectura práctica
+
+- `mc_err` describe el ruido estadístico de la simulación Monte Carlo.
+- `mu_err` describe la incertidumbre del factor que convierte resultados por evento a resultados por `MU`.
+- `det_err` describe la incertidumbre del modelo/calibración del detector.
+- `total_err` no sustituye a las componentes individuales; las resume cuando se requiere una incertidumbre total propagada.
+
+`mu_err` y `det_err` no deben reinterpretarse como más historia Monte Carlo. Se reportan por separado y luego se combinan en `total_err` para evitar mezclar incertidumbre estadística con incertidumbre de calibración o normalización.
+
+### Validaciones y fallos explícitos
+
+Para evitar resultados silenciosamente inconsistentes, MDSIM1 ahora aborta la corrida o la inicialización cuando detecta condiciones inválidas en el pipeline de incertidumbres y lectura:
+
+- `/MultiDetector1/run/SetMU` exige `MU > 0`.
+- `/MultiDetector1/run/SetScaleFactorMU` exige un factor estrictamente positivo.
+- `/MultiDetector1/run/SetScaleFactorMUError` exige una incertidumbre no negativa.
+- Si no se define un override explícito para `fScaleFactorMUError`, el valor por defecto se mantiene como `1 %` del `fScaleFactorMU` vigente. Si luego se cambia `fScaleFactorMU` sin override explícito, el error por defecto se actualiza automáticamente para seguir siendo `1 %`.
+- Si un detector activo no encuentra su volumen sensible, digitizer, colección de dígitos o ntuple de análisis, la corrida aborta con `FatalException` en lugar de devolver `0` silenciosamente.
+- La tabla [CubeCalibrationTable.dat](/Users/acsevillam/workspace/Geant4/MDSIM1/src/geometry/detectors/cube/geometry/CubeCalibrationTable.dat) rechaza entradas con lado no positivo, factor no positivo, incertidumbre negativa, unidades inválidas o entradas duplicadas para el mismo material y lado.
+- La tabla de calibración del `cube` se parsea una sola vez por proceso con inicialización thread-safe y luego queda de solo lectura.
+- La ejecución de macros desde línea de comandos aborta si `/control/execute` devuelve error, en vez de continuar con una configuración parcial.
 
 ## Arquitectura de detectores
 
@@ -87,6 +231,7 @@ En la práctica:
 - Geant4 instalado y disponible para CMake (`find_package(Geant4 REQUIRED ...)`).
 - Entorno de Geant4 cargado antes de compilar/ejecutar (por ejemplo, `geant4.sh`).
 - Git LFS si se van a usar los phase spaces binarios incluidos como `.IAEAphsp`.
+- Un directorio de datos accesible para los phase spaces (`beam/*.IAEAphsp` y `beam/*.IAEAheader`), ya sea en el árbol fuente o mediante `MDSIM1_DATA_DIR`.
 
 ## Compilación
 
@@ -103,7 +248,43 @@ Esto genera el ejecutable:
 
 - `MDSIM-build/MultiDetector1`
 
-Nota: durante la configuración se copian macros y archivos de entrada al directorio de compilación (`MDSIM-build/`). Por esta razón se recomienda ejecutar la simulación desde `MDSIM-build/`.
+Durante la configuración se copian macros, archivos `.in`, scripts y recursos ligeros al directorio de compilación (`MDSIM-build/`).
+Los datasets pesados (`.IAEAphsp`, `.IAEAheader` y referencias grandes) ya no se copian por defecto.
+
+Por defecto, el ejecutable busca phase spaces en este orden:
+
+- la ruta dada en la macro/comando, relativa al directorio actual
+- el directorio definido por la variable de entorno `MDSIM1_DATA_DIR`
+- el directorio configurado en CMake mediante `MDSIM1_DATA_DIR` (por defecto, la raíz del proyecto)
+
+Si quieres fijar explícitamente un directorio externo de datos al compilar:
+
+```bash
+cmake -S . -B MDSIM-build -DMDSIM1_DATA_DIR=/ruta/a/mdsim-data
+cmake --build MDSIM-build -jN
+```
+
+Si prefieres un build autocontenido que también copie los phase spaces al árbol de compilación:
+
+```bash
+cmake -S . -B MDSIM-build -DMDSIM1_COPY_RUNTIME_DATA=ON
+cmake --build MDSIM-build -jN
+```
+
+## Pruebas rápidas
+
+El proyecto incluye pruebas CTest para dos regresiones del flujo PHSP:
+
+- un `setEOFPolicy` inválido debe fallar en el momento del comando
+- una corrida MT con `-n 0` no debe abrir readers PHSP
+
+Se ejecutan así:
+
+```bash
+ctest --test-dir MDSIM-build --output-on-failure
+```
+
+Estas pruebas no requieren phase spaces binarios reales.
 
 Si los archivos `beam/*.IAEAphsp` aparecen como punteros de Git LFS en vez de binarios reales, la simulación abortará con un mensaje claro. Antes de ejecutar casos PHSP, descarga los objetos reales con:
 
@@ -117,6 +298,12 @@ Entrar al directorio de compilación:
 
 ```bash
 cd MDSIM-build
+```
+
+Si los phase spaces viven fuera del árbol fuente, exporta antes:
+
+```bash
+export MDSIM1_DATA_DIR=/ruta/a/mdsim-data
 ```
 
 ### 1) Modo interactivo (con visualización)
@@ -307,10 +494,15 @@ Los siguientes comandos de macro son propios del proyecto y complementan los com
 - `/MultiDetector1/beamline/clinac/phsp/clearFiles` (`PreInit`)
 - `/MultiDetector1/beamline/clinac/phsp/setPrefix <prefijo>` (`PreInit`)
 - `/MultiDetector1/beamline/clinac/phsp/clearPrefix` (`PreInit`)
+- `/MultiDetector1/beamline/clinac/phsp/setEOFPolicy <abort|restart|stop|synthetic>` (`PreInit` o `Idle`)
 - `/MultiDetector1/beamline/clinac/phsp/listFiles` (`PreInit` o `Idle`)
 
 Los comandos `rotate*PhSp` no se soportan en `PreInit` mientras sigan registrados dentro de `MD1PrimaryGeneratorAction1`.
 Para PHSP multiarchivo, la precedencia es: lista explícita > prefijo autodetectado.
+En corridas MT, la fuente PHSP se selecciona de forma determinista como `eventID % numSources`. La asignación de fuente por evento no depende del scheduling de workers.
+Cada worker crea sus propios `G4IAEAphspReader`, uno por fuente configurada, pero ahora los materializa de forma lazy en el primer evento que realmente necesita esa fuente.
+Cada reader consume una partición disjunta del archivo usando `parallelRun = workerIndex + 1` y `totalParallelRuns = numberOfThreads`.
+`setEOFPolicy` valida el valor en el momento del comando; un typo falla de inmediato en vez de quedar diferido hasta la lectura del primer evento.
 
 ### Fantoma de agua (`waterbox`)
 
@@ -332,7 +524,8 @@ Para PHSP multiarchivo, la precedencia es: lista explícita > prefijo autodetect
 
 - `/MultiDetector1/detectors/cube/setSide <valor> <unidad>` (`PreInit`)
 - `/MultiDetector1/detectors/cube/setMaterial <NISTMaterial>` (`PreInit`)
-- `/MultiDetector1/detectors/cube/setCalibrationFactor <valor_en_Gy_por_C>` (`PreInit`, override opcional de la tabla local)
+- `/MultiDetector1/detectors/cube/setCalibrationFactor <valor_en_cGy_por_nC>` (`PreInit`, override opcional de la tabla local)
+- `/MultiDetector1/detectors/cube/setCalibrationFactorError <valor_en_cGy_por_nC>` (`PreInit`, override opcional del error de la tabla local)
 - `/MultiDetector1/detectors/cube/detectorID <int>`
 - `/MultiDetector1/detectors/cube/translate <dx> <dy> <dz> <unidad>` (`Idle`)
 - `/MultiDetector1/detectors/cube/translateTo <x> <y> <z> <unidad>` (`Idle`)
@@ -345,7 +538,7 @@ Para PHSP multiarchivo, la precedencia es: lista explícita > prefijo autodetect
 
 La tabla externa por defecto del cubo se lee desde [CubeCalibrationTable.dat](/Users/acsevillam/workspace/Geant4/MDSIM1/src/geometry/detectors/cube/geometry/CubeCalibrationTable.dat).
 Formato por linea:
-`<material> <lado> <unidad> <calibrationFactor_en_Gy_por_C>`
+`<material> <lado> <unidad> <calibrationFactor_en_cGy_por_nC> <calibrationFactorError_en_cGy_por_nC>`
 
 ### Detector BB7 (`BB7`)
 
@@ -390,6 +583,13 @@ Configuración PHSP multiarchivo en round-robin:
 /MultiDetector1/beamline/clinac/phsp/listFiles
 /run/initialize
 ```
+
+Con dos fuentes, la política efectiva queda:
+
+- `eventID 0, 2, 4, ... -> source 0`
+- `eventID 1, 3, 5, ... -> source 1`
+
+Esto mantiene estable la asignación `evento -> fuente` entre corridas idénticas; lo que cambia entre workers es únicamente la partición disjunta del archivo consumida por cada reader local.
 
 Configuración con registry de detectores y detector BB7:
 

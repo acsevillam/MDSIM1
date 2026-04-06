@@ -41,19 +41,26 @@ public:
     void SetCollectedCharge(G4double collectedCharge) { fCollectedCharge = collectedCharge; }
     void SetDose(G4double dose) { fDose = dose; }
     void SetEstimatedDoseToWater(G4double dose) { fEstimatedDoseToWater = dose; }
+    void SetEstimatedDoseToWaterCalibrationError(G4double doseError) {
+        fEstimatedDoseToWaterCalibrationError = doseError;
+    }
 
     G4int GetDetectorID() const { return fDetectorID; }
     G4double GetEdep() const { return fEdep; }
     G4double GetCollectedCharge() const { return fCollectedCharge; }
     G4double GetDose() const { return fDose; }
     G4double GetEstimatedDoseToWater() const { return fEstimatedDoseToWater; }
+    G4double GetEstimatedDoseToWaterCalibrationError() const {
+        return fEstimatedDoseToWaterCalibrationError;
+    }
 
 private:
-    G4int fDetectorID;
-    G4double fEdep;
-    G4double fCollectedCharge;
-    G4double fDose;
-    G4double fEstimatedDoseToWater;
+    G4int fDetectorID = -1;
+    G4double fEdep = 0.;
+    G4double fCollectedCharge = 0.;
+    G4double fDose = 0.;
+    G4double fEstimatedDoseToWater = 0.;
+    G4double fEstimatedDoseToWaterCalibrationError = 0.;
 };
 
 using CubeDigitsCollection = G4TDigiCollection<CubeDigit>;

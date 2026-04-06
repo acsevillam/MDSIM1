@@ -22,6 +22,7 @@
 // MultiDetector Headers
 #include "geometry/detectors/BB7/readout/BB7Hit.hh"
 #include "geometry/detectors/BB7/readout/BB7Digit.hh"
+#include "geometry/detectors/BB7/readout/BB7ReadoutParameters.hh"
 
 /**
  * @class BB7Digitizer
@@ -33,7 +34,7 @@ public:
      * @brief Constructor for BB7Digitizer.
      * @param name Name of the digitizer module.
      */
-    BB7Digitizer(const G4String& name, G4double calibrationFactor);
+    BB7Digitizer(const G4String& name, const BB7ReadoutParameters& readoutParameters);
 
     /**
      * @brief Destructor for BB7Digitizer.
@@ -49,9 +50,7 @@ private:
     const BB7HitsCollection* fHitsCollection; ///< Hits collection
     BB7DigitsCollection* fDigitsCollection; ///< Digits collection
     G4int fDCID; ///< Digits collection ID
-    const G4double fMeanEnergyPerIon = 3.6 * eV; ///< Mean energy per e- ion
-    const G4double feCharge = 1.60217663e-19 * coulomb; ///< electron charge
-    const G4double fCalibrationFactor; ///< Static experimental calibration factor
+    BB7ReadoutParameters fReadoutParameters; ///< BB7 readout parameters and calibration
 };
 
 #endif // BB7_DIGITIZER_H

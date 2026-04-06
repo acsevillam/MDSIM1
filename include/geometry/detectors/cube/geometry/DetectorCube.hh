@@ -28,7 +28,10 @@
 
 class DetectorCube : public GenericGeometry {
 public:
-    DetectorCube(G4double cubeSide, const G4String& materialName, G4double calibrationFactor = 0.);
+    DetectorCube(G4double cubeSide,
+                 const G4String& materialName,
+                 G4double calibrationFactor = 0.,
+                 G4double calibrationFactorError = 0.);
     ~DetectorCube() override;
 
     void DefineMaterials() override;
@@ -45,11 +48,14 @@ public:
 
     void SetCalibrationFactor(G4double calibrationFactor) { fCalibrationFactor = calibrationFactor; }
     G4double GetCalibrationFactor() const { return fCalibrationFactor; }
+    void SetCalibrationFactorError(G4double calibrationFactorError) { fCalibrationFactorError = calibrationFactorError; }
+    G4double GetCalibrationFactorError() const { return fCalibrationFactorError; }
 
 private:
     G4double fCubeSide;
     G4String fMaterialName;
     G4double fCalibrationFactor;
+    G4double fCalibrationFactorError;
     DetectorCubeMessenger* fDetectorCubeMessenger;
 };
 

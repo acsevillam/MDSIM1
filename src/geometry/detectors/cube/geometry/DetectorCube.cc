@@ -24,10 +24,14 @@
 // MultiDetector Headers
 #include "geometry/detectors/cube/geometry/DetectorCube.hh"
 
-DetectorCube::DetectorCube(G4double cubeSide, const G4String& materialName, G4double calibrationFactor)
+DetectorCube::DetectorCube(G4double cubeSide,
+                           const G4String& materialName,
+                           G4double calibrationFactor,
+                           G4double calibrationFactorError)
     : fCubeSide(cubeSide),
       fMaterialName(materialName),
       fCalibrationFactor(calibrationFactor),
+      fCalibrationFactorError(calibrationFactorError),
       fDetectorCubeMessenger(nullptr) {
     geometryName = "DetectorCube";
     det_origin = G4ThreeVector(0., 0., 10. * cm);

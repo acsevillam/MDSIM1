@@ -17,6 +17,9 @@
 #define MD1_PRIMARY_GENERATOR_ACTION_H
 
 // Geant4 Headers
+#include <memory>
+#include <vector>
+
 #include "G4VUserPrimaryGeneratorAction.hh"
 #include "G4IAEAphspReader.hh"
 #include "globals.hh"
@@ -61,12 +64,36 @@ public:
      * @brief Rotate the collimator around the Z'-axis.
      * @param delta Rotation angle.
      */
-    void RotateCollimator(const G4double& delta);
+	    void RotateCollimator(const G4double& delta);
 
-private:
-    G4String fFileName;
-    G4double fGantryAngle; ///< Gantry angle around X-axis
-    G4double fCollimatorAngle; ///< Collimator angle around Z'-axis
+	private:
+	    struct ReaderConfiguration {
+	        G4IAEAphspReader::EOFPolicy eofPolicy = G4IAEAphspReader::EOFPolicy::Abort;
+	        G4double gantryAngle = 0.;
+	        G4double collimatorAngle = 0.;
+	        G4ThreeVector phspShift = G4ThreeVector();
+	        G4int workerIndex = 0;
+	        G4int totalWorkers = 1;
+	    };
+
+	    void EnsureReadersAreSynchronized();
+	    void ApplyReaderConfiguration(G4IAEAphspReader& reader,
+	                                  G4IAEAphspReader::EOFPolicy eofPolicy,
+	                                  G4double gantryAngle,
+	                                  G4double collimatorAngle,
+	                                  const G4ThreeVector& phspShift,
+	                                  G4int workerIndex,
+	                                  G4int totalWorkers) const;
+	    G4IAEAphspReader& GetOrCreateReader(std::size_t sourceIndex);
+
+	    std::vector<std::unique_ptr<G4IAEAphspReader>> fReaders;
+	    std::vector<G4String> fAppliedSourceFiles;
+	    ReaderConfiguration fAppliedReaderConfiguration;
+	    G4bool fHasAppliedReaderConfiguration;
+	    G4int fAppliedSourceConfigVersion;
+	    G4int fAppliedTransformVersion;
+	    G4int fAppliedWorkerIndex;
+    G4int fAppliedTotalWorkers;
     G4GenericMessenger*  fRotateGantryToMessenger;
     G4GenericMessenger*  fRotateGantryMessenger;
     G4GenericMessenger*  fRotateCollimatorToMessenger;

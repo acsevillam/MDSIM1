@@ -1,8 +1,12 @@
 #include "geometry/detectors/cube/CubeDetectorModule.hh"
 
+#include <algorithm>
+#include <map>
+
 #include "G4AnalysisManager.hh"
 #include "G4DigiManager.hh"
 #include "G4Event.hh"
+#include "G4Exception.hh"
 #include "G4LogicalVolumeStore.hh"
 #include "G4SDManager.hh"
 #include "G4SystemOfUnits.hh"
@@ -13,8 +17,81 @@
 #include "geometry/detectors/cube/readout/CubeReadoutModel.hh"
 #include "geometry/detectors/cube/readout/CubeSensitiveDetector.hh"
 
+namespace {
+
+struct CubeDetectorRuntimeState final : DetectorRuntimeState {
+    G4int ntupleId = -1;
+    G4int digitsCollectionId = -1;
+};
+
+G4LogicalVolume* GetLogicalVolumeOrThrow(const G4String& logicalVolumeName, const G4String& detectorName) {
+    auto* logicalVolume = G4LogicalVolumeStore::GetInstance()->GetVolume(logicalVolumeName, false);
+    if (logicalVolume == nullptr) {
+        G4Exception("CubeDetectorModule::GetLogicalVolumeOrThrow",
+                    "DetectorLogicalVolumeNotFound",
+                    FatalException,
+                    ("Detector module " + detectorName +
+                     " could not find logical volume " + logicalVolumeName + ".").c_str());
+    }
+    return logicalVolume;
+}
+
+template <typename TDigitizer>
+TDigitizer* GetDigitizerOrThrow(G4DigiManager* digiManager,
+                                const G4String& moduleName,
+                                const G4String& detectorName) {
+    auto* digitizer = static_cast<TDigitizer*>(digiManager->FindDigitizerModule(moduleName));
+    if (digitizer == nullptr) {
+        G4Exception("CubeDetectorModule::GetDigitizerOrThrow",
+                    "DetectorDigitizerNotFound",
+                    FatalException,
+                    ("Detector module " + detectorName +
+                     " is active but digitizer " + moduleName + " was not registered.").c_str());
+    }
+    return digitizer;
+}
+
+G4int GetDigiCollectionIdOrThrow(G4DigiManager* digiManager,
+                                 const G4String& collectionName,
+                                 const G4String& detectorName) {
+    const G4int collectionId = digiManager->GetDigiCollectionID(collectionName);
+    if (collectionId < 0) {
+        G4Exception("CubeDetectorModule::GetDigiCollectionIdOrThrow",
+                    "DetectorDigiCollectionNotFound",
+                    FatalException,
+                    ("Detector module " + detectorName +
+                     " could not resolve digi collection " + collectionName + ".").c_str());
+    }
+    return collectionId;
+}
+
+void ValidateNtupleIdOrThrow(G4int ntupleId, const G4String& detectorName) {
+    if (ntupleId < 0) {
+        G4Exception("CubeDetectorModule::ValidateNtupleIdOrThrow",
+                    "DetectorAnalysisNotInitialized",
+                    FatalException,
+                    ("Detector module " + detectorName +
+                     " has not created its analysis ntuple before event processing.").c_str());
+    }
+}
+
+CubeDetectorRuntimeState& GetRuntimeStateOrThrow(DetectorRuntimeState& runtimeState,
+                                                 const G4String& detectorName) {
+    auto* typedState = dynamic_cast<CubeDetectorRuntimeState*>(&runtimeState);
+    if (typedState == nullptr) {
+        G4Exception("CubeDetectorModule::GetRuntimeStateOrThrow",
+                    "DetectorRuntimeStateTypeMismatch",
+                    FatalException,
+                    ("Detector module " + detectorName +
+                     " received an incompatible runtime state.").c_str());
+    }
+    return *typedState;
+}
+
+} // namespace
+
 CubeDetectorModule::CubeDetectorModule()
-    : fEnabled(false), fNtupleId(-1), fGeometry(std::make_unique<DetectorCube>(2.0 * mm, "G4_Si")) {}
+    : fEnabled(false), fGeometry(std::make_unique<DetectorCube>(2.0 * mm, "G4_Si")) {}
 
 CubeDetectorModule::~CubeDetectorModule() = default;
 
@@ -52,71 +129,125 @@ void CubeDetectorModule::RegisterSensitiveDetectors(G4SDManager* sdManager) {
     auto* cubeSD = new CubeSensitiveDetector("CubeSD");
     sdManager->AddNewDetector(cubeSD);
 
-    auto* logicalVolume = G4LogicalVolumeStore::GetInstance()->GetVolume("DetectorCube", false);
-    if (logicalVolume != nullptr) {
-        logicalVolume->SetSensitiveDetector(cubeSD);
-    }
+    auto* logicalVolume = GetLogicalVolumeOrThrow("DetectorCube", GetName());
+    logicalVolume->SetSensitiveDetector(cubeSD);
 }
 
 void CubeDetectorModule::RegisterDigitizers(G4DigiManager* digiManager) {
     if (!fEnabled || !HasPlacedGeometry()) {
         return;
     }
+    if (digiManager->FindDigitizerModule("CubeDigitizer") != nullptr) {
+        return;
+    }
 
     const auto readoutParameters = CubeReadoutModel::Build(
         fGeometry->GetCubeMaterial(),
         fGeometry->GetCubeSide(),
-        fGeometry->GetCalibrationFactor());
+        fGeometry->GetCalibrationFactor(),
+        fGeometry->GetCalibrationFactorError());
     digiManager->AddNewModule(new CubeDigitizer("CubeDigitizer", readoutParameters));
 }
 
-void CubeDetectorModule::CreateAnalysis(G4AnalysisManager* analysisManager) {
-    fNtupleId = analysisManager->CreateNtuple("CubeHits", "Variables related to cube detector hits");
-    analysisManager->CreateNtupleDColumn(fNtupleId, "DetectorID");
-    analysisManager->CreateNtupleDColumn(fNtupleId, "Edep[eV]");
-    analysisManager->CreateNtupleDColumn(fNtupleId, "Charge[coulomb]");
-    analysisManager->CreateNtupleDColumn(fNtupleId, "Dose[Gy]");
-    analysisManager->CreateNtupleDColumn(fNtupleId, "EstimatedDoseToWater[Gy]");
-    analysisManager->CreateNtupleDColumn(fNtupleId, "EventID");
-    analysisManager->FinishNtuple(fNtupleId);
+std::unique_ptr<DetectorRuntimeState> CubeDetectorModule::CreateRuntimeState() const {
+    return std::make_unique<CubeDetectorRuntimeState>();
+}
+
+void CubeDetectorModule::CreateAnalysis(G4AnalysisManager* analysisManager,
+                                        DetectorRuntimeState& runtimeState) {
+    auto& state = GetRuntimeStateOrThrow(runtimeState, GetName());
+    if (state.ntupleId >= 0) {
+        return;
+    }
+
+    state.ntupleId = analysisManager->CreateNtuple("CubeHits", "Variables related to cube detector hits");
+    analysisManager->CreateNtupleDColumn(state.ntupleId, "DetectorID");
+    analysisManager->CreateNtupleDColumn(state.ntupleId, "Edep[eV]");
+    analysisManager->CreateNtupleDColumn(state.ntupleId, "Charge[coulomb]");
+    analysisManager->CreateNtupleDColumn(state.ntupleId, "Dose[Gy]");
+    analysisManager->CreateNtupleDColumn(state.ntupleId, "EstimatedDoseToWater[Gy]");
+    analysisManager->CreateNtupleDColumn(state.ntupleId, "EventID");
+    analysisManager->FinishNtuple(state.ntupleId);
+}
+
+std::vector<G4String> CubeDetectorModule::GetSummaryLabels() const {
+    auto copyNumbers = fGeometry->GetPlacementCopyNumbers();
+    std::sort(copyNumbers.begin(), copyNumbers.end());
+
+    std::vector<G4String> labels;
+    labels.reserve(copyNumbers.size());
+    for (const auto copyNumber : copyNumbers) {
+        labels.push_back(GetSummaryLabel(copyNumber));
+    }
+    return labels;
+}
+
+G4String CubeDetectorModule::GetSummaryLabel(G4int detectorID) const {
+    return GetName() + "[" + std::to_string(detectorID) + "]";
 }
 
 DetectorEventData CubeDetectorModule::ProcessEvent(const G4Event* event,
                                                    G4AnalysisManager* analysisManager,
-                                                   G4DigiManager* digiManager) {
+                                                   G4DigiManager* digiManager,
+                                                   DetectorRuntimeState& runtimeState) {
     DetectorEventData eventData;
-    eventData.detectorName = GetName();
     if (!fEnabled || !HasPlacedGeometry()) {
         return eventData;
     }
 
-    auto* digitizer = static_cast<CubeDigitizer*>(digiManager->FindDigitizerModule("CubeDigitizer"));
-    if (digitizer == nullptr) {
-        return eventData;
-    }
+    auto& state = GetRuntimeStateOrThrow(runtimeState, GetName());
+    ValidateNtupleIdOrThrow(state.ntupleId, GetName());
+    auto* digitizer = GetDigitizerOrThrow<CubeDigitizer>(digiManager, "CubeDigitizer", GetName());
     digitizer->Digitize();
 
-    const auto collectionId = digiManager->GetDigiCollectionID("CubeDigitsCollection");
-    auto* digitsCollection = static_cast<const CubeDigitsCollection*>(digiManager->GetDigiCollection(collectionId));
+    if (state.digitsCollectionId < 0) {
+        state.digitsCollectionId =
+            GetDigiCollectionIdOrThrow(digiManager, "CubeDigitsCollection", GetName());
+    }
+    auto* digitsCollection =
+        static_cast<const CubeDigitsCollection*>(digiManager->GetDigiCollection(state.digitsCollectionId));
     if (digitsCollection == nullptr) {
         return eventData;
     }
 
+    std::map<G4int, std::size_t> instanceIndices;
+
+    auto getInstanceData = [&](G4int detectorID) -> DetectorInstanceEventData& {
+        const auto it = instanceIndices.find(detectorID);
+        if (it != instanceIndices.end()) {
+            return eventData.instanceData[it->second];
+        }
+
+        DetectorInstanceEventData instanceData;
+        instanceData.summaryLabel = GetSummaryLabel(detectorID);
+        eventData.instanceData.push_back(instanceData);
+        const std::size_t instanceIndex = eventData.instanceData.size() - 1;
+        instanceIndices.emplace(detectorID, instanceIndex);
+        return eventData.instanceData[instanceIndex];
+    };
+
     for (size_t i = 0; i < digitsCollection->entries(); ++i) {
         auto* digit = (*digitsCollection)[i];
-        analysisManager->FillNtupleDColumn(fNtupleId, 0, digit->GetDetectorID());
-        analysisManager->FillNtupleDColumn(fNtupleId, 1, digit->GetEdep());
-        analysisManager->FillNtupleDColumn(fNtupleId, 2, digit->GetCollectedCharge());
-        analysisManager->FillNtupleDColumn(fNtupleId, 3, digit->GetDose());
-        analysisManager->FillNtupleDColumn(fNtupleId, 4, digit->GetEstimatedDoseToWater());
-        analysisManager->FillNtupleDColumn(fNtupleId, 5, event->GetEventID());
-        analysisManager->AddNtupleRow(fNtupleId);
+        analysisManager->FillNtupleDColumn(state.ntupleId, 0, digit->GetDetectorID());
+        analysisManager->FillNtupleDColumn(state.ntupleId, 1, digit->GetEdep());
+        analysisManager->FillNtupleDColumn(state.ntupleId, 2, digit->GetCollectedCharge());
+        analysisManager->FillNtupleDColumn(state.ntupleId, 3, digit->GetDose());
+        analysisManager->FillNtupleDColumn(state.ntupleId, 4, digit->GetEstimatedDoseToWater());
+        analysisManager->FillNtupleDColumn(state.ntupleId, 5, event->GetEventID());
+        analysisManager->AddNtupleRow(state.ntupleId);
 
         eventData.totalEdep += digit->GetEdep();
         eventData.totalCollectedCharge += digit->GetCollectedCharge();
         eventData.totalDose += digit->GetDose();
         eventData.totalEstimatedDoseToWater += digit->GetEstimatedDoseToWater();
         eventData.hasSignal = true;
+
+        auto& instanceData = getInstanceData(digit->GetDetectorID());
+        instanceData.totalEdep += digit->GetEdep();
+        instanceData.totalCollectedCharge += digit->GetCollectedCharge();
+        instanceData.totalDose += digit->GetDose();
+        instanceData.estimatedDoseToWater.Add(digit->GetEstimatedDoseToWater(),
+                                              digit->GetEstimatedDoseToWaterCalibrationError());
     }
 
     return eventData;

@@ -61,6 +61,8 @@
 
 #include "iaea_phsp.h"
 
+#include <cstddef>
+#include <string>
 #include <vector>
 
 #include "globals.hh"
@@ -76,6 +78,31 @@ class G4IAEAphspReader :public G4VPrimaryGenerator
   // ========== Constructors and destructors ==========
 
 public:
+
+  enum class EOFPolicy
+  {
+    Abort,
+    Restart,
+    Stop,
+    Synthetic
+  };
+
+  struct SyntheticParticleRecord
+  {
+    G4int type = 0;
+    G4double energy = 0.;
+    G4ThreeVector position;
+    G4ThreeVector momentum;
+    G4double weight = 0.;
+    std::vector<G4double> extraFloats;
+    std::vector<G4long> extraInts;
+  };
+
+  struct SyntheticEventRecord
+  {
+    G4int nStat = 1;
+    std::vector<SyntheticParticleRecord> particles;
+  };
 
   // 'filename' must include the path if needed, but NOT the extension
 
@@ -96,14 +123,25 @@ public:
 public:
 
   void GeneratePrimaryVertex(G4Event* evt);   // Mandatory
+  static EOFPolicy ParseEOFPolicy(const G4String& policyName);
 
 private:
 
   void InitializeMembers();
   void InitializeSource(char* filename);
+  void ClearCurrentParticleData();
+  void StoreParticleRecord(G4int type, G4double energy, const G4ThreeVector& position,
+                           const G4ThreeVector& momentum, G4double weight,
+                           const IAEA_Float* extraFloats, const IAEA_I32* extraInts);
   void ReadAndStoreFirstParticle();
   void PrepareThisEvent();
   void ReadThisEvent();
+  void PrepareSyntheticEvents();
+  void ActivateSyntheticMode();
+  void LoadSyntheticEvent(std::size_t eventIndex);
+  void HandleEndOfFile(G4Event* evt);
+  void StopRunAtEOF(G4Event* evt);
+  static const char* EOFPolicyName(EOFPolicy policy);
   void GeneratePrimaryParticles(G4Event* evt);
   void PerformRotations(G4ThreeVector& mom);
   void PerformGlobalRotations(G4ThreeVector& mom);
@@ -115,10 +153,28 @@ private:
 
 public:
 
-  inline void SetTotalParallelRuns(G4int nParallelRuns) {theTotalParallelRuns = nParallelRuns;}
+  inline void SetTotalParallelRuns(G4int nParallelRuns)
+  {
+    if (nParallelRuns <= 0)
+      {
+        G4Exception("G4IAEAphspReader::SetTotalParallelRuns()",
+                    "IAEAreaderInvalidParallelRuns",
+                    FatalException,
+                    "Total parallel runs must be strictly positive.");
+        return;
+      }
+    theTotalParallelRuns = nParallelRuns;
+  }
   inline void SetParallelRun(G4int parallelRun)
   {
-    if (parallelRun > theTotalParallelRuns && parallelRun < 1) G4Exception("Error in G4IAEAphspReader::SetParallelRun()", "", JustWarning, "");
+    if (parallelRun < 1 || parallelRun > theTotalParallelRuns)
+      {
+        G4Exception("G4IAEAphspReader::SetParallelRun()",
+                    "IAEAreaderInvalidParallelRun",
+                    FatalException,
+                    "Parallel run index must be within [1, total parallel runs].");
+        return;
+      }
     theParallelRun = parallelRun;
   }
   inline void SetTimesRecycled(G4int ntimes) {theTimesRecycled = ntimes;}
@@ -133,7 +189,14 @@ public:
   void SetGantryRotationAxis(const G4ThreeVector & axis);
   inline void SetCollimatorAngle(G4double ang) {theCollimatorAngle = ang;}
   inline void SetGantryAngle(G4double ang) {theGantryAngle = ang;}
-  inline void SetAbortOnNextReuseAfterEOF(G4bool abortOnReuse) { theAbortOnNextReuseAfterEOF = abortOnReuse; }
+  inline void SetEOFPolicy(EOFPolicy policy) { theEOFPolicy = policy; }
+  void SetEOFPolicy(const G4String& policyName);
+  inline EOFPolicy GetEOFPolicy() const { return theEOFPolicy; }
+  inline G4String GetEOFPolicyName() const { return EOFPolicyName(theEOFPolicy); }
+  inline void SetAbortOnNextReuseAfterEOF(G4bool abortOnReuse)
+  {
+    theEOFPolicy = abortOnReuse ? EOFPolicy::Abort : EOFPolicy::Restart;
+  }
 
 
   inline G4String GetFileName() const {return theFileName;}
@@ -242,8 +305,20 @@ private:
   G4bool theLastGenerated;
   // Flag active only when the last particle has been simulated
 
-  G4bool theAbortOnNextReuseAfterEOF;
-  // Abort instead of restarting once the file has been exhausted
+  EOFPolicy theEOFPolicy;
+  // Policy applied when the phase-space source reaches EOF
+
+  G4bool theSyntheticModeActive;
+  // True once the reader switches from physical PHSP reads to synthetic sampling
+
+  G4bool theSyntheticModeLogged;
+  // Avoid repeating the EOF-to-synthetic transition log for the same source
+
+  G4long theSyntheticEventsGenerated;
+  // Number of synthetic events already sampled after EOF
+
+  std::vector<SyntheticEventRecord> theSyntheticEventPool;
+  // Empirical event pool used to resample complete PHSP histories
 
   G4bool theHasGeneratedAtLeastOneEvent;
   // Tracks whether the source has already generated at least one event

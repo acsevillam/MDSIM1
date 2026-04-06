@@ -20,8 +20,14 @@
 
 class CubeCalibrationTable {
 public:
+    struct CalibrationData {
+        G4double factor = 0.;
+        G4double factorError = 0.;
+    };
+
     static G4bool HasCalibrationFactor(const G4String& materialName, G4double cubeSide);
     static G4double GetCalibrationFactor(const G4String& materialName, G4double cubeSide);
+    static CalibrationData GetCalibrationData(const G4String& materialName, G4double cubeSide);
 };
 
 #endif // CUBE_CALIBRATION_TABLE_H

@@ -292,6 +292,16 @@ G4bool GenericGeometry::HasAssembledGeometry() const {
     return !detFrame.empty();
 }
 
+std::vector<G4int> GenericGeometry::GetPlacementCopyNumbers() const {
+    std::vector<G4int> copyNumbers;
+    copyNumbers.reserve(detMotherVolumeNames.size());
+    for (const auto& [copyNo, volumeName] : detMotherVolumeNames) {
+        (void)volumeName;
+        copyNumbers.push_back(copyNo);
+    }
+    return copyNumbers;
+}
+
 void GenericGeometry::AssembleRequestedGeometries() {
     G4bool geometryAdded = false;
     for (const auto& [copyNo, volumeName] : detMotherVolumeNames) {

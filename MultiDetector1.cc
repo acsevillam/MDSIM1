@@ -17,6 +17,7 @@
 #include <cerrno>
 #include <ctime>
 #include <cstdlib>
+#include <memory>
 
 #include "G4RunManagerFactory.hh"
 #include "G4SteppingVerbose.hh"
@@ -119,6 +120,19 @@ bool ParseCommandLine(int argc, char** argv, ProgramOptions& options) {
   return true;
 }
 
+bool ApplyCommandOrReportFailure(G4UImanager* uiManager,
+                                 const G4String& command,
+                                 const G4String& description) {
+  const G4int status = uiManager->ApplyCommand(command);
+  if (status == 0) {
+    return true;
+  }
+
+  G4cerr << "Error: failed to execute " << description
+         << " (status " << status << "): " << command << G4endl;
+  return false;
+}
+
 }  // namespace
 
 void PrintUsage() {
@@ -140,9 +154,9 @@ int main(int argc,char** argv)
     return 1;
   }
 
-  G4UIExecutive* ui = nullptr;
+  std::unique_ptr<G4UIExecutive> ui;
   if (options.interactive) {
-    ui = new G4UIExecutive(argc, argv);
+    ui = std::make_unique<G4UIExecutive>(argc, argv);
   }
 
   // Construct Control and ControlMessenger
@@ -161,8 +175,8 @@ int main(int argc,char** argv)
 
   // Construct the default run manager
   //
-  auto* runManager =
-    G4RunManagerFactory::CreateRunManager(G4RunManagerType::Default);
+  auto runManager =
+    std::unique_ptr<G4RunManager>(G4RunManagerFactory::CreateRunManager(G4RunManagerType::Default));
 
   // Activate UI-command base scorer
   G4ScoringManager * scoringManager = G4ScoringManager::GetScoringManager();
@@ -183,9 +197,9 @@ int main(int argc,char** argv)
 	//physicsList->SetCutValue(0.01*mm,"gamma");
 	physicsList->DumpCutValuesTable();
   
-  G4GenericBiasingPhysics* biasingPhysics = new G4GenericBiasingPhysics();
 	if ( options.biasing == "on" )
 	{
+    auto* biasingPhysics = new G4GenericBiasingPhysics();
 		//biasingPhysics->NonPhysicsBiasAllCharged();
 		biasingPhysics->Bias("gamma");
 		//biasingPhysics->NonPhysicsBias("gamma");
@@ -208,8 +222,11 @@ int main(int argc,char** argv)
 
   // Initialize visualization
   //
-  G4VisManager* visManager = new G4VisExecutive;
-  visManager->Initialize();
+  std::unique_ptr<G4VisManager> visManager;
+  if (options.interactive) {
+    visManager = std::make_unique<G4VisExecutive>();
+    visManager->Initialize();
+  }
 
   // Get the pointer to the User Interface manager
   G4UImanager* UImanager = G4UImanager::GetUIpointer();
@@ -219,15 +236,26 @@ int main(int argc,char** argv)
 	if (!options.macro.empty())
 	{
 		G4String command = "/control/execute ";
-		UImanager->ApplyCommand(command + options.macro);
+		if (!ApplyCommandOrReportFailure(UImanager, command + options.macro, "input macro")) {
+      runManager.reset();
+      DetectorRegistry::Kill();
+      MD1PhspSourceConfig::Kill();
+      MD1Control::Kill();
+      return 1;
+    }
 	}
 
 	if (options.interactive) {
 		// interactive mode
 		G4String command = "/control/execute ";
-		UImanager->ApplyCommand(command + options.visMacro);
+		if (!ApplyCommandOrReportFailure(UImanager, command + options.visMacro, "visualization macro")) {
+      runManager.reset();
+      DetectorRegistry::Kill();
+      MD1PhspSourceConfig::Kill();
+      MD1Control::Kill();
+      return 1;
+    }
 		ui->SessionStart();
-		delete ui;
 	}else{
 		runManager->BeamOn(options.numberOfEvents);
 	}
@@ -237,8 +265,8 @@ int main(int argc,char** argv)
   // owned and deleted by the run manager, so they should not be deleted
   // in the main() program !
 
-  delete visManager;
-  delete runManager;
+  runManager.reset();
   DetectorRegistry::Kill();
+  MD1PhspSourceConfig::Kill();
   MD1Control::Kill();
 }

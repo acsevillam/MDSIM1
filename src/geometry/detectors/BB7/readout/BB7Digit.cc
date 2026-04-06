@@ -40,5 +40,7 @@ void BB7Digit::Print() {
            << " CollectedCharge: " << std::setw(7) << fCollectedCharge / (10e-9 * coulomb) << " nC"
            << " Dose: " << std::setw(7) << G4BestUnit(fDose, "Dose")
            << " EstimatedDoseToWater: " << std::setw(7) << G4BestUnit(fEstimatedDoseToWater, "Dose")
+           << " EstimatedDoseToWaterCalibrationError: " << std::setw(7)
+           << G4BestUnit(fEstimatedDoseToWaterCalibrationError, "Dose")
            << G4endl;
 }

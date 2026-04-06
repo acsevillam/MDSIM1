@@ -63,6 +63,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "G4Gamma.hh"
@@ -77,11 +78,28 @@
 #include "G4ThreeVector.hh"
 #include "G4SystemOfUnits.hh"
 #include "G4AutoLock.hh"
+#ifdef min
+#undef min
+#endif
+#ifdef max
+#undef max
+#endif
+#include "G4RunManager.hh"
 #include "Randomize.hh"
 
 namespace {
 G4Mutex g4iaeaReaderIdMutex = G4MUTEX_INITIALIZER;
 G4int g4iaeaNextSourceReadId = 0;
+G4Mutex g4iaeaSourceLifecycleMutex = G4MUTEX_INITIALIZER;
+}
+
+namespace {
+
+constexpr const char* kAbortPolicyName = "abort";
+constexpr const char* kRestartPolicyName = "restart";
+constexpr const char* kStopPolicyName = "stop";
+constexpr const char* kSyntheticPolicyName = "synthetic";
+
 }
 
 // ==================================================================================
@@ -179,7 +197,10 @@ G4IAEAphspReader::~G4IAEAphspReader()
   IAEA_I32 sourceRead = static_cast<IAEA_I32>( theSourceReadId );
   IAEA_I32 result;
 
-  iaea_destroy_source(&sourceRead, &result);
+  {
+    G4AutoLock lock(&g4iaeaSourceLifecycleMutex);
+    iaea_destroy_source(&sourceRead, &result);
+  }
 
   if (result > 0)
     {
@@ -232,7 +253,10 @@ void G4IAEAphspReader::InitializeMembers()
   theCurrentParticle = 100e6;
   theEndOfFile = false;
   theLastGenerated = true; //MAC to make the file 'restart' in the first event.
-  theAbortOnNextReuseAfterEOF = false;
+  theEOFPolicy = EOFPolicy::Abort;
+  theSyntheticModeActive = false;
+  theSyntheticModeLogged = false;
+  theSyntheticEventsGenerated = 0;
   theHasGeneratedAtLeastOneEvent = false;
 
   theGlobalPhspTranslation = zeroVec;
@@ -242,6 +266,54 @@ void G4IAEAphspReader::InitializeMembers()
   theCollimatorAngle = theGantryAngle = 0.;
   theCollimatorRotAxis = zAxis;
   theGantryRotAxis = yAxis;
+}
+
+
+void G4IAEAphspReader::ClearCurrentParticleData()
+{
+  theParticleTypeVector->clear();
+  theEnergyVector->clear();
+  thePositionVector->clear();
+  theMomentumVector->clear();
+  theWeightVector->clear();
+  if (theNumberOfExtraFloats > 0) theExtraFloatsVector->clear();
+  if (theNumberOfExtraInts > 0) theExtraIntsVector->clear();
+}
+
+
+void G4IAEAphspReader::StoreParticleRecord(G4int type, G4double energy, const G4ThreeVector& position,
+                                           const G4ThreeVector& momentum, G4double weight,
+                                           const IAEA_Float* extraFloats, const IAEA_I32* extraInts)
+{
+  theParticleTypeVector->push_back(type);
+  theEnergyVector->push_back(energy);
+  thePositionVector->push_back(position);
+  theMomentumVector->push_back(momentum);
+  theWeightVector->push_back(weight);
+
+  if (theNumberOfExtraFloats > 0)
+    {
+      std::vector<G4double> vExtraFloats;
+      vExtraFloats.reserve(theNumberOfExtraFloats);
+
+      for (G4int j = 0; j < theNumberOfExtraFloats; j++)
+        {
+          vExtraFloats.push_back(static_cast<G4double>(extraFloats[j]));
+        }
+      theExtraFloatsVector->push_back(vExtraFloats);
+    }
+
+  if (theNumberOfExtraInts > 0)
+    {
+      std::vector<G4long> vExtraInts;
+      vExtraInts.reserve(theNumberOfExtraInts);
+
+      for (G4int i = 0; i < theNumberOfExtraInts; i++)
+        {
+          vExtraInts.push_back(static_cast<G4long>(extraInts[i]));
+        }
+      theExtraIntsVector->push_back(vExtraInts);
+    }
 }
 
 
@@ -278,10 +350,22 @@ void G4IAEAphspReader::InitializeSource(char* filename)
   const IAEA_I32 accessRead = static_cast<const IAEA_I32>( theAccessRead );
   IAEA_I32 result;
 
-  iaea_new_source( &sourceRead, filename, &accessRead, &result, theFileName.size()+1 );
-  if ( sourceRead < 0 ) 
-    G4Exception("G4IAEAphspReader::InitializeSource()",
-		"IAEAreader002", RunMustBeAborted, "Could not open IAEA source file to read");
+  {
+    G4AutoLock lock(&g4iaeaSourceLifecycleMutex);
+    iaea_new_source( &sourceRead, filename, &accessRead, &result, theFileName.size()+1 );
+  }
+  if ( sourceRead < 0 )
+    {
+      G4String message = "Could not open IAEA source file to read";
+      if (result == -98)
+        {
+          message = "IAEA source pool exhausted. Increase MAX_NUM_SOURCES or reduce concurrently opened PHSP readers.";
+        }
+      G4Exception("G4IAEAphspReader::InitializeSource()",
+		"IAEAreader002", RunMustBeAborted, message.c_str());
+      return;
+    }
+  theSourceReadId = static_cast<G4int>(sourceRead);
 
   iaea_check_file_size_byte_order(&sourceRead, &result);
   switch (result)
@@ -289,23 +373,23 @@ void G4IAEAphspReader::InitializeSource(char* filename)
     case -1:
       G4Exception("G4IAEAphspReader::InitializeSource()",
 		  "IAEAreader003", RunMustBeAborted, "Header does not exist");
-      break;
+      return;
     case -2:
       G4Exception("G4IAEAphspReader::InitializeSource()",
 		  "IAEAreader004", RunMustBeAborted, "Failure of function fseek");
-      break;
+      return;
     case -3:
       G4Exception("G4IAEAphspReader::InitializeSource()",
 		  "IAEAreader005", RunMustBeAborted, "There is a file size mismatch");
-      break;
+      return;
     case -4:
       G4Exception("G4IAEAphspReader::InitializeSource()",
 		  "IAEAreader006", RunMustBeAborted, "Byte order mismatch");
-      break;
+      return;
     case -5:
       G4Exception("G4IAEAphspReader::InitializeSource()",
 		  "IAEAreader007", RunMustBeAborted, "File size and byte order mismatch");
-      break;
+      return;
     default:
       break;
     }
@@ -325,8 +409,6 @@ void G4IAEAphspReader::InitializeSource(char* filename)
   else
     {
       theTotalParticles = static_cast<G4long>(nParticles);
-      G4cout << "Total number of particles in file " << filename << ".IAEAphsp" << " = " 
-	     << GetTotalParticles() << G4endl;
     }
 
 
@@ -336,9 +418,6 @@ void G4IAEAphspReader::InitializeSource(char* filename)
   iaea_get_total_original_particles(&sourceRead, &nHistories);
   theOriginalHistories = static_cast<G4long>(nHistories);
 
-  G4cout << "Number of original histories in header file " << filename << ".IAEAphsp" << " = " 
-	 << nHistories << G4endl;
-
 
   // And finally, we take all the information related to the extra variables
 
@@ -346,9 +425,6 @@ void G4IAEAphspReader::InitializeSource(char* filename)
   iaea_get_extra_numbers(&sourceRead, &nExtraFloat, &nExtraInt );
   theNumberOfExtraFloats = static_cast<G4int>( nExtraFloat );
   theNumberOfExtraInts = static_cast<G4int>( nExtraInt );
-
-  G4cout << "The number of Extra Floats is " << theNumberOfExtraFloats
-	 << " and the number of Extra Ints is " << theNumberOfExtraInts << G4endl;
 
   // Initializing vectors
 
@@ -384,25 +460,41 @@ void G4IAEAphspReader::InitializeSource(char* filename)
 // and it is meant to be a template method.
 void G4IAEAphspReader::GeneratePrimaryVertex(G4Event* evt)
 {
-
-    //std::cout <<"current particle: " << theCurrentParticle<< "nStat: " << evt->GetEventID() << std::endl;
-  if (theLastGenerated) 
+  if (theSyntheticModeActive)
     {
-      if (theAbortOnNextReuseAfterEOF && theHasGeneratedAtLeastOneEvent)
+      if (theSyntheticEventPool.empty())
         {
           G4Exception("G4IAEAphspReader::GeneratePrimaryVertex()",
-                      "IAEAreaderEOF",
+                      "IAEAreaderSyntheticEmpty",
                       RunMustBeAborted,
-                      ("End of phase-space file reached for " + theFileName + ".IAEAphsp").c_str());
+                      ("Synthetic PHSP pool is empty for " + theFileName + ".IAEAphsp").c_str());
           return;
         }
-      RestartSourceFile();
-      ReadAndStoreFirstParticle();
+
+      const std::size_t eventIndex =
+        static_cast<std::size_t>(G4RandFlat::shootInt(static_cast<G4int>(theSyntheticEventPool.size())));
+      LoadSyntheticEvent(eventIndex);
+      GeneratePrimaryParticles(evt);
+      theHasGeneratedAtLeastOneEvent = true;
+      ++theSyntheticEventsGenerated;
+      return;
+    }
+
+  if (theLastGenerated)
+    {
+      HandleEndOfFile(evt);
+      if (theSyntheticModeActive)
+        {
+          GeneratePrimaryVertex(evt);
+          return;
+        }
+      if (theLastGenerated)
+        {
+          return;
+        }
     }
 
   PrepareThisEvent();
-
-  //std::cout <<"current particle: " << theCurrentParticle<< "nStat: " << evt->GetEventID() << std::endl;
 
   if (theNStat == 0)
     {
@@ -424,23 +516,31 @@ void G4IAEAphspReader::RestartSourceFile()
   theCurrentParticle = 0;
   theEndOfFile = false;
   theLastGenerated = false;
+  theSyntheticModeActive = false;
+  theSyntheticModeLogged = false;
 
   // Clear all the vectors
-  theParticleTypeVector->clear();
-  theEnergyVector->clear();
-  thePositionVector->clear();
-  theMomentumVector->clear();
-  theWeightVector->clear();
-  if (theNumberOfExtraFloats) theExtraFloatsVector->clear();
-  if (theNumberOfExtraInts) theExtraIntsVector->clear();
+  ClearCurrentParticleData();
 
   // Close and open the IAEA source
   char* filename = const_cast<char*>( theFileName.data() );
   IAEA_I32 accessRead = static_cast<IAEA_I32>( theAccessRead );
   IAEA_I32 sourceRead = static_cast<IAEA_I32>(theSourceReadId);
   IAEA_I32 result;
-  iaea_destroy_source(&sourceRead, &result);
-  iaea_new_source(&sourceRead, filename, &accessRead, &result, theFileName.size() );
+  {
+    G4AutoLock lock(&g4iaeaSourceLifecycleMutex);
+    iaea_destroy_source(&sourceRead, &result);
+    iaea_new_source(&sourceRead, filename, &accessRead, &result, theFileName.size() );
+  }
+  if (sourceRead < 0)
+    {
+      G4Exception("G4IAEAphspReader::RestartSourceFile()",
+                  "IAEAreaderRestartOpen",
+                  RunMustBeAborted,
+                  "Failed to reopen the IAEA source file while restarting.");
+      return;
+    }
+  theSourceReadId = static_cast<G4int>(sourceRead);
 }
 
 
@@ -463,12 +563,23 @@ void G4IAEAphspReader::ReadAndStoreFirstParticle()
   // ------------------------------
 
   G4int initParticle = theTotalParticles/theTotalParallelRuns*(theParallelRun-1);
-  while (theCurrentParticle < initParticle)
+  if (initParticle > 0)
     {
-      G4cout<<theCurrentParticle<<G4endl;
-      theCurrentParticle++;
-      iaea_get_particle(&sourceRead, &nStat, &type,
-			&E, &wt, &x, &y, &z, &u, &v, &w, extraFloats, extraInts);
+      IAEA_I32 result = 0;
+      const IAEA_I32 parallelId = static_cast<IAEA_I32>(theParallelRun);
+      const IAEA_I32 chunkId = static_cast<IAEA_I32>(theParallelRun);
+      const IAEA_I32 totalChunks = static_cast<IAEA_I32>(theTotalParallelRuns);
+      iaea_set_parallel(&sourceRead, &parallelId, &chunkId, &totalChunks, &result);
+      if (result != 0)
+        {
+          G4Exception("G4IAEAphspReader::ReadAndStoreFirstParticle()",
+                      "IAEAreaderParallelSeek",
+                      RunMustBeAborted,
+                      "Failed to position the PHSP reader at the worker chunk start.");
+          return;
+        }
+
+      theCurrentParticle = initParticle;
     }
 
   // -------------------------------------------------
@@ -498,9 +609,6 @@ void G4IAEAphspReader::ReadAndStoreFirstParticle()
   //  Store the information into the data members
   // -------------------------------------------------
 
-  theParticleTypeVector->push_back(static_cast<G4int>(type) );
-  theEnergyVector->push_back(static_cast<G4double>(E));
-
   G4ThreeVector pos, mom;
   pos.set(static_cast<G4double>(x), 
 	  static_cast<G4double>(y),
@@ -510,34 +618,8 @@ void G4IAEAphspReader::ReadAndStoreFirstParticle()
 	  static_cast<G4double>(v),
 	  static_cast<G4double>(w));
 
-  thePositionVector->push_back(pos);
-  theMomentumVector->push_back(-mom);
-
-  theWeightVector->push_back(static_cast<G4double>(wt));
-
-  if (theNumberOfExtraFloats > 0)
-    {
-      std::vector<G4double> vExtraFloats;
-      vExtraFloats.reserve(theNumberOfExtraFloats);
-
-      for (G4int j = 0; j < theNumberOfExtraFloats; j++)
-	{
-	  vExtraFloats.push_back( static_cast<G4double>(extraFloats[j]) );
-	}
-      theExtraFloatsVector->push_back(vExtraFloats);
-    }
-
-  if (theNumberOfExtraInts > 0)
-    {
-      std::vector<G4long> vExtraInts;
-      vExtraInts.reserve(theNumberOfExtraInts);
-
-      for (G4int i = 0; i < theNumberOfExtraInts; i++)
-	{
-	  vExtraInts.push_back( static_cast<G4long>(extraInts[i]) );
-	}
-      theExtraIntsVector->push_back(vExtraInts);
-    }
+  StoreParticleRecord(static_cast<G4int>(type), static_cast<G4double>(E), pos, -mom,
+                      static_cast<G4double>(wt), extraFloats, extraInts);
 
   //  Update theUsedOriginalParticles
   // ---------------------------------
@@ -631,9 +713,6 @@ void G4IAEAphspReader::ReadThisEvent()
       //  Store the information into the data members
       // ---------------------------------------------
 
-      theParticleTypeVector->push_back(static_cast<G4int>(type) );
-      theEnergyVector->push_back(static_cast<G4double>(E));
-
       G4ThreeVector pos, mom;
       pos.set(static_cast<G4double>(x), 
 	      static_cast<G4double>(y),
@@ -643,32 +722,8 @@ void G4IAEAphspReader::ReadThisEvent()
 	      static_cast<G4double>(v),
 	      static_cast<G4double>(-w));
 
-      thePositionVector->push_back(pos);
-      theMomentumVector->push_back(mom);
-
-      theWeightVector->push_back(static_cast<G4double>(wt));
-
-      if (theNumberOfExtraFloats > 0)
-	{
-	  std::vector<G4double> vExtraFloats;
-	  vExtraFloats.reserve(theNumberOfExtraFloats);
-	  for (G4int j = 0; j < theNumberOfExtraFloats; j++)
-	    {
-	      vExtraFloats.push_back( static_cast<G4double>(extraFloats[j]) );
-	    }
-	  theExtraFloatsVector->push_back(vExtraFloats);
-	}
-
-      if (theNumberOfExtraInts > 0)
-	{
-	  std::vector<G4long> vExtraInts;
-	  vExtraInts.reserve(theNumberOfExtraInts);
-	  for (G4int i = 0; i < theNumberOfExtraInts; i++)
-	    {
-	      vExtraInts.push_back( static_cast<G4long>(extraInts[i]) );
-	    }
-	  theExtraIntsVector->push_back(vExtraInts);
-	}
+      StoreParticleRecord(static_cast<G4int>(type), static_cast<G4double>(E), pos, mom,
+                          static_cast<G4double>(wt), extraFloats, extraInts);
 
       //  Update theUsedOriginalParticles
       // ---------------------------------
@@ -684,19 +739,257 @@ void G4IAEAphspReader::ReadThisEvent()
 }
 
 
+void G4IAEAphspReader::PrepareSyntheticEvents()
+{
+  if (!theSyntheticEventPool.empty())
+    {
+      return;
+    }
+
+  G4cout << "Preparing synthetic PHSP event pool for " << theFileName << ".IAEAphsp" << G4endl;
+
+  const G4long originalUsedParticles = theUsedOriginalParticles;
+
+  RestartSourceFile();
+  ReadAndStoreFirstParticle();
+
+  while (true)
+    {
+      PrepareThisEvent();
+      if (theNStat == 0)
+        {
+          ReadThisEvent();
+
+          SyntheticEventRecord eventRecord;
+          eventRecord.nStat = theNStat;
+          const G4int listSize =
+            (theEndOfFile && theNStat == 0)
+              ? static_cast<G4int>(theParticleTypeVector->size())
+              : static_cast<G4int>(theParticleTypeVector->size()) - 1;
+
+          for (G4int k = 0; k < listSize; ++k)
+            {
+              SyntheticParticleRecord particleRecord;
+              particleRecord.type = (*theParticleTypeVector)[k];
+              particleRecord.energy = (*theEnergyVector)[k];
+              particleRecord.position = (*thePositionVector)[k];
+              particleRecord.momentum = (*theMomentumVector)[k];
+              particleRecord.weight = (*theWeightVector)[k];
+              if (theNumberOfExtraFloats > 0) particleRecord.extraFloats = (*theExtraFloatsVector)[k];
+              if (theNumberOfExtraInts > 0) particleRecord.extraInts = (*theExtraIntsVector)[k];
+              eventRecord.particles.push_back(std::move(particleRecord));
+            }
+
+          if (!eventRecord.particles.empty())
+            {
+              theSyntheticEventPool.push_back(std::move(eventRecord));
+            }
+
+          if (theLastGenerated || (theEndOfFile && theNStat == 0))
+            {
+              break;
+            }
+        }
+
+      GeneratePrimaryParticles(nullptr);
+      if (theLastGenerated)
+        {
+          break;
+        }
+    }
+
+  if (theSyntheticEventPool.empty())
+    {
+      G4Exception("G4IAEAphspReader::PrepareSyntheticEvents()",
+                  "IAEAreaderSyntheticBuild",
+                  RunMustBeAborted,
+                  ("No valid PHSP events available to build synthetic pool for " + theFileName + ".IAEAphsp").c_str());
+      return;
+    }
+
+  G4cout << "Prepared " << theSyntheticEventPool.size() << " empirical PHSP events for synthetic sampling from "
+         << theFileName << ".IAEAphsp" << G4endl;
+
+  RestartSourceFile();
+  theUsedOriginalParticles = originalUsedParticles;
+  theHasGeneratedAtLeastOneEvent = true;
+}
+
+
+void G4IAEAphspReader::ActivateSyntheticMode()
+{
+  if (theSyntheticEventPool.empty())
+    {
+      PrepareSyntheticEvents();
+    }
+
+  theSyntheticModeActive = true;
+  theLastGenerated = false;
+  theEndOfFile = false;
+  theNStat = 0;
+  ClearCurrentParticleData();
+
+  if (!theSyntheticModeLogged)
+    {
+      G4cout << "Switching to synthetic PHSP sampling for " << theFileName << ".IAEAphsp after EOF. "
+             << "Pool size = " << theSyntheticEventPool.size() << " events." << G4endl;
+      theSyntheticModeLogged = true;
+    }
+}
+
+
+void G4IAEAphspReader::LoadSyntheticEvent(std::size_t eventIndex)
+{
+  if (eventIndex >= theSyntheticEventPool.size())
+    {
+      G4Exception("G4IAEAphspReader::LoadSyntheticEvent()",
+                  "IAEAreaderSyntheticIndex",
+                  RunMustBeAborted,
+                  "Synthetic PHSP event index out of range");
+      return;
+    }
+
+  ClearCurrentParticleData();
+
+  const SyntheticEventRecord& eventRecord = theSyntheticEventPool[eventIndex];
+  for (const auto& particleRecord : eventRecord.particles)
+    {
+      theParticleTypeVector->push_back(particleRecord.type);
+      theEnergyVector->push_back(particleRecord.energy);
+      thePositionVector->push_back(particleRecord.position);
+      theMomentumVector->push_back(particleRecord.momentum);
+      theWeightVector->push_back(particleRecord.weight);
+      if (theNumberOfExtraFloats > 0) theExtraFloatsVector->push_back(particleRecord.extraFloats);
+      if (theNumberOfExtraInts > 0) theExtraIntsVector->push_back(particleRecord.extraInts);
+    }
+
+  theNStat = eventRecord.nStat;
+  if (!theSyntheticModeLogged)
+    {
+      G4cout << "Synthetic PHSP sampling starts from event index " << eventIndex
+             << " for " << theFileName << ".IAEAphsp" << G4endl;
+      theSyntheticModeLogged = true;
+    }
+}
+
+
+void G4IAEAphspReader::HandleEndOfFile(G4Event* evt)
+{
+  if (!theHasGeneratedAtLeastOneEvent)
+    {
+      RestartSourceFile();
+      ReadAndStoreFirstParticle();
+      return;
+    }
+
+  switch (theEOFPolicy)
+    {
+    case EOFPolicy::Abort:
+      G4Exception("G4IAEAphspReader::GeneratePrimaryVertex()",
+                  "IAEAreaderEOF",
+                  RunMustBeAborted,
+                  ("End of phase-space file reached for " + theFileName + ".IAEAphsp").c_str());
+      return;
+
+    case EOFPolicy::Restart:
+      G4cout << "Restarting phase-space file after EOF for " << theFileName << ".IAEAphsp" << G4endl;
+      RestartSourceFile();
+      ReadAndStoreFirstParticle();
+      return;
+
+    case EOFPolicy::Stop:
+      StopRunAtEOF(evt);
+      return;
+
+    case EOFPolicy::Synthetic:
+      ActivateSyntheticMode();
+      return;
+    }
+}
+
+
+void G4IAEAphspReader::StopRunAtEOF(G4Event* evt)
+{
+  G4cout << "Stopping run cleanly after EOF for " << theFileName << ".IAEAphsp";
+  if (evt != nullptr)
+    {
+      G4cout << " before event " << evt->GetEventID();
+    }
+  G4cout << "." << G4endl;
+
+  auto* runManager = G4RunManager::GetRunManager();
+  if (runManager != nullptr)
+    {
+      runManager->AbortRun(false);
+    }
+}
+
+
+G4IAEAphspReader::EOFPolicy G4IAEAphspReader::ParseEOFPolicy(const G4String& policyName)
+{
+  if (policyName == kAbortPolicyName) return EOFPolicy::Abort;
+  if (policyName == kRestartPolicyName) return EOFPolicy::Restart;
+  if (policyName == kStopPolicyName) return EOFPolicy::Stop;
+  if (policyName == kSyntheticPolicyName) return EOFPolicy::Synthetic;
+
+  G4Exception("G4IAEAphspReader::ParseEOFPolicy()",
+              "IAEAreaderPolicy",
+              FatalException,
+              ("Unknown EOF policy '" + policyName + "'. Valid values are abort, restart, stop, synthetic.").c_str());
+  return EOFPolicy::Abort;
+}
+
+
+const char* G4IAEAphspReader::EOFPolicyName(EOFPolicy policy)
+{
+  switch (policy)
+    {
+    case EOFPolicy::Abort:
+      return kAbortPolicyName;
+    case EOFPolicy::Restart:
+      return kRestartPolicyName;
+    case EOFPolicy::Stop:
+      return kStopPolicyName;
+    case EOFPolicy::Synthetic:
+      return kSyntheticPolicyName;
+    }
+
+  return kAbortPolicyName;
+}
+
+
+void G4IAEAphspReader::SetEOFPolicy(const G4String& policyName)
+{
+  theEOFPolicy = ParseEOFPolicy(policyName);
+}
+
+
 // ===============================================================
 //  void G4IAEAphspReader::GeneratePrimaryParticles(G4Event* evt)
 // ===============================================================
 
 void G4IAEAphspReader::GeneratePrimaryParticles(G4Event* evt)
 {
+  if (evt == nullptr)
+    {
+      if (theEndOfFile && theNStat == 0)
+        {
+          theLastGenerated = true;
+        }
+      return;
+    }
+
   // Only when the EOF has been reached and theNStat is still 0 
   // all the particles must be read.
   // Otherwise, don't read the last particle.
 
   G4int listSize = theParticleTypeVector->size();
 
-  if (theEndOfFile && theNStat == 0)
+  if (theSyntheticModeActive)
+    {
+      listSize = static_cast<G4int>(theParticleTypeVector->size());
+    }
+  else if (theEndOfFile && theNStat == 0)
     {
       // Read all the particles, so this flag switches on
       theLastGenerated = true;

@@ -43,6 +43,7 @@ private:
     G4UIcmdWithADoubleAndUnit* fSetCubeSideCmd;
     G4UIcmdWithAString* fSetCubeMaterialCmd;
     G4UIcmdWithADouble* fSetCalibrationFactorCmd;
+    G4UIcmdWithADouble* fSetCalibrationFactorErrorCmd;
     G4UIcmdWithAnInteger* fDetectorIDCmd;
     G4UIcmdWith3VectorAndUnit* fTranslateCmd;
     G4UIcmdWith3VectorAndUnit* fTranslateToCmd;

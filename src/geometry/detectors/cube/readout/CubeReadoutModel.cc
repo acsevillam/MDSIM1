@@ -25,33 +25,37 @@ namespace {
 
 G4double GetMeanEnergyPerIonForMaterial(const G4String& materialName) {
     if (materialName == "G4_Si") {
-        return 3.6 * eV;
+        return 3.62 * eV;
     }
     if (materialName == "G4_Ge") {
-        return 2.9 * eV;
+        return 2.96 * eV;
     }
-    if (materialName == "G4_C") {
-        return 13.0 * eV;
+    if (materialName == "G4_WATER") {
+        return 25.5 * eV;
     }
-    if (materialName == "G4_WATER" || materialName == "G4_AIR") {
+    if (materialName == "G4_AIR") {
         return 33.97 * eV;
     }
 
-    return 10.0 * eV;
+    return 25.5 * eV;
 }
 
 } // namespace
 
 CubeReadoutParameters CubeReadoutModel::Build(const G4String& materialName,
                                               G4double cubeSide,
-                                              G4double calibrationFactor) {
+                                              G4double calibrationFactor,
+                                              G4double calibrationFactorError) {
     CubeReadoutParameters parameters;
     parameters.meanEnergyPerIon = GetMeanEnergyPerIonForMaterial(materialName);
     parameters.elementaryCharge = 1.60217663e-19 * coulomb;
     if (calibrationFactor > 0.) {
         parameters.calibrationFactor = calibrationFactor;
+        parameters.calibrationFactorError = calibrationFactorError;
     } else {
-        parameters.calibrationFactor = CubeCalibrationTable::GetCalibrationFactor(materialName, cubeSide);
+        const auto calibrationData = CubeCalibrationTable::GetCalibrationData(materialName, cubeSide);
+        parameters.calibrationFactor = calibrationData.factor;
+        parameters.calibrationFactorError = calibrationData.factorError;
     }
 
     auto* material = G4NistManager::Instance()->FindOrBuildMaterial(materialName, false);
@@ -76,6 +80,14 @@ CubeReadoutParameters CubeReadoutModel::Build(const G4String& materialName,
                     "CubeReadoutInvalidCalibrationFactor",
                     FatalException,
                     "Cube calibration factor must be defined by override or local calibration table and be positive.");
+        return parameters;
+    }
+
+    if (parameters.calibrationFactorError < 0.) {
+        G4Exception("CubeReadoutModel::Build",
+                    "CubeReadoutInvalidCalibrationFactorError",
+                    FatalException,
+                    "Cube calibration factor uncertainty must be non-negative.");
         return parameters;
     }
 

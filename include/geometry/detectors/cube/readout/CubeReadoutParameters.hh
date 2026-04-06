@@ -19,9 +19,10 @@
 #include "globals.hh"
 
 struct CubeReadoutParameters {
-    G4double meanEnergyPerIon = 3.6;
-    G4double elementaryCharge = 1.60217663e-19;
+    G4double meanEnergyPerIon = 0.;
+    G4double elementaryCharge = 0.;
     G4double calibrationFactor = 0.;
+    G4double calibrationFactorError = 0.;
 };
 
 #endif // CUBE_READOUT_PARAMETERS_H

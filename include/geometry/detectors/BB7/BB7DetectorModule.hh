@@ -3,7 +3,6 @@
 
 #include <memory>
 
-#include "G4SystemOfUnits.hh"
 #include "geometry/base/DetectorModule.hh"
 
 class DetectorDualBB7;
@@ -23,17 +22,18 @@ public:
     void ConstructGeometry(G4LogicalVolume* motherVolume) override;
     void RegisterSensitiveDetectors(G4SDManager* sdManager) override;
     void RegisterDigitizers(G4DigiManager* digiManager) override;
-    void CreateAnalysis(G4AnalysisManager* analysisManager) override;
+    std::unique_ptr<DetectorRuntimeState> CreateRuntimeState() const override;
+    void CreateAnalysis(G4AnalysisManager* analysisManager,
+                        DetectorRuntimeState& runtimeState) override;
+    std::vector<G4String> GetSummaryLabels() const override;
+    G4String GetSummaryLabel(G4int detectorID) const override;
     DetectorEventData ProcessEvent(const G4Event* event,
                                    G4AnalysisManager* analysisManager,
-                                   G4DigiManager* digiManager) override;
+                                   G4DigiManager* digiManager,
+                                   DetectorRuntimeState& runtimeState) override;
 
 private:
-    static const G4double kStaticCalibrationFactor;
-
     G4bool fEnabled;
-    G4int fNtupleId;
-    G4int fChargeMapId;
     std::unique_ptr<DetectorDualBB7> fGeometry;
 };
 

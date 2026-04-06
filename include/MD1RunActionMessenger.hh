@@ -13,64 +13,37 @@
  *
  */
 
-#ifndef MD1_DETECTOR_CONSTRUCTION_MESSENGER_H
-#define MD1_DETECTOR_CONSTRUCTION_MESSENGER_H
-
-// Standard Headers
-#include <vector>
-#include <map>
+#ifndef MD1_RUN_ACTION_MESSENGER_H
+#define MD1_RUN_ACTION_MESSENGER_H
 
 // Geant4 Headers
-#include "G4UImessenger.hh"
-#include "globals.hh"
 #include "G4UIdirectory.hh"
-#include "G4UIcmdWithAString.hh"
-#include "G4UIcmdWithABool.hh"
-#include "G4UIcmdWithADoubleAndUnit.hh"
+#include "G4UIcmdWithADouble.hh"
 #include "G4UIcmdWithAnInteger.hh"
-#include "G4UIcmdWithoutParameter.hh"
-
-// MultiDetector Headers
-#include "MD1RunAction.hh"
-
-typedef std::map <G4String,G4UIdirectory*>         			UIDirectoryCollection ;
-typedef std::map <G4String,G4UIcmdWithAString*>    			UIcmdWithAStringCollection ;
-typedef std::map <G4String,G4UIcmdWithABool*>    			UIcmdWithABoolCollection ;
-typedef std::map <G4String,G4UIcmdWithADoubleAndUnit*>    	UIcmdWithADoubleAndUnitCollection ;
-typedef std::map <G4String,G4UIcmdWithAnInteger*>    		UIcmdWithAIntCollection ;
-typedef std::map <G4String,G4UIcmdWithoutParameter*>    	UIcmdWithoutParameter ;
-
-class G4UIdirectory ;
-class G4UIcmdWithAString ;
-class G4UIcmdWithABool ;
-class G4UIcmdWithADoubleAndUnit ;
+#include "G4UImessenger.hh"
+class G4UIcmdWithADouble ;
 class G4UIcmdWithAnInteger ;
-class G4UIcmdWithoutParameter ;
+#include "globals.hh"
 
-/// Detector construction class to define materials and geometry.
 namespace MD1 {
 
 class MD1RunAction;
 
 class MD1RunActionMessenger : public G4UImessenger {
 public:
-    MD1RunActionMessenger(MD1RunAction* aRunAction );
-    ~MD1RunActionMessenger() override = default;
+    explicit MD1RunActionMessenger(MD1RunAction* runAction);
+    ~MD1RunActionMessenger() override;
 
-	void SetNewValue(G4UIcommand* command, G4String aValue) override;
+    void SetNewValue(G4UIcommand* command, G4String value) override;
 
 private:
-
-	MD1RunAction*				            fRunAction ;
-
-	UIDirectoryCollection					fUIDirectoryCollection ;
-	UIcmdWithAStringCollection				fUIcmdWithAStringCollection ;
-	UIcmdWithABoolCollection				fUIcmdWithABoolCollection ;
-	UIcmdWithADoubleAndUnitCollection		fUIcmdWithADoubleAndUnitCollection;
-	UIcmdWithAIntCollection					fUIcmdWithAIntCollection;
-	UIcmdWithoutParameter					fUIcmdWithoutParameter;
+    MD1RunAction* fRunAction;
+    G4UIdirectory* fRunDirectory = nullptr;
+    G4UIcmdWithAnInteger* fSetMUCmd = nullptr;
+    G4UIcmdWithADouble* fSetScaleFactorMUCmd = nullptr;
+    G4UIcmdWithADouble* fSetScaleFactorMUErrorCmd = nullptr;
 };
 
 } // namespace MD1
 
-#endif // MD1_DETECTOR_CONSTRUCTION_MESSENGER_H
+#endif // MD1_RUN_ACTION_MESSENGER_H

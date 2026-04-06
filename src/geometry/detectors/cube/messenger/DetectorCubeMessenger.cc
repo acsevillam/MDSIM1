@@ -18,6 +18,7 @@
 
 // Geant4 Headers
 #include "G4UIparameter.hh"
+#include "G4SystemOfUnits.hh"
 
 // MultiDetector Headers
 #include "geometry/base/DetectorRegistry.hh"
@@ -30,6 +31,7 @@ DetectorCubeMessenger::DetectorCubeMessenger(DetectorCube* detectorCube)
     fSetCubeSideCmd->SetGuidance("Set the side length of the cube detector.");
     fSetCubeSideCmd->SetParameterName("CubeSide", false);
     fSetCubeSideCmd->SetUnitCategory("Length");
+    fSetCubeSideCmd->SetRange("CubeSide>0.");
     fSetCubeSideCmd->AvailableForStates(G4State_PreInit);
 
     fSetCubeMaterialCmd = new G4UIcmdWithAString("/MultiDetector1/detectors/cube/setMaterial", this);
@@ -38,13 +40,21 @@ DetectorCubeMessenger::DetectorCubeMessenger(DetectorCube* detectorCube)
     fSetCubeMaterialCmd->AvailableForStates(G4State_PreInit);
 
     fSetCalibrationFactorCmd = new G4UIcmdWithADouble("/MultiDetector1/detectors/cube/setCalibrationFactor", this);
-    fSetCalibrationFactorCmd->SetGuidance("Set the experimental cube calibration factor in Gy/C.");
+    fSetCalibrationFactorCmd->SetGuidance("Set the experimental cube calibration factor in cGy/nC.");
     fSetCalibrationFactorCmd->SetParameterName("CalibrationFactor", false);
+    fSetCalibrationFactorCmd->SetRange("CalibrationFactor>0.");
     fSetCalibrationFactorCmd->AvailableForStates(G4State_PreInit);
+
+    fSetCalibrationFactorErrorCmd = new G4UIcmdWithADouble("/MultiDetector1/detectors/cube/setCalibrationFactorError", this);
+    fSetCalibrationFactorErrorCmd->SetGuidance("Set the experimental cube calibration factor uncertainty in cGy/nC.");
+    fSetCalibrationFactorErrorCmd->SetParameterName("CalibrationFactorError", false);
+    fSetCalibrationFactorErrorCmd->SetRange("CalibrationFactorError>=0.");
+    fSetCalibrationFactorErrorCmd->AvailableForStates(G4State_PreInit);
 
     fDetectorIDCmd = new G4UIcmdWithAnInteger("/MultiDetector1/detectors/cube/detectorID", this);
     fDetectorIDCmd->SetGuidance("Select detector ID.");
     fDetectorIDCmd->SetParameterName("detectorID", false);
+    fDetectorIDCmd->SetRange("detectorID>=0");
     fDetectorIDCmd->AvailableForStates(G4State_PreInit, G4State_Idle);
 
     fTranslateCmd = new G4UIcmdWith3VectorAndUnit("/MultiDetector1/detectors/cube/translate", this);
@@ -106,6 +116,7 @@ DetectorCubeMessenger::DetectorCubeMessenger(DetectorCube* detectorCube)
     fRemoveGeometryCmd = new G4UIcmdWithAnInteger("/MultiDetector1/detectors/cube/removeGeometry", this);
     fRemoveGeometryCmd->SetGuidance("Remove geometry by detector ID.");
     fRemoveGeometryCmd->SetParameterName("detectorID", false);
+    fRemoveGeometryCmd->SetRange("detectorID>=0");
     fRemoveGeometryCmd->AvailableForStates(G4State_PreInit, G4State_Idle);
 }
 
@@ -113,6 +124,7 @@ DetectorCubeMessenger::~DetectorCubeMessenger() {
     delete fSetCubeSideCmd;
     delete fSetCubeMaterialCmd;
     delete fSetCalibrationFactorCmd;
+    delete fSetCalibrationFactorErrorCmd;
     delete fDetectorIDCmd;
     delete fTranslateCmd;
     delete fTranslateToCmd;
@@ -130,7 +142,11 @@ void DetectorCubeMessenger::SetNewValue(G4UIcommand* command, G4String newValue)
     } else if (command == fSetCubeMaterialCmd) {
         fDetectorCube->SetCubeMaterial(newValue);
     } else if (command == fSetCalibrationFactorCmd) {
-        fDetectorCube->SetCalibrationFactor(fSetCalibrationFactorCmd->GetNewDoubleValue(newValue));
+        fDetectorCube->SetCalibrationFactor(
+            fSetCalibrationFactorCmd->GetNewDoubleValue(newValue) * (1e-2 * gray) / (1e-9 * coulomb));
+    } else if (command == fSetCalibrationFactorErrorCmd) {
+        fDetectorCube->SetCalibrationFactorError(
+            fSetCalibrationFactorErrorCmd->GetNewDoubleValue(newValue) * (1e-2 * gray) / (1e-9 * coulomb));
     } else if (command == fTranslateCmd) {
         fDetectorCube->Translate(fCurrentDetectorID, fTranslateCmd->GetNew3VectorValue(newValue));
     } else if (command == fTranslateToCmd) {

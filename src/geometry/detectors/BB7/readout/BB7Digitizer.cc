@@ -12,6 +12,8 @@
  *
  */
 
+#include <cmath>
+
 // Geant4 Headers
 #include "G4DigiManager.hh"
 #include "G4LogicalVolumeStore.hh"
@@ -37,12 +39,12 @@ G4double GetSensitiveVolumeMass(const G4String& logicalVolumeName) {
 
 } // namespace
 
-BB7Digitizer::BB7Digitizer(const G4String& name, G4double calibrationFactor)
+BB7Digitizer::BB7Digitizer(const G4String& name, const BB7ReadoutParameters& readoutParameters)
     : BaseDigitizer(name, "BB7"),
       fHitsCollection(nullptr),
       fDigitsCollection(nullptr),
       fDCID(-1),
-      fCalibrationFactor(calibrationFactor) {
+      fReadoutParameters(readoutParameters) {
     constexpr auto DIGIT_COLLECTION_NAME{"BB7DigitsCollection"};
     collectionName.push_back(DIGIT_COLLECTION_NAME);
 }
@@ -56,6 +58,10 @@ void BB7Digitizer::Digitize() {
     const G4double sensitiveMass = GetSensitiveVolumeMass("SdCube");
 
     G4int hcID = digitManager->GetHitsCollectionID("BB7HitsCollection");
+    if (hcID < 0) {
+        StoreDigiCollection(fDigitsCollection);
+        return;
+    }
     fHitsCollection = static_cast<const BB7HitsCollection*>(digitManager->GetHitsCollection(hcID));
 
     if (fHitsCollection) {
@@ -68,9 +74,15 @@ void BB7Digitizer::Digitize() {
             const G4double weight = hit->GetWeight();
 
             if (edep > 0.) {
-                G4double collectedCharge = int(edep / fMeanEnergyPerIon) * feCharge;
+                const G4double collectedCharge =
+                    static_cast<G4int>(edep / fReadoutParameters.meanEnergyPerIon) *
+                    fReadoutParameters.elementaryCharge;
                 const G4double weightedEdep = edep * weight;
                 const G4double weightedCollectedCharge = collectedCharge * weight;
+                const G4double estimatedDoseToWater =
+                    weightedCollectedCharge * fReadoutParameters.calibrationFactor;
+                const G4double estimatedDoseToWaterCalibrationError =
+                    std::abs(weightedCollectedCharge) * fReadoutParameters.calibrationFactorError;
                 auto newDigit = std::make_unique<BB7Digit>();
                 newDigit->SetDetectorID(detectorID);
                 newDigit->SetSensorID(sensorID);
@@ -78,7 +90,8 @@ void BB7Digitizer::Digitize() {
                 newDigit->SetEdep(weightedEdep);
                 newDigit->SetCollectedCharge(weightedCollectedCharge);
                 newDigit->SetDose(weightedEdep / sensitiveMass);
-                newDigit->SetEstimatedDoseToWater(weightedCollectedCharge * fCalibrationFactor);
+                newDigit->SetEstimatedDoseToWater(estimatedDoseToWater);
+                newDigit->SetEstimatedDoseToWaterCalibrationError(estimatedDoseToWaterCalibrationError);
                 // newDigit->Print();
                 fDigitsCollection->insert(newDigit.release());
             }

@@ -13,4 +13,4 @@ job_dir="${output_dir}/${run_type}/${timestamp}"
 mkdir -p "$job_dir"
 
 bash "${script_dir}/run_calibration_dmax_average.sh" "${run_type}" "${output_dir}" "${timestamp}" "${job_dir}" \
-  > "${job_dir}/calibration_dmax_average.log"
+  > "${job_dir}/calibration_dose_depth_average.log"

@@ -2,6 +2,7 @@
 #define MD1_DETECTOR_MODULE_H
 
 #include <memory>
+#include <vector>
 
 #include "G4AnalysisManager.hh"
 #include "globals.hh"
@@ -11,6 +12,11 @@ class G4DigiManager;
 class G4Event;
 class G4LogicalVolume;
 class G4SDManager;
+
+class DetectorRuntimeState {
+public:
+    virtual ~DetectorRuntimeState() = default;
+};
 
 class DetectorModule {
 public:
@@ -26,11 +32,16 @@ public:
     virtual void ConstructGeometry(G4LogicalVolume* motherVolume) = 0;
     virtual void RegisterSensitiveDetectors(G4SDManager* sdManager) = 0;
     virtual void RegisterDigitizers(G4DigiManager* digiManager) = 0;
-    virtual void CreateAnalysis(G4AnalysisManager* analysisManager) = 0;
-    virtual void BeginOfEvent(const G4Event* event);
+    virtual std::unique_ptr<DetectorRuntimeState> CreateRuntimeState() const;
+    virtual void CreateAnalysis(G4AnalysisManager* analysisManager,
+                                DetectorRuntimeState& runtimeState) = 0;
+    virtual void BeginOfEvent(const G4Event* event, DetectorRuntimeState& runtimeState);
+    virtual std::vector<G4String> GetSummaryLabels() const;
+    virtual G4String GetSummaryLabel(G4int detectorID) const;
     virtual DetectorEventData ProcessEvent(const G4Event* event,
                                            G4AnalysisManager* analysisManager,
-                                           G4DigiManager* digiManager) = 0;
+                                           G4DigiManager* digiManager,
+                                           DetectorRuntimeState& runtimeState) = 0;
 };
 
 using DetectorModulePtr = std::unique_ptr<DetectorModule>;

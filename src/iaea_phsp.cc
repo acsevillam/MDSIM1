@@ -132,11 +132,12 @@ void iaea_new_source(IAEA_I32 *source_ID, char *header_file,
    if( sid < 0 ) {
        // so, we don't => increase source count and check if
        // space left in arrays.
-       if( ++__iaea_n_source >= MAX_NUM_SOURCES ) {
+       if( ++__iaea_n_source > MAX_NUM_SOURCES ) {
            *result = -98; *source_ID = -1; return;
        }
-       sid = __iaea_n_source-1; *source_ID = sid;
-   }
+       sid = __iaea_n_source-1;
+    }
+   *source_ID = sid;
    __iaea_source_used[sid] = true;
 
    //int ilen = strlen(header_file);
@@ -1044,11 +1045,13 @@ void iaea_check_file_size_byte_order(const IAEA_I32 *id,
    #endif
 
    IAEA_I64 size = fileStatus.st_size;
-   printf(" phsp size = %llu\n",size);
+   const IAEA_I64 expected_size =
+      static_cast<IAEA_I64>(p_iaea_header[*id]->record_length) *
+      p_iaea_header[*id]->nParticles;
 
    // bug found, changed to filelength use. May 2011
    // avoiding ftell and fseek use for I64 compatibility
-   if ( size == p_iaea_header[*id]->checksum )
+   if ( size == expected_size )
    {
        if (machine_byte_order==p_iaea_header[*id]->byte_order)
        {

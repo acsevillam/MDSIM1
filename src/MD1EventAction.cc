@@ -22,17 +22,11 @@
 #include "MD1EventAction.hh"
 #include "MD1RunAction.hh"
 #include "geometry/base/DetectorEventData.hh"
-#include "geometry/base/DetectorRegistry.hh"
 
 namespace MD1 {
 
 MD1EventAction::MD1EventAction(MD1RunAction* runAction)
-    : G4UserEventAction(), fRunAction(runAction) {
-    auto* digiManager = G4DigiManager::GetDMpointer();
-    for (auto* detector : DetectorRegistry::GetInstance()->GetActiveDetectors()) {
-        detector->RegisterDigitizers(digiManager);
-    }
-}
+    : G4UserEventAction(), fRunAction(runAction) {}
 
 void MD1EventAction::BeginOfEventAction(const G4Event* event) {
     G4int nEvents = G4RunManager::GetRunManager()->GetCurrentRun()->GetNumberOfEventToBeProcessed();
@@ -48,8 +42,8 @@ void MD1EventAction::BeginOfEventAction(const G4Event* event) {
         }
     }
 
-    for (auto* detector : DetectorRegistry::GetInstance()->GetActiveDetectors()) {
-        detector->BeginOfEvent(event);
+    for (const auto& activeDetector : fRunAction->GetActiveDetectors()) {
+        activeDetector.detector->BeginOfEvent(event, *activeDetector.runtimeState);
     }
 }
 
@@ -58,19 +52,23 @@ void MD1EventAction::EndOfEventAction(const G4Event* event) {
     auto* digiManager = G4DigiManager::GetDMpointer();
 
     DetectorEventData totalData;
-    for (auto* detector : DetectorRegistry::GetInstance()->GetActiveDetectors()) {
-        const auto detectorData = detector->ProcessEvent(event, analysisManager, digiManager);
+    for (const auto& activeDetector : fRunAction->GetActiveDetectors()) {
+        const auto detectorData =
+            activeDetector.detector->ProcessEvent(event,
+                                                  analysisManager,
+                                                  digiManager,
+                                                  *activeDetector.runtimeState);
         totalData.totalEdep += detectorData.totalEdep;
         totalData.totalCollectedCharge += detectorData.totalCollectedCharge;
         totalData.totalDose += detectorData.totalDose;
         totalData.totalEstimatedDoseToWater += detectorData.totalEstimatedDoseToWater;
         totalData.hasSignal = totalData.hasSignal || detectorData.hasSignal;
-        if (detectorData.hasSignal) {
-            fRunAction->AddDetectorTotals(detectorData.detectorName,
-                                          detectorData.totalEdep,
-                                          detectorData.totalCollectedCharge,
-                                          detectorData.totalDose,
-                                          detectorData.totalEstimatedDoseToWater);
+        for (const auto& instanceData : detectorData.instanceData) {
+            fRunAction->AddDetectorTotals(instanceData.summaryLabel,
+                                          instanceData.totalEdep,
+                                          instanceData.totalCollectedCharge,
+                                          instanceData.totalDose,
+                                          instanceData.estimatedDoseToWater);
         }
     }
 

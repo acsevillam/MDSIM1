@@ -16,41 +16,41 @@
 #ifndef MD1_RUN_ACTION_H
 #define MD1_RUN_ACTION_H
 
+#include <memory>
+#include <vector>
+
 // Geant4 Headers
-#include "G4UserRunAction.hh"
 #include "G4Accumulable.hh"
 #include "G4StatDouble.hh"
-#include "globals.hh"
 #include "G4SystemOfUnits.hh"
+#include "G4UserRunAction.hh"
+#include "globals.hh"
 
 // MultiDetector Headers
+#include "analysis/DetectorAccumulablesStore.hh"
 #include "analysis/MD1StatAccumulable.hh"
-#include "MD1DetectorConstruction.hh"
-#include "MD1RunActionMessenger.hh"
+#include "geometry/base/DetectorModule.hh"
+
+class G4DigiManager;
 
 namespace MD1 {
 
-struct DetectorRunAccumulables {
-    G4String name;
-    G4Accumulable<G4int> events;
-    MD1StatAccumulable totalEdep;
-    MD1StatAccumulable collectedCharge;
-    MD1StatAccumulable dose;
-    MD1StatAccumulable estimatedDoseToWater;
+class MD1RunActionMessenger;
 
-    explicit DetectorRunAccumulables(const G4String& detectorName)
-        : name(detectorName),
-          events(0),
-          totalEdep(detectorName + "_Edep"),
-          collectedCharge(detectorName + "_Charge"),
-          dose(detectorName + "_Dose"),
-          estimatedDoseToWater(detectorName + "_EstimatedDoseToWater") {}
+struct DetectorRuntimeEntry {
+    DetectorModule* detector = nullptr;
+    std::unique_ptr<DetectorRuntimeState> runtimeState;
+};
+
+struct ActiveDetectorRuntime {
+    DetectorModule* detector = nullptr;
+    DetectorRuntimeState* runtimeState = nullptr;
 };
 
 class MD1RunAction : public G4UserRunAction {
   public:
     MD1RunAction();
-    ~MD1RunAction() override = default;
+    ~MD1RunAction() override;
 
     // Called at the beginning of each run
     void BeginOfRunAction(const G4Run*) override;
@@ -77,17 +77,24 @@ class MD1RunAction : public G4UserRunAction {
     void AddTotalDose(G4double dose) { fDose.Fill(dose); }
     void AddTotalEstimatedDoseToWater(G4double dose) { fEstimatedDoseToWater.Fill(dose); }
 
-    void AddDetectorTotals(const G4String& detectorName,
+    void AddDetectorTotals(const G4String& detectorSummaryLabel,
                            G4double edep,
                            G4double collectedCharge,
                            G4double dose,
-                           G4double estimatedDoseToWater);
+                           const CalibratedDoseToWaterData& estimatedDoseToWater);
 
     // Method to set monitor units
-    void SetMU(G4int MU) { fSimulatedMU = MU; }
+    void SetMU(G4int MU);
+    void SetScaleFactorMU(G4double scaleFactorMU);
+    void SetScaleFactorMUError(G4double scaleFactorMUError);
+    void RegisterDetectorDigitizers(G4DigiManager* digiManager);
+    const std::vector<ActiveDetectorRuntime>& GetActiveDetectors() const { return fActiveDetectors; }
 
 
   private:
+    void BuildActiveDetectors();
+    std::vector<G4String> GetActiveSummaryLabels() const;
+
     // Accumulable for counting energy deposition events
     G4Accumulable<G4int> fEDepEvents;
 
@@ -98,12 +105,15 @@ class MD1RunAction : public G4UserRunAction {
     MD1StatAccumulable fEstimatedDoseToWater;
 
     // Accumulables for total energy deposition and its square
-    G4int fSimulatedMU = 1; //
-    G4double fScaleFactorMU = 1; // [cGy/ev -> cGy/UM (dmax)] =  1/2.385e-13
+    G4int fSimulatedMU = 1;
+    G4double fScaleFactorMU = 1.; // [cGy/ev -> cGy/UM (dmax)] = 1/2.377694e-13
+    G4double fScaleFactorMUError = 0.; // absolute uncertainty on fScaleFactorMU
 
     // Run action messenger
-    G4UImessenger* 	 				fRunActionMessenger ;
-    std::vector<DetectorRunAccumulables> fDetectorAccumulables;
+    std::unique_ptr<MD1RunActionMessenger> fRunActionMessenger;
+    std::vector<DetectorRuntimeEntry> fDetectorRuntimeEntries;
+    std::vector<ActiveDetectorRuntime> fActiveDetectors;
+    DetectorAccumulablesStore fDetectorAccumulables;
 };
 
 } // namespace MD1
