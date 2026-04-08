@@ -82,9 +82,16 @@ set(MDSIM1_RUNTIME_FILES
   jobs/dosimetry/run_validation_phsp_sweep.sh
   jobs/dosimetry/launch_calibration_dmax_average.sh
   jobs/dosimetry/run_calibration_dmax_average.sh
-  jobs/detectors/cube/launch_calibration_charge_average_water.sh
-  jobs/detectors/cube/launch_calibration_charge_average_air.sh
-  jobs/detectors/cube/run_calibration_charge_average.sh
+  jobs/detectors/cube/launch_calibration_water.sh
+  jobs/detectors/cube/launch_calibration_air.sh
+  jobs/detectors/cube/launch_calibration_water_pmma_2p5mm.sh
+  jobs/detectors/cube/launch_calibration_air_pmma_2p5mm.sh
+  jobs/detectors/cube/run_calibration.sh
+  jobs/detectors/cube/launch_pdd_interface_water.sh
+  jobs/detectors/cube/launch_pdd_interface_air.sh
+  jobs/detectors/cube/launch_pdd_interface_water_pmma_2p5mm.sh
+  jobs/detectors/cube/launch_pdd_interface_air_pmma_2p5mm.sh
+  jobs/detectors/cube/run_pdd_interface.sh
   jobs/detectors/BB7/launch_gantry_angle_sweep.sh
   jobs/detectors/BB7/run_gantry_angle_sweep.sh
   jobs/detectors/BB7/launch_collimator_angle_sweep.sh

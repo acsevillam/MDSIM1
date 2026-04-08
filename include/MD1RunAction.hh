@@ -106,8 +106,8 @@ class MD1RunAction : public G4UserRunAction {
 
     // Accumulables for total energy deposition and its square
     G4int fSimulatedMU = 1;
-    G4double fScaleFactorMU = 1.; // [cGy/ev -> cGy/UM (dmax)] = 1/2.377694e-13
-    G4double fScaleFactorMUError = 0.; // absolute uncertainty on fScaleFactorMU
+    G4double fScaleFactorMU = 1/2.370031e-13; // [cGy/ev -> cGy/UM (dmax)] = 1/2.370031e-13
+    G4double fScaleFactorMUError = fScaleFactorMU*0.0026279; // absolute uncertainty on fScaleFactorMU = 6.22820010561e-16 cGy (0.26279 %)
 
     // Run action messenger
     std::unique_ptr<MD1RunActionMessenger> fRunActionMessenger;

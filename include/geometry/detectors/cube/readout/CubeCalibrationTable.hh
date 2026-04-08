@@ -25,9 +25,18 @@ public:
         G4double factorError = 0.;
     };
 
-    static G4bool HasCalibrationFactor(const G4String& materialName, G4double cubeSide);
-    static G4double GetCalibrationFactor(const G4String& materialName, G4double cubeSide);
-    static CalibrationData GetCalibrationData(const G4String& materialName, G4double cubeSide);
+    static G4bool HasCalibrationFactor(const G4String& materialName,
+                                       G4double cubeSide,
+                                       const G4String& envelopeMaterialName,
+                                       G4double envelopeThickness);
+    static G4double GetCalibrationFactor(const G4String& materialName,
+                                         G4double cubeSide,
+                                         const G4String& envelopeMaterialName,
+                                         G4double envelopeThickness);
+    static CalibrationData GetCalibrationData(const G4String& materialName,
+                                              G4double cubeSide,
+                                              const G4String& envelopeMaterialName,
+                                              G4double envelopeThickness);
 };
 
 #endif // CUBE_CALIBRATION_TABLE_H

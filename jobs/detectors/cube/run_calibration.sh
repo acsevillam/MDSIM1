@@ -3,20 +3,22 @@
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${script_dir}/../../.." && pwd)"
 
-if [ "$#" -ne 6 ]; then
-    echo "Usage: bash ${BASH_SOURCE[0]} <run_type> <cube_material> <cube_side_mm> <output_dir> <timestamp> <job_dir>" >&2
+if [ "$#" -ne 8 ]; then
+    echo "Usage: bash ${BASH_SOURCE[0]} <run_type> <cube_material> <cube_side_mm> <envelope_material> <envelope_thickness_mm> <output_dir> <timestamp> <job_dir>" >&2
     exit 1
 fi
 
 run_type="$1"
 cube_material="$2"
 cube_side_mm="$3"
-output_dir="$4"
-timestamp="$5"
-job_dir="$6"
+envelope_material="$4"
+envelope_thickness_mm="$5"
+output_dir="$6"
+timestamp="$7"
+job_dir="$8"
 
 n_histories=200000000
-n_replicas=5
+n_replicas=10
 
 if [ -x "${repo_root}/MultiDetector1" ]; then
     executable="${repo_root}/MultiDetector1"
@@ -44,10 +46,12 @@ echo "Executable: ${executable}"
 echo "Template macro: ${template_macro}"
 echo "Cube material: ${cube_material}"
 echo "Cube side: ${cube_side_mm} mm"
+echo "Envelope material: ${envelope_material}"
+echo "Envelope thickness: ${envelope_thickness_mm} mm"
 echo "Histories per replica: ${n_histories}"
 echo "Number of replicas: ${n_replicas}"
 
-printf "replica,calculated_total_collected_charge_nC,err_nC,rms_nC\n" > "${summary_file}"
+printf "replica,calculated_total_collected_charge_nC,mc_err_nC,rms_nC\n" > "${summary_file}"
 
 for ((replica=1; replica<=n_replicas; replica++)); do
     result_dir="${job_dir}/${replica}"
@@ -69,6 +73,8 @@ for ((replica=1; replica<=n_replicas; replica++)); do
     sed "s|\\*\\*WaterBoxZ\\*\\*|-10|g" "${macro_copy}" > "${macro_copy}.tmp" && mv "${macro_copy}.tmp" "${macro_copy}"
     sed "s|\\*\\*CubeZ\\*\\*|0|g" "${macro_copy}" > "${macro_copy}.tmp" && mv "${macro_copy}.tmp" "${macro_copy}"
     sed "s|\\*\\*CubeAngle\\*\\*|0|g" "${macro_copy}" > "${macro_copy}.tmp" && mv "${macro_copy}.tmp" "${macro_copy}"
+    sed "s|^/MultiDetector1/detectors/cube/setEnvelopeThickness .*|/MultiDetector1/detectors/cube/setEnvelopeThickness ${envelope_thickness_mm} mm|g" "${macro_copy}" > "${macro_copy}.tmp" && mv "${macro_copy}.tmp" "${macro_copy}"
+    sed "s|^/MultiDetector1/detectors/cube/setEnvelopeMaterial .*|/MultiDetector1/detectors/cube/setEnvelopeMaterial ${envelope_material}|g" "${macro_copy}" > "${macro_copy}.tmp" && mv "${macro_copy}.tmp" "${macro_copy}"
 
     echo "Running replica ${replica}/${n_replicas}"
     time "${executable}" -m "${macro_copy}" -b on -v off -n "${n_histories}" > "${result_dir}/output.log"
@@ -86,27 +92,31 @@ for ((replica=1; replica<=n_replicas; replica++)); do
         exit 1
     fi
 
-    charge_nC=$(echo "${charge_line}" | sed -E 's/^.*: ([^ ]+) nC err = .*$/\1/')
-    err_nC=$(echo "${charge_line}" | sed -E 's/^.* err = ([^ ]+) nC .*$/\1/')
-    rms_nC=$(echo "${charge_line}" | sed -E 's/^.* rms = ([^ ]+) nC$/\1/')
-
-    if [ -z "${charge_nC}" ] || [ -z "${err_nC}" ] || [ -z "${rms_nC}" ]; then
+    charge_pattern=': ([^[:space:]]+) nC mc_err = ([^[:space:]]+) nC .* rms = ([^[:space:]]+) nC$'
+    if [[ "${charge_line}" =~ ${charge_pattern} ]]; then
+        charge_nC="${BASH_REMATCH[1]}"
+        mc_err_nC="${BASH_REMATCH[2]}"
+        rms_nC="${BASH_REMATCH[3]}"
+    else
         echo "Could not parse calculated total collected charge line: ${charge_line}" >&2
         exit 1
     fi
 
-    printf "%s,%s,%s,%s\n" "${replica}" "${charge_nC}" "${err_nC}" "${rms_nC}" >> "${summary_file}"
+    printf "%s,%s,%s,%s\n" "${replica}" "${charge_nC}" "${mc_err_nC}" "${rms_nC}" >> "${summary_file}"
 done
 
+CUBE_MATERIAL="${cube_material}" \
+ENVELOPE_MATERIAL="${envelope_material}" \
+ENVELOPE_THICKNESS_MM="${envelope_thickness_mm}" \
 awk -F',' '
     NR==1 {next}
     {
         count += 1
         charge[count] = $2 + 0
-        internal_err[count] = $3 + 0
+        internal_mc_err[count] = $3 + 0
         internal_rms[count] = $4 + 0
         charge_sum += charge[count]
-        internal_err_sum += internal_err[count]
+        internal_mc_err_sum += internal_mc_err[count]
         internal_rms_sum += internal_rms[count]
     }
     END {
@@ -114,42 +124,46 @@ awk -F',' '
             exit 1
         }
         charge_mean = charge_sum / count
-        internal_err_mean = internal_err_sum / count
+        internal_mc_err_mean = internal_mc_err_sum / count
         internal_rms_mean = internal_rms_sum / count
 
         charge_var = 0
-        internal_err_var = 0
+        internal_mc_err_var = 0
         internal_rms_var = 0
         if (count > 1) {
             for (i = 1; i <= count; i++) {
                 charge_var += (charge[i] - charge_mean) * (charge[i] - charge_mean)
-                internal_err_var += (internal_err[i] - internal_err_mean) * (internal_err[i] - internal_err_mean)
+                internal_mc_err_var += (internal_mc_err[i] - internal_mc_err_mean) * (internal_mc_err[i] - internal_mc_err_mean)
                 internal_rms_var += (internal_rms[i] - internal_rms_mean) * (internal_rms[i] - internal_rms_mean)
             }
             charge_stddev = sqrt(charge_var / (count - 1))
-            internal_err_stddev = sqrt(internal_err_var / (count - 1))
+            internal_mc_err_stddev = sqrt(internal_mc_err_var / (count - 1))
             internal_rms_stddev = sqrt(internal_rms_var / (count - 1))
         } else {
             charge_stddev = 0
-            internal_err_stddev = 0
+            internal_mc_err_stddev = 0
             internal_rms_stddev = 0
         }
 
         charge_err = charge_stddev / sqrt(count)
-        internal_err_of_mean = internal_err_stddev / sqrt(count)
+        internal_mc_err_of_mean = internal_mc_err_stddev / sqrt(count)
         internal_rms_err = internal_rms_stddev / sqrt(count)
         charge_err_rel = (charge_mean != 0) ? 100 * charge_err / ((charge_mean < 0) ? -charge_mean : charge_mean) : 0
-        internal_err_rel = (internal_err_mean != 0) ? 100 * internal_err_of_mean / ((internal_err_mean < 0) ? -internal_err_mean : internal_err_mean) : 0
+        internal_mc_err_rel = (internal_mc_err_mean != 0) ? 100 * internal_mc_err_of_mean / ((internal_mc_err_mean < 0) ? -internal_mc_err_mean : internal_mc_err_mean) : 0
         internal_rms_rel = (internal_rms_mean != 0) ? 100 * internal_rms_err / ((internal_rms_mean < 0) ? -internal_rms_mean : internal_rms_mean) : 0
 
         printf "Collected charge over %d replicas:\n", count
+        printf "Configuration:\n"
+        printf "  cube material = %s\n", ENVIRON["CUBE_MATERIAL"]
+        printf "  envelope material = %s\n", ENVIRON["ENVELOPE_MATERIAL"]
+        printf "  envelope thickness = %s mm\n", ENVIRON["ENVELOPE_THICKNESS_MM"]
         printf "  mean = %.12g nC\n", charge_mean
         printf "  stddev = %.12g nC\n", charge_stddev
         printf "  err = %.12g nC (%.6g %%)\n", charge_err, charge_err_rel
-        printf "Per-run internal err over %d replicas:\n", count
-        printf "  mean = %.12g nC\n", internal_err_mean
-        printf "  stddev = %.12g nC\n", internal_err_stddev
-        printf "  err = %.12g nC (%.6g %%)\n", internal_err_of_mean, internal_err_rel
+        printf "Per-run internal mc_err over %d replicas:\n", count
+        printf "  mean = %.12g nC\n", internal_mc_err_mean
+        printf "  stddev = %.12g nC\n", internal_mc_err_stddev
+        printf "  err = %.12g nC (%.6g %%)\n", internal_mc_err_of_mean, internal_mc_err_rel
         printf "Per-run internal rms over %d replicas:\n", count
         printf "  mean = %.12g nC\n", internal_rms_mean
         printf "  stddev = %.12g nC\n", internal_rms_stddev

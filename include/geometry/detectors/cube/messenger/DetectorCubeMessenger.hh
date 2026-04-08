@@ -21,6 +21,7 @@
 #include "G4UIcmdWithADoubleAndUnit.hh"
 #include "G4UIcmdWithADouble.hh"
 #include "G4UIcmdWithAString.hh"
+#include "G4UIcmdWithABool.hh"
 #include "G4UIcmdWithAnInteger.hh"
 #include "G4UIcmdWith3VectorAndUnit.hh"
 #include "G4UIcommand.hh"
@@ -42,6 +43,9 @@ private:
 
     G4UIcmdWithADoubleAndUnit* fSetCubeSideCmd;
     G4UIcmdWithAString* fSetCubeMaterialCmd;
+    G4UIcmdWithADoubleAndUnit* fSetEnvelopeThicknessCmd;
+    G4UIcmdWithAString* fSetEnvelopeMaterialCmd;
+    G4UIcmdWithABool* fSetSplitAtInterfaceCmd;
     G4UIcmdWithADouble* fSetCalibrationFactorCmd;
     G4UIcmdWithADouble* fSetCalibrationFactorErrorCmd;
     G4UIcmdWithAnInteger* fDetectorIDCmd;

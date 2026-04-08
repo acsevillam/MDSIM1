@@ -39,6 +39,23 @@ DetectorCubeMessenger::DetectorCubeMessenger(DetectorCube* detectorCube)
     fSetCubeMaterialCmd->SetParameterName("CubeMaterial", false);
     fSetCubeMaterialCmd->AvailableForStates(G4State_PreInit);
 
+    fSetEnvelopeThicknessCmd = new G4UIcmdWithADoubleAndUnit("/MultiDetector1/detectors/cube/setEnvelopeThickness", this);
+    fSetEnvelopeThicknessCmd->SetGuidance("Set the envelope thickness around the cube detector. Zero disables the envelope.");
+    fSetEnvelopeThicknessCmd->SetParameterName("EnvelopeThickness", false);
+    fSetEnvelopeThicknessCmd->SetUnitCategory("Length");
+    fSetEnvelopeThicknessCmd->SetRange("EnvelopeThickness>=0.");
+    fSetEnvelopeThicknessCmd->AvailableForStates(G4State_PreInit);
+
+    fSetEnvelopeMaterialCmd = new G4UIcmdWithAString("/MultiDetector1/detectors/cube/setEnvelopeMaterial", this);
+    fSetEnvelopeMaterialCmd->SetGuidance("Set the NIST material name of the cube envelope.");
+    fSetEnvelopeMaterialCmd->SetParameterName("EnvelopeMaterial", false);
+    fSetEnvelopeMaterialCmd->AvailableForStates(G4State_PreInit);
+
+    fSetSplitAtInterfaceCmd = new G4UIcmdWithABool("/MultiDetector1/detectors/cube/setSplitAtInterface", this);
+    fSetSplitAtInterfaceCmd->SetGuidance("Enable automatic split at the WaterBox top interface when the cube protrudes into air.");
+    fSetSplitAtInterfaceCmd->SetParameterName("SplitAtInterface", false);
+    fSetSplitAtInterfaceCmd->AvailableForStates(G4State_PreInit);
+
     fSetCalibrationFactorCmd = new G4UIcmdWithADouble("/MultiDetector1/detectors/cube/setCalibrationFactor", this);
     fSetCalibrationFactorCmd->SetGuidance("Set the experimental cube calibration factor in cGy/nC.");
     fSetCalibrationFactorCmd->SetParameterName("CalibrationFactor", false);
@@ -123,6 +140,9 @@ DetectorCubeMessenger::DetectorCubeMessenger(DetectorCube* detectorCube)
 DetectorCubeMessenger::~DetectorCubeMessenger() {
     delete fSetCubeSideCmd;
     delete fSetCubeMaterialCmd;
+    delete fSetEnvelopeThicknessCmd;
+    delete fSetEnvelopeMaterialCmd;
+    delete fSetSplitAtInterfaceCmd;
     delete fSetCalibrationFactorCmd;
     delete fSetCalibrationFactorErrorCmd;
     delete fDetectorIDCmd;
@@ -141,6 +161,12 @@ void DetectorCubeMessenger::SetNewValue(G4UIcommand* command, G4String newValue)
         fDetectorCube->SetCubeSide(fSetCubeSideCmd->GetNewDoubleValue(newValue));
     } else if (command == fSetCubeMaterialCmd) {
         fDetectorCube->SetCubeMaterial(newValue);
+    } else if (command == fSetEnvelopeThicknessCmd) {
+        fDetectorCube->SetEnvelopeThickness(fSetEnvelopeThicknessCmd->GetNewDoubleValue(newValue));
+    } else if (command == fSetEnvelopeMaterialCmd) {
+        fDetectorCube->SetEnvelopeMaterial(newValue);
+    } else if (command == fSetSplitAtInterfaceCmd) {
+        fDetectorCube->SetSplitAtInterface(fSetSplitAtInterfaceCmd->GetNewBoolValue(newValue));
     } else if (command == fSetCalibrationFactorCmd) {
         fDetectorCube->SetCalibrationFactor(
             fSetCalibrationFactorCmd->GetNewDoubleValue(newValue) * (1e-2 * gray) / (1e-9 * coulomb));

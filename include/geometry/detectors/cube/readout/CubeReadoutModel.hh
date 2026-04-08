@@ -23,10 +23,14 @@ class CubeReadoutModel {
 public:
     static CubeReadoutParameters Build(const G4String& materialName,
                                        G4double cubeSide,
+                                       const G4String& envelopeMaterialName,
+                                       G4double envelopeThickness,
                                        G4double calibrationFactor,
                                        G4double calibrationFactorError = 0.);
     static G4bool HasCalibrationFactor(const G4String& materialName,
                                        G4double cubeSide,
+                                       const G4String& envelopeMaterialName,
+                                       G4double envelopeThickness,
                                        G4double calibrationFactor);
 };
 

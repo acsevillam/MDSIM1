@@ -44,6 +44,8 @@ G4double GetMeanEnergyPerIonForMaterial(const G4String& materialName) {
 
 CubeReadoutParameters CubeReadoutModel::Build(const G4String& materialName,
                                               G4double cubeSide,
+                                              const G4String& envelopeMaterialName,
+                                              G4double envelopeThickness,
                                               G4double calibrationFactor,
                                               G4double calibrationFactorError) {
     CubeReadoutParameters parameters;
@@ -53,7 +55,8 @@ CubeReadoutParameters CubeReadoutModel::Build(const G4String& materialName,
         parameters.calibrationFactor = calibrationFactor;
         parameters.calibrationFactorError = calibrationFactorError;
     } else {
-        const auto calibrationData = CubeCalibrationTable::GetCalibrationData(materialName, cubeSide);
+        const auto calibrationData = CubeCalibrationTable::GetCalibrationData(
+            materialName, cubeSide, envelopeMaterialName, envelopeThickness);
         parameters.calibrationFactor = calibrationData.factor;
         parameters.calibrationFactorError = calibrationData.factorError;
     }
@@ -96,10 +99,13 @@ CubeReadoutParameters CubeReadoutModel::Build(const G4String& materialName,
 
 G4bool CubeReadoutModel::HasCalibrationFactor(const G4String& materialName,
                                               G4double cubeSide,
+                                              const G4String& envelopeMaterialName,
+                                              G4double envelopeThickness,
                                               G4double calibrationFactor) {
     if (calibrationFactor > 0.) {
         return true;
     }
 
-    return CubeCalibrationTable::HasCalibrationFactor(materialName, cubeSide);
+    return CubeCalibrationTable::HasCalibrationFactor(
+        materialName, cubeSide, envelopeMaterialName, envelopeThickness);
 }

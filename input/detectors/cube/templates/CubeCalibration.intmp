@@ -13,6 +13,9 @@
 
 /MultiDetector1/detectors/cube/setSide **CubeSide** mm
 /MultiDetector1/detectors/cube/setMaterial **CubeMaterial**
+/MultiDetector1/detectors/cube/setEnvelopeThickness 0.0 mm
+/MultiDetector1/detectors/cube/setEnvelopeMaterial G4_PLEXIGLASS
+/MultiDetector1/detectors/cube/setSplitAtInterface true
 #/MultiDetector1/detectors/cube/setCalibrationFactor **CalibrationFactor**
 
 # ================= Phase Space settings ===============

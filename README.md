@@ -27,16 +27,38 @@ Este job escribe:
 - `dmax_summary.csv` con una fila por réplica
 - `dmax_average.txt` con media, desviación estándar entre réplicas, `err = stddev / sqrt(n)` y error relativo para `Dose atDepth1.4cm` y `Dose atDepth10cm`
 
-Para el detector `cube`, existen jobs de calibración por material en:
+Para el detector `cube`, existen jobs de calibración de carga para cuatro escenarios:
 
-- [launch_calibration_charge_average_water.sh](/Users/acsevillam/workspace/Geant4/MDSIM1/jobs/detectors/cube/launch_calibration_charge_average_water.sh): ejecuta 5 réplicas de `CubeCalibration.intmp` con cubo de `G4_WATER`, lado `5.0 mm` y `translateTo 0 0 0 cm`, y calcula el promedio de `(7) Calculated total collected charge`.
-- [launch_calibration_charge_average_air.sh](/Users/acsevillam/workspace/Geant4/MDSIM1/jobs/detectors/cube/launch_calibration_charge_average_air.sh): igual que el anterior, pero con cubo de `G4_AIR`.
+- [launch_calibration_water.sh](/Users/acsevillam/workspace/Geant4/MDSIM1/jobs/detectors/cube/launch_calibration_water.sh): cubo de `G4_WATER`, lado `5.0 mm`, sin envolvente.
+- [launch_calibration_air.sh](/Users/acsevillam/workspace/Geant4/MDSIM1/jobs/detectors/cube/launch_calibration_air.sh): cubo de `G4_AIR`, lado `5.0 mm`, sin envolvente.
+- [launch_calibration_water_pmma_2p5mm.sh](/Users/acsevillam/workspace/Geant4/MDSIM1/jobs/detectors/cube/launch_calibration_water_pmma_2p5mm.sh): cubo de `G4_WATER`, lado `5.0 mm`, envolvente `G4_PLEXIGLASS` con `2.5 mm`.
+- [launch_calibration_air_pmma_2p5mm.sh](/Users/acsevillam/workspace/Geant4/MDSIM1/jobs/detectors/cube/launch_calibration_air_pmma_2p5mm.sh): cubo de `G4_AIR`, lado `5.0 mm`, envolvente `G4_PLEXIGLASS` con `2.5 mm`.
 
 Estos jobs escriben:
 
 - una carpeta por réplica con `output.log`, `macro.in` y los archivos de `analysis/`
 - `calculated_total_collected_charge_summary.csv` con una fila por réplica
-- `calculated_total_collected_charge_average.txt` con media, desviación estándar entre réplicas, `err = stddev / sqrt(n)` y error relativo para `(7) Calculated total collected charge`
+- `calculated_total_collected_charge_average.txt` con media, desviación estándar entre réplicas, `err = stddev / sqrt(n)` y error relativo para `(7) Calculated total collected charge`, incluyendo material y configuración de envolvente
+
+Tambien existen barridos `pdd` para `cube`, usando [CubeCalibration.intmp](/Users/acsevillam/workspace/Geant4/MDSIM1/input/detectors/cube/templates/CubeCalibration.intmp), `setEOFPolicy synthetic` y `1000000000` eventos por punto:
+
+- [launch_pdd_interface_water.sh](/Users/acsevillam/workspace/Geant4/MDSIM1/jobs/detectors/cube/launch_pdd_interface_water.sh): barrido para `G4_WATER`, sin envolvente
+- [launch_pdd_interface_air.sh](/Users/acsevillam/workspace/Geant4/MDSIM1/jobs/detectors/cube/launch_pdd_interface_air.sh): barrido para `G4_AIR`, sin envolvente
+- [launch_pdd_interface_water_pmma_2p5mm.sh](/Users/acsevillam/workspace/Geant4/MDSIM1/jobs/detectors/cube/launch_pdd_interface_water_pmma_2p5mm.sh): barrido para `G4_WATER` con envolvente `G4_PLEXIGLASS` de `2.5 mm`
+- [launch_pdd_interface_air_pmma_2p5mm.sh](/Users/acsevillam/workspace/Geant4/MDSIM1/jobs/detectors/cube/launch_pdd_interface_air_pmma_2p5mm.sh): barrido para `G4_AIR` con envolvente `G4_PLEXIGLASS` de `2.5 mm`
+
+Estos jobs:
+
+- barren `cube/translateTo 0 0 z cm` desde `9.75 cm` hasta `-10.00 cm`
+- usan paso de `0.10 cm` entre `9.75 cm` y `8.45 cm`, y luego paso de `1.00 cm` hasta `-10.00 cm`
+- ejecutan `1` réplica por punto
+- extraen `(8) Estimated total absorbed dose in water (...UM)` del resumen global
+
+La salida incluye:
+
+- `pdd_by_replica.csv`: una fila por réplica y posición
+- `pdd_summary.csv`: resumen por posición con media, desviación estándar entre réplicas, `err = stddev / sqrt(n)` y error relativo
+- `pdd_summary.txt`: resumen legible del barrido bajo el mismo estándar textual de los demás jobs de `cube`
 
 ## Manejo de errores
 
@@ -524,6 +546,9 @@ Cada reader consume una partición disjunta del archivo usando `parallelRun = wo
 
 - `/MultiDetector1/detectors/cube/setSide <valor> <unidad>` (`PreInit`)
 - `/MultiDetector1/detectors/cube/setMaterial <NISTMaterial>` (`PreInit`)
+- `/MultiDetector1/detectors/cube/setEnvelopeThickness <valor> <unidad>` (`PreInit`, `0` desactiva la envolvente)
+- `/MultiDetector1/detectors/cube/setEnvelopeMaterial <NISTMaterial>` (`PreInit`)
+- `/MultiDetector1/detectors/cube/setSplitAtInterface <bool>` (`PreInit`)
 - `/MultiDetector1/detectors/cube/setCalibrationFactor <valor_en_cGy_por_nC>` (`PreInit`, override opcional de la tabla local)
 - `/MultiDetector1/detectors/cube/setCalibrationFactorError <valor_en_cGy_por_nC>` (`PreInit`, override opcional del error de la tabla local)
 - `/MultiDetector1/detectors/cube/detectorID <int>`
@@ -539,6 +564,19 @@ Cada reader consume una partición disjunta del archivo usando `parallelRun = wo
 La tabla externa por defecto del cubo se lee desde [CubeCalibrationTable.dat](/Users/acsevillam/workspace/Geant4/MDSIM1/src/geometry/detectors/cube/geometry/CubeCalibrationTable.dat).
 Formato por linea:
 `<material> <lado> <unidad> <calibrationFactor_en_cGy_por_nC> <calibrationFactorError_en_cGy_por_nC>`
+
+La envolvente del `cube` es opcional:
+
+- `setEnvelopeThickness 0` mantiene el comportamiento actual sin envolvente
+- si `setEnvelopeThickness > 0`, se construye un volumen cúbico externo de lado `cubeSide + 2 * envelopeThickness`
+- el volumen sensible sigue siendo el cubo interno `DetectorCube`; la envolvente no cambia el SD ni el readout
+
+El `cube` tambien soporta `split at interface` automatico contra la cara superior del `WaterBox`:
+
+- `setSplitAtInterface true` divide automaticamente el detector si sobresale de `WaterBox` hacia aire
+- la parte interna queda en `WaterBox` y la parte externa se recoloca en `world`
+- en esta v1 solo se soporta el caso sin rotacion del detector y cruce por la cara superior en `Z`
+- si el detector sobresale por otra cara, queda totalmente por fuera o esta rotado, la corrida aborta con un error explicito
 
 ### Detector BB7 (`BB7`)
 

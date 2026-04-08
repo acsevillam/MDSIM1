@@ -201,6 +201,12 @@ public:
 
 protected:
     G4RotationMatrix* EnsureRotationMatrix(const G4int& copyNo);
+    void SetPrimaryFrameVolume(const G4int& copyNo, G4VPhysicalVolume* frameVolume);
+    void AddAuxiliaryFrameVolume(const G4int& copyNo, G4VPhysicalVolume* frameVolume);
+    std::vector<G4VPhysicalVolume*> GetPlacementFrames(const G4int& copyNo) const;
+    G4Transform3D BuildStoredTransform(const G4int& copyNo) const;
+    void RebuildPlacement(const G4int& copyNo);
+    virtual G4bool RequiresPlacementRebuild(const G4int& copyNo) const;
 
     G4String geometryName; ///< Name of the geometry.
 
@@ -218,6 +224,7 @@ protected:
 
     // Frame physical volumes
     std::map<G4int, G4VPhysicalVolume*> detFrame; ///< Map of frame physical volumes by copy number
+    std::map<G4int, std::vector<G4VPhysicalVolume*>> detAuxFrames; ///< Additional physical volumes per copy number
 
     // Detector origin
     G4ThreeVector det_origin; ///< Origin of the detector

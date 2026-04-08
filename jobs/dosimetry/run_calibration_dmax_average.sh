@@ -14,7 +14,7 @@ timestamp="$3"
 job_dir="$4"
 
 n_histories=200000000
-n_replicas=5
+n_replicas=10
 
 if [ -x "${repo_root}/MultiDetector1" ]; then
     executable="${repo_root}/MultiDetector1"

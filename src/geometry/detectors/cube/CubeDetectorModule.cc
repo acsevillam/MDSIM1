@@ -109,12 +109,18 @@ void CubeDetectorModule::ConstructGeometry(G4LogicalVolume* motherVolume) {
 
     if (!CubeReadoutModel::HasCalibrationFactor(fGeometry->GetCubeMaterial(),
                                                 fGeometry->GetCubeSide(),
+                                                fGeometry->GetEnvelopeMaterial(),
+                                                fGeometry->GetEnvelopeThickness(),
                                                 fGeometry->GetCalibrationFactor())) {
         G4Exception("CubeDetectorModule::ConstructGeometry",
                     "CubeCalibrationMissing",
                     FatalException,
                     ("Cube detector is enabled but no calibration factor was found for material " +
-                     fGeometry->GetCubeMaterial() + " and the configured cube side.").c_str());
+                     fGeometry->GetCubeMaterial() +
+                     ", side " + std::to_string(fGeometry->GetCubeSide() / mm) + " mm, envelope material " +
+                     fGeometry->GetEnvelopeMaterial() +
+                     " and envelope thickness " + std::to_string(fGeometry->GetEnvelopeThickness() / mm) +
+                     " mm.").c_str());
         return;
     }
 
@@ -129,8 +135,8 @@ void CubeDetectorModule::RegisterSensitiveDetectors(G4SDManager* sdManager) {
     auto* cubeSD = new CubeSensitiveDetector("CubeSD");
     sdManager->AddNewDetector(cubeSD);
 
-    auto* logicalVolume = GetLogicalVolumeOrThrow("DetectorCube", GetName());
-    logicalVolume->SetSensitiveDetector(cubeSD);
+    GetLogicalVolumeOrThrow("DetectorCube", GetName());
+    fGeometry->AttachSensitiveDetector(cubeSD);
 }
 
 void CubeDetectorModule::RegisterDigitizers(G4DigiManager* digiManager) {
@@ -144,6 +150,8 @@ void CubeDetectorModule::RegisterDigitizers(G4DigiManager* digiManager) {
     const auto readoutParameters = CubeReadoutModel::Build(
         fGeometry->GetCubeMaterial(),
         fGeometry->GetCubeSide(),
+        fGeometry->GetEnvelopeMaterial(),
+        fGeometry->GetEnvelopeThickness(),
         fGeometry->GetCalibrationFactor(),
         fGeometry->GetCalibrationFactorError());
     digiManager->AddNewModule(new CubeDigitizer("CubeDigitizer", readoutParameters));

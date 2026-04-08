@@ -20,7 +20,10 @@
 #include "globals.hh"
 #include "G4LogicalVolume.hh"
 #include "G4RotationMatrix.hh"
+#include "G4VSensitiveDetector.hh"
 #include "G4ThreeVector.hh"
+
+#include <vector>
 
 // MultiDetector Headers
 #include "geometry/base/GenericGeometry.hh"
@@ -30,6 +33,9 @@ class DetectorCube : public GenericGeometry {
 public:
     DetectorCube(G4double cubeSide,
                  const G4String& materialName,
+                 G4double envelopeThickness = 0.,
+                 const G4String& envelopeMaterialName = "G4_AIR",
+                 G4bool splitAtInterface = false,
                  G4double calibrationFactor = 0.,
                  G4double calibrationFactorError = 0.);
     ~DetectorCube() override;
@@ -46,17 +52,64 @@ public:
     void SetCubeMaterial(const G4String& materialName) { fMaterialName = materialName; }
     const G4String& GetCubeMaterial() const { return fMaterialName; }
 
+    void SetEnvelopeThickness(G4double envelopeThickness) { fEnvelopeThickness = envelopeThickness; }
+    G4double GetEnvelopeThickness() const { return fEnvelopeThickness; }
+
+    void SetEnvelopeMaterial(const G4String& materialName) { fEnvelopeMaterialName = materialName; }
+    const G4String& GetEnvelopeMaterial() const { return fEnvelopeMaterialName; }
+
+    void SetSplitAtInterface(G4bool splitAtInterface) { fSplitAtInterface = splitAtInterface; }
+    G4bool GetSplitAtInterface() const { return fSplitAtInterface; }
+
     void SetCalibrationFactor(G4double calibrationFactor) { fCalibrationFactor = calibrationFactor; }
     G4double GetCalibrationFactor() const { return fCalibrationFactor; }
     void SetCalibrationFactorError(G4double calibrationFactorError) { fCalibrationFactorError = calibrationFactorError; }
     G4double GetCalibrationFactorError() const { return fCalibrationFactorError; }
 
+    void AttachSensitiveDetector(G4VSensitiveDetector* sensitiveDetector);
+
+protected:
+    G4bool RequiresPlacementRebuild(const G4int& copyNo) const override;
+
 private:
+    struct SplitPlacementParts {
+        G4LogicalVolume* waterSensitive = nullptr;
+        G4LogicalVolume* airSensitive = nullptr;
+        G4LogicalVolume* waterEnvelope = nullptr;
+        G4LogicalVolume* airEnvelope = nullptr;
+    };
+
+    SplitPlacementParts BuildSplitPlacementVolumes(const G4String& suffix,
+                                                   G4double waterOuterThickness,
+                                                   G4double airOuterThickness,
+                                                   G4double waterSensitiveThickness,
+                                                   G4double airSensitiveThickness);
+    void PlaceSplitPlacement(const SplitPlacementParts& parts,
+                            G4LogicalVolume* waterMother,
+                            G4LogicalVolume* worldMother,
+                            const G4String& suffix,
+                            const G4ThreeVector& centerRelativeToWater,
+                            const G4ThreeVector& waterWorldTranslation,
+                            G4double interfaceRelativeZ,
+                            G4int copyNo);
+    G4double GetOuterHalfSizeZ() const;
+    G4bool HasNonIdentityRotation(const G4int& copyNo) const;
+    void ValidateSplitPlacementSupport(G4LogicalVolume* motherVolume,
+                                       const G4ThreeVector& centerRelativeToWater,
+                                       G4double outerHalfSize,
+                                       G4int copyNo) const;
+    G4VPhysicalVolume* GetWaterPhysicalVolume() const;
+
     G4double fCubeSide;
     G4String fMaterialName;
+    G4double fEnvelopeThickness;
+    G4String fEnvelopeMaterialName;
+    G4bool fSplitAtInterface;
     G4double fCalibrationFactor;
     G4double fCalibrationFactorError;
     DetectorCubeMessenger* fDetectorCubeMessenger;
+    std::vector<G4LogicalVolume*> fSensitiveLogicalVolumes;
+    G4VSensitiveDetector* fActiveSensitiveDetector = nullptr;
 };
 
 #endif // DETECTOR_CUBE_H
