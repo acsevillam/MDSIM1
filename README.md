@@ -40,7 +40,7 @@ Estos jobs escriben:
 - `calculated_total_collected_charge_summary.csv` con una fila por réplica
 - `calculated_total_collected_charge_average.txt` con media, desviación estándar entre réplicas, `err = stddev / sqrt(n)` y error relativo para `(7) Calculated total collected charge`, incluyendo material y configuración de envolvente
 
-Tambien existen barridos `pdd` para `cube`, usando [CubeCalibration.intmp](/Users/acsevillam/workspace/Geant4/MDSIM1/input/detectors/cube/templates/CubeCalibration.intmp), `setEOFPolicy synthetic` y `1000000000` eventos por punto:
+Tambien existen barridos `pdd_interface` para `cube`, usando [CubeCalibration.intmp](/Users/acsevillam/workspace/Geant4/MDSIM1/input/detectors/cube/templates/CubeCalibration.intmp), `setEOFPolicy synthetic` y `200000000` eventos por punto:
 
 - [launch_pdd_interface_water.sh](/Users/acsevillam/workspace/Geant4/MDSIM1/jobs/detectors/cube/launch_pdd_interface_water.sh): barrido para `G4_WATER`, sin envolvente
 - [launch_pdd_interface_air.sh](/Users/acsevillam/workspace/Geant4/MDSIM1/jobs/detectors/cube/launch_pdd_interface_air.sh): barrido para `G4_AIR`, sin envolvente
@@ -49,9 +49,9 @@ Tambien existen barridos `pdd` para `cube`, usando [CubeCalibration.intmp](/User
 
 Estos jobs:
 
-- barren `cube/translateTo 0 0 z cm` desde `9.75 cm` hasta `-10.00 cm`
-- usan paso de `0.10 cm` entre `9.75 cm` y `8.45 cm`, y luego paso de `1.00 cm` hasta `-10.00 cm`
-- ejecutan `1` réplica por punto
+- barren `cube/translateTo 0 0 z cm` desde `11.0 cm` hasta `8.5 cm`
+- usan paso de `0.10 cm` en todo el barrido
+- ejecutan `5` réplicas por punto
 - extraen `(8) Estimated total absorbed dose in water (...UM)` del resumen global
 
 La salida incluye:
@@ -295,16 +295,82 @@ cmake --build MDSIM-build -jN
 
 ## Pruebas rápidas
 
-El proyecto incluye pruebas CTest para dos regresiones del flujo PHSP:
+El proyecto incluye pruebas CTest para regresiones del flujo PHSP y del ciclo de vida de geometría en `Idle`:
 
 - un `setEOFPolicy` inválido debe fallar en el momento del comando
 - una corrida MT con `-n 0` no debe abrir readers PHSP
+- agregar y remover detectores en `Idle` no debe dejar estado stale en SD, digitizers ni análisis
+- el `cube` debe poder reconstruirse en `Idle` bajo MT al pasar por volumen único dentro de agua
+- el `cube` debe poder reconstruirse en `Idle` bajo MT al pasar por `split at interface`
+- el `cube` debe poder reconstruirse en `Idle` bajo MT al pasar por volumen completo fuera del agua
 
 Se ejecutan así:
 
 ```bash
 ctest --test-dir MDSIM-build --output-on-failure
 ```
+
+Para correr solo la batería rápida de detectores, ahora puedes usar cualquiera de estos dos flujos:
+
+```bash
+ctest --test-dir MDSIM-build -L detectors_quick --output-on-failure
+```
+
+o, desde el árbol de build:
+
+```bash
+cmake --build MDSIM-build --target detector-tests
+```
+
+Si quieres separarlas por tipo, también quedan disponibles estos filtros:
+
+```bash
+ctest --test-dir MDSIM-build -L phsp_quick --output-on-failure
+ctest --test-dir MDSIM-build -L geometry_quick --output-on-failure
+ctest --test-dir MDSIM-build -L signal_quick --output-on-failure
+```
+
+o como targets:
+
+```bash
+cmake --build MDSIM-build --target phsp-tests
+cmake --build MDSIM-build --target geometry-tests
+cmake --build MDSIM-build --target signal-tests
+```
+
+Y para correr toda la batería rápida del proyecto en una sola pasada:
+
+```bash
+ctest --test-dir MDSIM-build -L quick --output-on-failure
+cmake --build MDSIM-build --target quick-tests
+```
+
+También queda reservado un carril para pruebas futuras más lentas o de tipo nightly:
+
+```bash
+ctest --test-dir MDSIM-build -L nightly --output-on-failure
+cmake --build MDSIM-build --target nightly-tests
+```
+
+Por ahora no hay pruebas marcadas con `nightly`, así que el target `nightly-tests`
+termina de forma limpia informando que todavía no hay casos en ese grupo.
+
+Actualmente el conjunto incluye, entre otras, estas verificaciones:
+
+- `mdsim1_zero_events_skip_phsp_open`
+- `mdsim1_idle_detector_refresh`
+- `mdsim1_idle_detector_remove`
+- `mdsim1_idle_detector_remove_mt`
+- `mdsim1_idle_cube_split_rebuild_mt`
+- `mdsim1_cube_signal_smoke`
+- `mdsim1_bb7_signal_smoke`
+
+Los dos smoke tests de señal usan GPS con electrones monoenergéticos y verifican el pipeline completo:
+
+- geometría activa del detector
+- `SensitiveDetector`
+- digitizer
+- resumen global y `Detector Summary`
 
 Estas pruebas no requieren phase spaces binarios reales.
 

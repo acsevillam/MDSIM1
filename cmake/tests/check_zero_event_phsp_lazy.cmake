@@ -31,7 +31,7 @@ if(run_output MATCHES "IAEA Reader initialized|Total number of particles in file
     "Zero-event run should not open PHSP readers.\n${run_output}")
 endif()
 
-if(NOT run_output MATCHES "Using G4ThreadPool")
+if(NOT run_output MATCHES "<< in Multi-threaded mode >>")
   message(FATAL_ERROR
     "Zero-event PHSP lazy test did not reach the MT initialization path.\n${run_output}")
 endif()

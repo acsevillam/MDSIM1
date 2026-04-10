@@ -23,11 +23,15 @@
 #include "G4VSensitiveDetector.hh"
 #include "G4ThreeVector.hh"
 
+#include <map>
 #include <vector>
 
 // MultiDetector Headers
 #include "geometry/base/GenericGeometry.hh"
 #include "geometry/detectors/cube/messenger/DetectorCubeMessenger.hh"
+
+class G4VisAttributes;
+class G4VSolid;
 
 class DetectorCube : public GenericGeometry {
 public:
@@ -70,13 +74,25 @@ public:
 
 protected:
     G4bool RequiresPlacementRebuild(const G4int& copyNo) const override;
+    void OnAfterPlacementRemoval(const G4int& copyNo) override;
 
 private:
+    G4bool IsSensitiveLogicalVolumeName(const G4String& logicalVolumeName) const;
+    G4VSensitiveDetector* GetCurrentSensitiveDetector() const;
+
+    struct SplitPlacementOwnedResources {
+        std::vector<G4VPhysicalVolume*> nestedPhysicalVolumes;
+        std::vector<G4LogicalVolume*> logicalVolumes;
+        std::vector<G4VSolid*> solids;
+        std::vector<G4VisAttributes*> visAttributes;
+    };
+
     struct SplitPlacementParts {
         G4LogicalVolume* waterSensitive = nullptr;
         G4LogicalVolume* airSensitive = nullptr;
         G4LogicalVolume* waterEnvelope = nullptr;
         G4LogicalVolume* airEnvelope = nullptr;
+        SplitPlacementOwnedResources ownedResources;
     };
 
     SplitPlacementParts BuildSplitPlacementVolumes(const G4String& suffix,
@@ -84,7 +100,7 @@ private:
                                                    G4double airOuterThickness,
                                                    G4double waterSensitiveThickness,
                                                    G4double airSensitiveThickness);
-    void PlaceSplitPlacement(const SplitPlacementParts& parts,
+    void PlaceSplitPlacement(SplitPlacementParts& parts,
                             G4LogicalVolume* waterMother,
                             G4LogicalVolume* worldMother,
                             const G4String& suffix,
@@ -94,6 +110,7 @@ private:
                             G4int copyNo);
     G4double GetOuterHalfSizeZ() const;
     G4bool HasNonIdentityRotation(const G4int& copyNo) const;
+    void ReleaseSplitPlacementResources(const G4int& copyNo);
     void ValidateSplitPlacementSupport(G4LogicalVolume* motherVolume,
                                        const G4ThreeVector& centerRelativeToWater,
                                        G4double outerHalfSize,
@@ -108,8 +125,7 @@ private:
     G4double fCalibrationFactor;
     G4double fCalibrationFactorError;
     DetectorCubeMessenger* fDetectorCubeMessenger;
-    std::vector<G4LogicalVolume*> fSensitiveLogicalVolumes;
-    G4VSensitiveDetector* fActiveSensitiveDetector = nullptr;
+    std::map<G4int, SplitPlacementOwnedResources> fSplitPlacementResources;
 };
 
 #endif // DETECTOR_CUBE_H

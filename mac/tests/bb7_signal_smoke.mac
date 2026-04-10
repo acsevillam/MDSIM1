@@ -1,0 +1,20 @@
+/control/verbose 0
+/run/verbose 0
+
+/MultiDetector1/control/SetPrimaryGeneratorType 2
+/MultiDetector1/detectors/BB7/addGeometryTo world_log 0
+
+/run/initialize
+
+/gps/particle e-
+/gps/ene/type Mono
+/gps/energy 10 MeV
+/gps/pos/type Point
+/gps/pos/centre 0 0 20 cm
+/gps/direction 0 0 -1
+
+/MultiDetector1/detectors/BB7/detectorID 0
+/MultiDetector1/detectors/BB7/translateTo 0 0 0 cm
+/MultiDetector1/detectors/BB7/rotateX 0 deg
+
+/run/beamOn 100

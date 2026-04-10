@@ -7,10 +7,10 @@
 #include "G4DigiManager.hh"
 #include "G4Event.hh"
 #include "G4Exception.hh"
-#include "G4LogicalVolumeStore.hh"
 #include "G4SDManager.hh"
 #include "G4SystemOfUnits.hh"
 
+#include "geometry/base/DetectorModuleUtils.hh"
 #include "geometry/detectors/cube/geometry/DetectorCube.hh"
 #include "geometry/detectors/cube/readout/CubeDigit.hh"
 #include "geometry/detectors/cube/readout/CubeDigitizer.hh"
@@ -24,47 +24,6 @@ struct CubeDetectorRuntimeState final : DetectorRuntimeState {
     G4int digitsCollectionId = -1;
 };
 
-G4LogicalVolume* GetLogicalVolumeOrThrow(const G4String& logicalVolumeName, const G4String& detectorName) {
-    auto* logicalVolume = G4LogicalVolumeStore::GetInstance()->GetVolume(logicalVolumeName, false);
-    if (logicalVolume == nullptr) {
-        G4Exception("CubeDetectorModule::GetLogicalVolumeOrThrow",
-                    "DetectorLogicalVolumeNotFound",
-                    FatalException,
-                    ("Detector module " + detectorName +
-                     " could not find logical volume " + logicalVolumeName + ".").c_str());
-    }
-    return logicalVolume;
-}
-
-template <typename TDigitizer>
-TDigitizer* GetDigitizerOrThrow(G4DigiManager* digiManager,
-                                const G4String& moduleName,
-                                const G4String& detectorName) {
-    auto* digitizer = static_cast<TDigitizer*>(digiManager->FindDigitizerModule(moduleName));
-    if (digitizer == nullptr) {
-        G4Exception("CubeDetectorModule::GetDigitizerOrThrow",
-                    "DetectorDigitizerNotFound",
-                    FatalException,
-                    ("Detector module " + detectorName +
-                     " is active but digitizer " + moduleName + " was not registered.").c_str());
-    }
-    return digitizer;
-}
-
-G4int GetDigiCollectionIdOrThrow(G4DigiManager* digiManager,
-                                 const G4String& collectionName,
-                                 const G4String& detectorName) {
-    const G4int collectionId = digiManager->GetDigiCollectionID(collectionName);
-    if (collectionId < 0) {
-        G4Exception("CubeDetectorModule::GetDigiCollectionIdOrThrow",
-                    "DetectorDigiCollectionNotFound",
-                    FatalException,
-                    ("Detector module " + detectorName +
-                     " could not resolve digi collection " + collectionName + ".").c_str());
-    }
-    return collectionId;
-}
-
 void ValidateNtupleIdOrThrow(G4int ntupleId, const G4String& detectorName) {
     if (ntupleId < 0) {
         G4Exception("CubeDetectorModule::ValidateNtupleIdOrThrow",
@@ -77,15 +36,8 @@ void ValidateNtupleIdOrThrow(G4int ntupleId, const G4String& detectorName) {
 
 CubeDetectorRuntimeState& GetRuntimeStateOrThrow(DetectorRuntimeState& runtimeState,
                                                  const G4String& detectorName) {
-    auto* typedState = dynamic_cast<CubeDetectorRuntimeState*>(&runtimeState);
-    if (typedState == nullptr) {
-        G4Exception("CubeDetectorModule::GetRuntimeStateOrThrow",
-                    "DetectorRuntimeStateTypeMismatch",
-                    FatalException,
-                    ("Detector module " + detectorName +
-                     " received an incompatible runtime state.").c_str());
-    }
-    return *typedState;
+    return DetectorModuleUtils::GetRuntimeStateOrThrow<CubeDetectorRuntimeState>(
+        runtimeState, detectorName, "CubeDetectorModule::GetRuntimeStateOrThrow");
 }
 
 } // namespace
@@ -132,10 +84,11 @@ void CubeDetectorModule::RegisterSensitiveDetectors(G4SDManager* sdManager) {
         return;
     }
 
-    auto* cubeSD = new CubeSensitiveDetector("CubeSD");
-    sdManager->AddNewDetector(cubeSD);
+    auto* cubeSD =
+        DetectorModuleUtils::GetOrCreateSensitiveDetector<CubeSensitiveDetector>(sdManager, "CubeSD");
 
-    GetLogicalVolumeOrThrow("DetectorCube", GetName());
+    DetectorModuleUtils::GetLogicalVolumeOrThrow(
+        "DetectorCube", GetName(), "CubeDetectorModule::GetLogicalVolumeOrThrow");
     fGeometry->AttachSensitiveDetector(cubeSD);
 }
 
@@ -205,12 +158,13 @@ DetectorEventData CubeDetectorModule::ProcessEvent(const G4Event* event,
 
     auto& state = GetRuntimeStateOrThrow(runtimeState, GetName());
     ValidateNtupleIdOrThrow(state.ntupleId, GetName());
-    auto* digitizer = GetDigitizerOrThrow<CubeDigitizer>(digiManager, "CubeDigitizer", GetName());
+    auto* digitizer = DetectorModuleUtils::GetDigitizerOrThrow<CubeDigitizer>(
+        digiManager, "CubeDigitizer", GetName(), "CubeDetectorModule::GetDigitizerOrThrow");
     digitizer->Digitize();
 
     if (state.digitsCollectionId < 0) {
-        state.digitsCollectionId =
-            GetDigiCollectionIdOrThrow(digiManager, "CubeDigitsCollection", GetName());
+        state.digitsCollectionId = DetectorModuleUtils::GetDigiCollectionIdOrThrow(
+            digiManager, "CubeDigitsCollection", GetName(), "CubeDetectorModule::GetDigiCollectionIdOrThrow");
     }
     auto* digitsCollection =
         static_cast<const CubeDigitsCollection*>(digiManager->GetDigiCollection(state.digitsCollectionId));

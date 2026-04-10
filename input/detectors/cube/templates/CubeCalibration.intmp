@@ -46,7 +46,6 @@
 
 /MultiDetector1/phantoms/waterbox/phantomID 0
 /MultiDetector1/phantoms/waterbox/translateTo 0 0 **WaterBoxZ** cm
-
 /MultiDetector1/detectors/cube/detectorID 0
 /MultiDetector1/detectors/cube/translateTo 0 0 **CubeZ** cm
 /MultiDetector1/detectors/cube/rotateX **CubeAngle** deg

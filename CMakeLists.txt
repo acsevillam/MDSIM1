@@ -56,6 +56,9 @@ set(MDSIM1_RUNTIME_FILES
   mac/tests/invalid_eof_policy.mac
   mac/tests/idle_detector_refresh.mac
   mac/tests/idle_detector_remove.mac
+  mac/tests/idle_cube_split_rebuild.mac
+  mac/tests/cube_signal_smoke.mac
+  mac/tests/bb7_signal_smoke.mac
   analysis/README.md
   beam/photon6MV.txt
   beam/Co-60.txt
@@ -78,10 +81,11 @@ set(MDSIM1_RUNTIME_FILES
   input/benchmark/set1.in
   input/benchmark/set2.in
   input/benchmark/set3.in
-  jobs/dosimetry/launch_validation_phsp_sweep.sh
-  jobs/dosimetry/run_validation_phsp_sweep.sh
-  jobs/dosimetry/launch_calibration_dmax_average.sh
-  jobs/dosimetry/run_calibration_dmax_average.sh
+  jobs/lib/md1_job_helpers.sh
+  jobs/dosimetry/launch_validation.sh
+  jobs/dosimetry/run_validation.sh
+  jobs/dosimetry/launch_calibration_dmax.sh
+  jobs/dosimetry/run_calibration_dmax.sh
   jobs/detectors/cube/launch_calibration_water.sh
   jobs/detectors/cube/launch_calibration_air.sh
   jobs/detectors/cube/launch_calibration_water_pmma_2p5mm.sh
@@ -199,6 +203,37 @@ add_test(
           -P ${PROJECT_SOURCE_DIR}/cmake/tests/check_idle_detector_remove_mt.cmake
 )
 
+add_test(
+  NAME mdsim1_idle_cube_split_rebuild_mt
+  COMMAND ${CMAKE_COMMAND}
+          -DEXECUTABLE=$<TARGET_FILE:MultiDetector1>
+          -DWORKING_DIRECTORY=${PROJECT_BINARY_DIR}
+          -DMACRO_PATH=mac/tests/idle_cube_split_rebuild.mac
+          -P ${PROJECT_SOURCE_DIR}/cmake/tests/check_idle_cube_split_rebuild_mt.cmake
+)
+
+add_test(
+  NAME mdsim1_cube_signal_smoke
+  COMMAND ${CMAKE_COMMAND}
+          -DEXECUTABLE=$<TARGET_FILE:MultiDetector1>
+          -DWORKING_DIRECTORY=${PROJECT_BINARY_DIR}
+          -DMACRO_PATH=mac/tests/cube_signal_smoke.mac
+          -DDETECTOR_SUMMARY_LABEL=cube\\[0\\]
+          -DDETECTOR_NAME=cube
+          -P ${PROJECT_SOURCE_DIR}/cmake/tests/check_detector_signal_smoke.cmake
+)
+
+add_test(
+  NAME mdsim1_bb7_signal_smoke
+  COMMAND ${CMAKE_COMMAND}
+          -DEXECUTABLE=$<TARGET_FILE:MultiDetector1>
+          -DWORKING_DIRECTORY=${PROJECT_BINARY_DIR}
+          -DMACRO_PATH=mac/tests/bb7_signal_smoke.mac
+          -DDETECTOR_SUMMARY_LABEL=BB7\\[0\\]
+          -DDETECTOR_NAME=BB7
+          -P ${PROJECT_SOURCE_DIR}/cmake/tests/check_detector_signal_smoke.cmake
+)
+
 set_tests_properties(
   mdsim1_invalid_eof_policy
   mdsim1_zero_events_skip_phsp_open
@@ -206,6 +241,86 @@ set_tests_properties(
   mdsim1_idle_detector_refresh
   mdsim1_idle_detector_remove
   mdsim1_idle_detector_remove_mt
+  mdsim1_idle_cube_split_rebuild_mt
+  mdsim1_cube_signal_smoke
+  mdsim1_bb7_signal_smoke
   PROPERTIES
     TIMEOUT 180
+)
+
+set_tests_properties(
+  mdsim1_invalid_eof_policy
+  mdsim1_zero_events_skip_phsp_open
+  mdsim1_incomplete_phsp_dataset_fails_early
+  PROPERTIES
+    LABELS "phsp_quick;quick"
+)
+
+set_tests_properties(
+  mdsim1_idle_detector_refresh
+  mdsim1_idle_detector_remove
+  mdsim1_idle_detector_remove_mt
+  mdsim1_idle_cube_split_rebuild_mt
+  PROPERTIES
+    LABELS "detectors_quick;geometry_quick;quick"
+)
+
+set_tests_properties(
+  mdsim1_cube_signal_smoke
+  mdsim1_bb7_signal_smoke
+  PROPERTIES
+    LABELS "detectors_quick;signal_quick;quick"
+)
+
+add_custom_target(
+  detector-tests
+  COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -L detectors_quick
+  WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+  USES_TERMINAL
+  COMMENT "Running quick detector-focused CTest suite"
+)
+
+add_custom_target(
+  geometry-tests
+  COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -L geometry_quick
+  WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+  USES_TERMINAL
+  COMMENT "Running quick geometry-focused CTest suite"
+)
+
+add_custom_target(
+  signal-tests
+  COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -L signal_quick
+  WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+  USES_TERMINAL
+  COMMENT "Running quick detector signal CTest suite"
+)
+
+add_custom_target(
+  phsp-tests
+  COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -L phsp_quick
+  WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+  USES_TERMINAL
+  COMMENT "Running quick PHSP-focused CTest suite"
+)
+
+add_custom_target(
+  quick-tests
+  COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -L quick
+  WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+  USES_TERMINAL
+  COMMENT "Running full quick CTest suite"
+)
+
+add_custom_target(
+  nightly-tests
+  COMMAND ${CMAKE_COMMAND}
+          -DCTEST_COMMAND=${CMAKE_CTEST_COMMAND}
+          -DBUILD_DIR=${PROJECT_BINARY_DIR}
+          -DLABEL=nightly
+          -DDESCRIPTION=nightly_or_heavy_suite
+          -P ${PROJECT_SOURCE_DIR}/cmake/tests/run_labeled_ctest.cmake
+  WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+  USES_TERMINAL
+  COMMENT "Running nightly/heavy CTest suite if present"
 )

@@ -26,6 +26,7 @@
 #include "G4LogicalVolumeStore.hh"
 #include "G4Run.hh"
 #include "G4RunManager.hh"
+#include "G4SDManager.hh"
 #include "G4ScoringManager.hh"
 #include "G4SystemOfUnits.hh"
 #include "G4UnitsTable.hh"
@@ -159,9 +160,12 @@ void MD1RunAction::RegisterDetectorDigitizers(G4DigiManager* digiManager) {
 void MD1RunAction::BeginOfRunAction(const G4Run*) {
     BuildActiveDetectors();
     fDetectorAccumulables.PrepareForRun(IsMaster());
-    if (!IsMaster()) {
-        RegisterDetectorDigitizers(G4DigiManager::GetDMpointer());
+    if (auto* sdManager = G4SDManager::GetSDMpointerIfExist(); sdManager != nullptr) {
+        for (const auto& activeDetector : fActiveDetectors) {
+            activeDetector.detector->RegisterSensitiveDetectors(sdManager);
+        }
     }
+    RegisterDetectorDigitizers(G4DigiManager::GetDMpointer());
     CreateNTuples();
 
     auto* analysisManager = G4AnalysisManager::Instance();

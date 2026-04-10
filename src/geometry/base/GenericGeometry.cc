@@ -21,8 +21,17 @@
 #include "G4Exception.hh"
 #include "G4PVPlacement.hh"
 #include "G4LogicalVolumeStore.hh"
+#include "G4Threading.hh"
 
 #include <algorithm>
+
+namespace {
+
+G4bool ShouldSkipWorkerGeometryMutation() {
+    return G4Threading::IsWorkerThread();
+}
+
+} // namespace
 
 GenericGeometry::GenericGeometry()
     : geometryName("GenericGeometry"),
@@ -131,20 +140,53 @@ G4bool GenericGeometry::RequiresPlacementRebuild(const G4int& /*copyNo*/) const 
     return false;
 }
 
-void GenericGeometry::RotateTo(const G4int& copyNo, const G4double& theta, const G4double& phi, const G4double& psi) {
-    auto frames = GetPlacementFrames(copyNo);
-    if (frames.empty()) {
-        G4Exception("GenericGeometry::RotateTo",
-                    "RotateToError",
-                    FatalException,
-                    ("Frame physical volume with copy number " + std::to_string(copyNo) + " in geometry " + geometryName + " was not found!").c_str());
+void GenericGeometry::OnAfterPlacementRemoval(const G4int& /*copyNo*/) {}
+
+G4bool GenericGeometry::HasPlacementRequest(const G4int& copyNo) const {
+    return detMotherVolumeNames.find(copyNo) != detMotherVolumeNames.end();
+}
+
+void GenericGeometry::ThrowMissingPlacementException(const char* methodName,
+                                                     const char* errorCode,
+                                                     const G4String& volumeDescription,
+                                                     const G4int& copyNo) const {
+    G4Exception(methodName,
+                errorCode,
+                FatalException,
+                (volumeDescription + " with copy number " + std::to_string(copyNo) +
+                 " in geometry " + geometryName + " was not found!").c_str());
+}
+
+void GenericGeometry::StoreRotation(const G4int& copyNo, const G4RotationMatrix& rotation) {
+    auto rotationIt = detRotMat.find(copyNo);
+    if (rotationIt != detRotMat.end()) {
+        delete rotationIt->second;
+        rotationIt->second = nullptr;
+    }
+    detRotMat[copyNo] = NewPtrRotMatrix(rotation);
+}
+
+void GenericGeometry::ApplyRotationMutation(const G4int& copyNo,
+                                            const std::function<void(G4RotationMatrix&)>& mutation,
+                                            const char* methodName,
+                                            const char* errorCode) {
+    if (ShouldSkipWorkerGeometryMutation()) {
         return;
     }
 
-    G4RotationMatrix* rotation = EnsureRotationMatrix(copyNo);
-    rotation->setTheta(theta);
-    rotation->setPhi(phi);
-    rotation->setPsi(psi);
+    auto frames = GetPlacementFrames(copyNo);
+    if (frames.empty()) {
+        if (HasPlacementRequest(copyNo)) {
+            auto* rotation = EnsureRotationMatrix(copyNo);
+            mutation(*rotation);
+            return;
+        }
+        ThrowMissingPlacementException(methodName, errorCode, "Frame physical volume", copyNo);
+        return;
+    }
+
+    auto* rotation = EnsureRotationMatrix(copyNo);
+    mutation(*rotation);
     if (RequiresPlacementRebuild(copyNo)) {
         RebuildPlacement(copyNo);
     } else {
@@ -153,75 +195,61 @@ void GenericGeometry::RotateTo(const G4int& copyNo, const G4double& theta, const
         }
     }
     UpdateGeometry();
+}
+
+void GenericGeometry::ApplyTranslationToFramesOrRebuild(const G4int& copyNo,
+                                                        const std::vector<G4VPhysicalVolume*>& frames,
+                                                        const G4ThreeVector& translation) {
+    detPosition[copyNo] = translation;
+    if (RequiresPlacementRebuild(copyNo)) {
+        RebuildPlacement(copyNo);
+    } else {
+        for (auto* frame : frames) {
+            frame->SetTranslation(translation);
+        }
+    }
+}
+
+void GenericGeometry::RotateTo(const G4int& copyNo, const G4double& theta, const G4double& phi, const G4double& psi) {
+    ApplyRotationMutation(
+        copyNo,
+        [theta, phi, psi](G4RotationMatrix& rotation) {
+            rotation.setTheta(theta);
+            rotation.setPhi(phi);
+            rotation.setPsi(psi);
+        },
+        "GenericGeometry::RotateTo",
+        "RotateToError");
 }
 
 void GenericGeometry::RotateX(const G4int& copyNo, const G4double& delta) {
-    auto frames = GetPlacementFrames(copyNo);
-    if (frames.empty()) {
-        G4Exception("GenericGeometry::RotateX",
-                    "RotateXError",
-                    FatalException,
-                    ("Frame physical volume with copy number " + std::to_string(copyNo) + " in geometry " + geometryName + " was not found!").c_str());
-        return;
-    }
-
-    G4RotationMatrix* rotation = EnsureRotationMatrix(copyNo);
-    rotation->rotateX(delta);
-    if (RequiresPlacementRebuild(copyNo)) {
-        RebuildPlacement(copyNo);
-    } else {
-        for (auto* frame : frames) {
-            frame->SetRotation(rotation);
-        }
-    }
-    UpdateGeometry();
+    ApplyRotationMutation(
+        copyNo,
+        [delta](G4RotationMatrix& rotation) { rotation.rotateX(delta); },
+        "GenericGeometry::RotateX",
+        "RotateXError");
 }
 
 void GenericGeometry::RotateY(const G4int& copyNo, const G4double& delta) {
-    auto frames = GetPlacementFrames(copyNo);
-    if (frames.empty()) {
-        G4Exception("GenericGeometry::RotateY",
-                    "RotateYError",
-                    FatalException,
-                    ("Frame physical volume with copy number " + std::to_string(copyNo) + " in geometry " + geometryName + " was not found!").c_str());
-        return;
-    }
-
-    G4RotationMatrix* rotation = EnsureRotationMatrix(copyNo);
-    rotation->rotateY(delta);
-    if (RequiresPlacementRebuild(copyNo)) {
-        RebuildPlacement(copyNo);
-    } else {
-        for (auto* frame : frames) {
-            frame->SetRotation(rotation);
-        }
-    }
-    UpdateGeometry();
+    ApplyRotationMutation(
+        copyNo,
+        [delta](G4RotationMatrix& rotation) { rotation.rotateY(delta); },
+        "GenericGeometry::RotateY",
+        "RotateYError");
 }
 
 void GenericGeometry::RotateZ(const G4int& copyNo, const G4double& delta) {
-    auto frames = GetPlacementFrames(copyNo);
-    if (frames.empty()) {
-        G4Exception("GenericGeometry::RotateZ",
-                    "RotateZError",
-                    FatalException,
-                    ("Frame physical volume with copy number " + std::to_string(copyNo) + " in geometry " + geometryName + " was not found!").c_str());
-        return;
-    }
-
-    G4RotationMatrix* rotation = EnsureRotationMatrix(copyNo);
-    rotation->rotateZ(delta);
-    if (RequiresPlacementRebuild(copyNo)) {
-        RebuildPlacement(copyNo);
-    } else {
-        for (auto* frame : frames) {
-            frame->SetRotation(rotation);
-        }
-    }
-    UpdateGeometry();
+    ApplyRotationMutation(
+        copyNo,
+        [delta](G4RotationMatrix& rotation) { rotation.rotateZ(delta); },
+        "GenericGeometry::RotateZ",
+        "RotateZError");
 }
 
 void GenericGeometry::AddGeometryTo(const G4String& volumeName, const G4int& copyNo) {
+    if (ShouldSkipWorkerGeometryMutation()) {
+        return;
+    }
     detMotherVolumeNames[copyNo] = volumeName;
 
     auto frameIt = detFrame.find(copyNo);
@@ -232,13 +260,17 @@ void GenericGeometry::AddGeometryTo(const G4String& volumeName, const G4int& cop
 
     G4LogicalVolume* logicalVolume = G4LogicalVolumeStore::GetInstance()->GetVolume(volumeName, false);
     if (logicalVolume) {
-        AddGeometry(logicalVolume, copyNo);
+        auto storedTransform = BuildStoredTransform(copyNo);
+        AddGeometry(logicalVolume, &storedTransform, copyNo);
         fAreVolumensAssembled = !detFrame.empty();
         UpdateGeometry();
     }
 }
 
 void GenericGeometry::RemoveGeometry(const G4int& copyNo) {
+    if (ShouldSkipWorkerGeometryMutation()) {
+        return;
+    }
     detMotherVolumeNames.erase(copyNo);
     auto frames = GetPlacementFrames(copyNo);
     if (!frames.empty()) {
@@ -249,6 +281,7 @@ void GenericGeometry::RemoveGeometry(const G4int& copyNo) {
         }
         detFrame.erase(copyNo);
         detAuxFrames.erase(copyNo);
+        OnAfterPlacementRemoval(copyNo);
         detPosition.erase(copyNo);
         auto rotationIt = detRotMat.find(copyNo);
         if (rotationIt != detRotMat.end()) {
@@ -262,72 +295,77 @@ void GenericGeometry::RemoveGeometry(const G4int& copyNo) {
 }
 
 void GenericGeometry::TranslateTo(const G4int& copyNo, const G4ThreeVector& position) {
+    if (ShouldSkipWorkerGeometryMutation()) {
+        return;
+    }
     auto frames = GetPlacementFrames(copyNo);
     if (!frames.empty()) {
-        detPosition[copyNo] = position + det_origin;
-        if (RequiresPlacementRebuild(copyNo)) {
-            RebuildPlacement(copyNo);
-        } else {
-            for (auto* frame : frames) {
-                frame->SetTranslation(detPosition[copyNo]);
-            }
-        }
+        ApplyTranslationToFramesOrRebuild(copyNo, frames, position + det_origin);
         UpdateGeometry();
     } else {
-        G4Exception("GenericGeometry::TranslateTo",
-                    "TranslateToError",
-                    FatalException,
-                    ("Physical volume with copy number " + std::to_string(copyNo) + " in geometry " + geometryName + " was not found!").c_str());
+        if (HasPlacementRequest(copyNo)) {
+            detPosition[copyNo] = position + det_origin;
+            return;
+        }
+        ThrowMissingPlacementException("GenericGeometry::TranslateTo",
+                                       "TranslateToError",
+                                       "Physical volume",
+                                       copyNo);
     }
 }
 
 void GenericGeometry::Translate(const G4int& copyNo, const G4ThreeVector& delta) {
+    if (ShouldSkipWorkerGeometryMutation()) {
+        return;
+    }
     auto frames = GetPlacementFrames(copyNo);
     if (!frames.empty()) {
         G4ThreeVector newPosition = frames.front()->GetTranslation() + delta;
-        detPosition[copyNo] = newPosition;
-        if (RequiresPlacementRebuild(copyNo)) {
-            RebuildPlacement(copyNo);
-        } else {
-            for (auto* frame : frames) {
-                frame->SetTranslation(newPosition);
-            }
-        }
+        ApplyTranslationToFramesOrRebuild(copyNo, frames, newPosition);
         UpdateGeometry();
     } else {
-        G4Exception("GenericGeometry::Translate",
-                    "TranslateError",
-                    FatalException,
-                    ("Physical volume with copy number " + std::to_string(copyNo) + " in geometry " + geometryName + " was not found!").c_str());
+        if (HasPlacementRequest(copyNo)) {
+            const auto positionIt = detPosition.find(copyNo);
+            const G4ThreeVector currentPosition =
+                (positionIt != detPosition.end()) ? positionIt->second : det_origin;
+            detPosition[copyNo] = currentPosition + delta;
+            return;
+        }
+        ThrowMissingPlacementException("GenericGeometry::Translate",
+                                       "TranslateError",
+                                       "Physical volume",
+                                       copyNo);
     }
 }
 
 void GenericGeometry::ApplyTransformation(const G4int& copyNo, const G4Transform3D& transform) {
+    if (ShouldSkipWorkerGeometryMutation()) {
+        return;
+    }
     G4RotationMatrix rotation = transform.getRotation().inverse();
     G4ThreeVector translation = transform.getTranslation();
     auto frames = GetPlacementFrames(copyNo);
     if (!frames.empty()) {
-        auto rotationIt = detRotMat.find(copyNo);
-        if (rotationIt != detRotMat.end()) {
-            delete rotationIt->second;
-            rotationIt->second = nullptr;
-        }
-        detRotMat[copyNo] = NewPtrRotMatrix(rotation);
-        detPosition[copyNo] = translation;
+        StoreRotation(copyNo, rotation);
+        ApplyTranslationToFramesOrRebuild(copyNo, frames, translation);
         if (RequiresPlacementRebuild(copyNo)) {
-            RebuildPlacement(copyNo);
+            // ApplyTranslationToFramesOrRebuild has already rebuilt using the stored transform.
         } else {
             for (auto* frame : frames) {
                 frame->SetRotation(detRotMat[copyNo]);
-                frame->SetTranslation(translation);
             }
         }
         UpdateGeometry();
     } else {
-        G4Exception("GenericGeometry::ApplyTransformation",
-                    "TransformationError",
-                    FatalException,
-                    ("Frame physical volume with copy number " + std::to_string(copyNo) + " in geometry " + geometryName + " was not found!").c_str());
+        if (HasPlacementRequest(copyNo)) {
+            StoreRotation(copyNo, rotation);
+            detPosition[copyNo] = translation;
+            return;
+        }
+        ThrowMissingPlacementException("GenericGeometry::ApplyTransformation",
+                                       "TransformationError",
+                                       "Frame physical volume",
+                                       copyNo);
     }
 }
 
@@ -396,17 +434,11 @@ G4VPhysicalVolume* GenericGeometry::GetFrameVolume(const G4int& copyNo) {
     }
 }
 
- G4RotationMatrix* GenericGeometry::NewPtrRotMatrix(const G4RotationMatrix &RotMat)
-{
-    G4RotationMatrix *pRotMatrix; 
-    if ( RotMat.isIdentity() ){
-        pRotMatrix = 0; }
-        else
-        {
-            pRotMatrix = new G4RotationMatrix(RotMat);
-            }
-            // fallocatedRotM= ! (RotMat.isIdentity());
-        return pRotMatrix;
+G4RotationMatrix* GenericGeometry::NewPtrRotMatrix(const G4RotationMatrix& rotationMatrix) {
+    if (rotationMatrix.isIdentity()) {
+        return nullptr;
+    }
+    return new G4RotationMatrix(rotationMatrix);
 }
 
 void GenericGeometry::UpdateGeometry() {
@@ -450,7 +482,8 @@ void GenericGeometry::AssembleRequestedGeometries() {
             return;
         }
 
-        AddGeometry(logicalVolume, copyNo);
+        auto storedTransform = BuildStoredTransform(copyNo);
+        AddGeometry(logicalVolume, &storedTransform, copyNo);
         geometryAdded = true;
     }
 

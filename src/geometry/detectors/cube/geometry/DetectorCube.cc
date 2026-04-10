@@ -27,6 +27,14 @@
 // MultiDetector Headers
 #include "geometry/detectors/cube/geometry/DetectorCube.hh"
 
+namespace {
+
+G4bool StartsWith(const G4String& value, const G4String& prefix) {
+    return value.size() >= prefix.size() && value.compare(0, prefix.size(), prefix) == 0;
+}
+
+} // namespace
+
 DetectorCube::DetectorCube(G4double cubeSide,
                            const G4String& materialName,
                            G4double envelopeThickness,
@@ -101,7 +109,6 @@ void DetectorCube::DefineVolumes() {
     visDetectorCube->SetForceSolid(true);
     logDetectorCube->SetVisAttributes(visDetectorCube);
     detLog["DetectorCube"] = logDetectorCube;
-    fSensitiveLogicalVolumes.push_back(logDetectorCube);
 
     if (fEnvelopeThickness > 0.) {
         const G4double envelopeSide = fCubeSide + 2. * fEnvelopeThickness;
@@ -130,18 +137,17 @@ void DetectorCube::DefineVolumes() {
 }
 
 void DetectorCube::AddGeometry(G4LogicalVolume* motherVolume, G4int copyNo) {
-    auto* rotation = new G4RotationMatrix();
-    AddGeometry(motherVolume, G4ThreeVector(), rotation, copyNo);
+    G4Transform3D transform;
+    AddGeometry(motherVolume, &transform, copyNo);
 }
 
 void DetectorCube::AddGeometry(G4LogicalVolume* motherVolume,
                                const G4ThreeVector& position,
                                G4RotationMatrix* rotation,
                                G4int copyNo) {
-    if (rotation == nullptr) {
-        rotation = new G4RotationMatrix();
-    }
-    G4Transform3D transform(*rotation, position);
+    G4RotationMatrix identityRotation;
+    const G4RotationMatrix& appliedRotation = (rotation != nullptr) ? *rotation : identityRotation;
+    G4Transform3D transform(appliedRotation, position);
     AddGeometry(motherVolume, &transform, copyNo);
 }
 
@@ -168,9 +174,49 @@ void DetectorCube::AddGeometry(G4LogicalVolume* motherVolume, G4Transform3D* tra
         auto* waterPhysicalVolume = GetWaterPhysicalVolume();
         const G4ThreeVector waterWorldTranslation = waterPhysicalVolume->GetTranslation();
         auto* waterBoxSolid = dynamic_cast<G4Box*>(motherVolume->GetSolid());
+        auto* worldMother = G4LogicalVolumeStore::GetInstance()->GetVolume("world_log", false);
+        if (worldMother == nullptr) {
+            G4Exception("DetectorCube::AddGeometry",
+                        "DetectorCubeWorldLogicalVolumeNotFound",
+                        FatalException,
+                        "Could not resolve world_log while placing the cube at the water-air interface.");
+            return;
+        }
+
+        const G4double waterMinX = -waterBoxSolid->GetXHalfLength();
+        const G4double waterMaxX = waterBoxSolid->GetXHalfLength();
+        const G4double waterMinY = -waterBoxSolid->GetYHalfLength();
+        const G4double waterMaxY = waterBoxSolid->GetYHalfLength();
+        const G4double waterMinZ = -waterBoxSolid->GetZHalfLength();
         const G4double interfaceRelativeZ = waterBoxSolid->GetZHalfLength();
+        const G4double outerMinX = centerRelativeToMother.x() - outerHalfSize;
+        const G4double outerMaxX = centerRelativeToMother.x() + outerHalfSize;
+        const G4double outerMinY = centerRelativeToMother.y() - outerHalfSize;
+        const G4double outerMaxY = centerRelativeToMother.y() + outerHalfSize;
         const G4double outerMinZ = centerRelativeToMother.z() - outerHalfSize;
         const G4double outerMaxZ = centerRelativeToMother.z() + outerHalfSize;
+        const G4bool fullyOutsideWater =
+            outerMaxX <= waterMinX || outerMinX >= waterMaxX ||
+            outerMaxY <= waterMinY || outerMinY >= waterMaxY ||
+            outerMaxZ <= waterMinZ || outerMinZ >= interfaceRelativeZ;
+
+        if (fullyOutsideWater) {
+            auto* placementLogical = (fEnvelopeThickness > 0.) ? detLog["DetectorCubeEnvelope"] : detLog["DetectorCube"];
+            auto* placement = new G4PVPlacement(nullptr,
+                                                G4ThreeVector(waterWorldTranslation.x() + centerRelativeToMother.x(),
+                                                              waterWorldTranslation.y() + centerRelativeToMother.y(),
+                                                              waterWorldTranslation.z() + centerRelativeToMother.z()),
+                                                placementLogical,
+                                                "DetectorCube_air_phys",
+                                                worldMother,
+                                                false,
+                                                copyNo,
+                                                true);
+            SetPrimaryFrameVolume(copyNo, placement);
+            fAreVolumensAssembled = true;
+            detPosition[copyNo] = centerRelativeToMother;
+            return;
+        }
 
         if (outerMaxZ <= interfaceRelativeZ) {
             // Entire detector is inside the water phantom.
@@ -186,19 +232,20 @@ void DetectorCube::AddGeometry(G4LogicalVolume* motherVolume, G4Transform3D* tra
                 std::max(0., sensitiveMaxZ - std::max(interfaceRelativeZ, sensitiveMinZ));
 
             const G4String suffix = "_" + std::to_string(copyNo);
-            const auto splitParts = BuildSplitPlacementVolumes(suffix,
-                                                               waterOuterThickness,
-                                                               airOuterThickness,
-                                                               waterSensitiveThickness,
-                                                               airSensitiveThickness);
-            PlaceSplitPlacement(splitParts,
+            auto splitPlacement = BuildSplitPlacementVolumes(suffix,
+                                                             waterOuterThickness,
+                                                             airOuterThickness,
+                                                             waterSensitiveThickness,
+                                                             airSensitiveThickness);
+            PlaceSplitPlacement(splitPlacement,
                                 motherVolume,
-                                G4LogicalVolumeStore::GetInstance()->GetVolume("world_log", false),
+                                worldMother,
                                 suffix,
                                 centerRelativeToMother,
                                 waterWorldTranslation,
                                 interfaceRelativeZ,
                                 copyNo);
+            fSplitPlacementResources[copyNo] = std::move(splitPlacement.ownedResources);
             fAreVolumensAssembled = true;
             detPosition[copyNo] = centerRelativeToMother;
             return;
@@ -219,12 +266,32 @@ void DetectorCube::AddGeometry(G4LogicalVolume* motherVolume, G4Transform3D* tra
 }
 
 void DetectorCube::AttachSensitiveDetector(G4VSensitiveDetector* sensitiveDetector) {
-    fActiveSensitiveDetector = sensitiveDetector;
-    for (auto* logicalVolume : fSensitiveLogicalVolumes) {
-        if (logicalVolume != nullptr) {
+    if (sensitiveDetector == nullptr) {
+        return;
+    }
+
+    auto* logicalVolumeStore = G4LogicalVolumeStore::GetInstance();
+    for (auto* logicalVolume : *logicalVolumeStore) {
+        if (logicalVolume != nullptr && IsSensitiveLogicalVolumeName(logicalVolume->GetName())) {
             logicalVolume->SetSensitiveDetector(sensitiveDetector);
         }
     }
+}
+
+G4bool DetectorCube::IsSensitiveLogicalVolumeName(const G4String& logicalVolumeName) const {
+    return logicalVolumeName == "DetectorCube" ||
+           StartsWith(logicalVolumeName, "DetectorCube_water") ||
+           StartsWith(logicalVolumeName, "DetectorCube_air");
+}
+
+G4VSensitiveDetector* DetectorCube::GetCurrentSensitiveDetector() const {
+    const auto it = detLog.find("DetectorCube");
+    if (it != detLog.end() && it->second != nullptr) {
+        return it->second->GetSensitiveDetector();
+    }
+
+    auto* logicalVolume = G4LogicalVolumeStore::GetInstance()->GetVolume("DetectorCube", false);
+    return (logicalVolume != nullptr) ? logicalVolume->GetSensitiveDetector() : nullptr;
 }
 
 G4bool DetectorCube::RequiresPlacementRebuild(const G4int& copyNo) const {
@@ -251,15 +318,17 @@ DetectorCube::SplitPlacementParts DetectorCube::BuildSplitPlacementVolumes(
         }
 
         auto* solid = new G4Box(name, fCubeSide / 2., fCubeSide / 2., thickness / 2.);
+        parts.ownedResources.solids.push_back(solid);
         auto* logical = new G4LogicalVolume(solid, detMat[fMaterialName], name);
+        parts.ownedResources.logicalVolumes.push_back(logical);
         auto* vis = new G4VisAttributes(G4Colour(0.0, 0.0, 1.0, 1.0));
+        parts.ownedResources.visAttributes.push_back(vis);
         vis->SetVisibility(true);
         vis->SetForceSolid(true);
         logical->SetVisAttributes(vis);
-        if (fActiveSensitiveDetector != nullptr) {
-            logical->SetSensitiveDetector(fActiveSensitiveDetector);
+        if (auto* sensitiveDetector = GetCurrentSensitiveDetector(); sensitiveDetector != nullptr) {
+            logical->SetSensitiveDetector(sensitiveDetector);
         }
-        fSensitiveLogicalVolumes.push_back(logical);
         return logical;
     };
 
@@ -275,8 +344,11 @@ DetectorCube::SplitPlacementParts DetectorCube::BuildSplitPlacementVolumes(
         }
 
         auto* solid = new G4Box(name, outerSide / 2., outerSide / 2., thickness / 2.);
+        parts.ownedResources.solids.push_back(solid);
         auto* logical = new G4LogicalVolume(solid, detMat[fEnvelopeMaterialName], name);
+        parts.ownedResources.logicalVolumes.push_back(logical);
         auto* vis = new G4VisAttributes(G4Colour(0.0, 0.7, 0.7, 0.25));
+        parts.ownedResources.visAttributes.push_back(vis);
         vis->SetVisibility(true);
         logical->SetVisAttributes(vis);
         return logical;
@@ -290,7 +362,7 @@ DetectorCube::SplitPlacementParts DetectorCube::BuildSplitPlacementVolumes(
     return parts;
 }
 
-void DetectorCube::PlaceSplitPlacement(const SplitPlacementParts& parts,
+void DetectorCube::PlaceSplitPlacement(SplitPlacementParts& parts,
                                        G4LogicalVolume* waterMother,
                                        G4LogicalVolume* worldMother,
                                        const G4String& suffix,
@@ -314,14 +386,15 @@ void DetectorCube::PlaceSplitPlacement(const SplitPlacementParts& parts,
         if (sensitiveLogical == nullptr || envelopeLogical == nullptr) {
             return;
         }
-        new G4PVPlacement(nullptr,
-                          G4ThreeVector(0., 0., sensitiveCenterZ - envelopeCenterZ),
-                          sensitiveLogical,
-                          sensitiveLogical->GetName() + "_core_phys",
-                          envelopeLogical,
-                          false,
-                          copyNo,
-                          true);
+        auto* nestedPlacement = new G4PVPlacement(nullptr,
+                                                  G4ThreeVector(0., 0., sensitiveCenterZ - envelopeCenterZ),
+                                                  sensitiveLogical,
+                                                  sensitiveLogical->GetName() + "_core_phys",
+                                                  envelopeLogical,
+                                                  false,
+                                                  copyNo,
+                                                  true);
+        parts.ownedResources.nestedPhysicalVolumes.push_back(nestedPlacement);
     };
 
     if (fEnvelopeThickness > 0.) {
@@ -381,6 +454,33 @@ G4bool DetectorCube::HasNonIdentityRotation(const G4int& copyNo) const {
            !rotationIt->second->isIdentity();
 }
 
+void DetectorCube::OnAfterPlacementRemoval(const G4int& copyNo) {
+    ReleaseSplitPlacementResources(copyNo);
+}
+
+void DetectorCube::ReleaseSplitPlacementResources(const G4int& copyNo) {
+    auto resourcesIt = fSplitPlacementResources.find(copyNo);
+    if (resourcesIt == fSplitPlacementResources.end()) {
+        return;
+    }
+
+    auto& resources = resourcesIt->second;
+    for (auto* nestedPlacement : resources.nestedPhysicalVolumes) {
+        delete nestedPlacement;
+    }
+    for (auto* logicalVolume : resources.logicalVolumes) {
+        delete logicalVolume;
+    }
+    for (auto* solid : resources.solids) {
+        delete solid;
+    }
+    for (auto* visAttributes : resources.visAttributes) {
+        delete visAttributes;
+    }
+
+    fSplitPlacementResources.erase(resourcesIt);
+}
+
 void DetectorCube::ValidateSplitPlacementSupport(G4LogicalVolume* motherVolume,
                                                  const G4ThreeVector& centerRelativeToWater,
                                                  G4double outerHalfSize,
@@ -411,20 +511,31 @@ void DetectorCube::ValidateSplitPlacementSupport(G4LogicalVolume* motherVolume,
     }
 
     const G4double interfaceZ = waterBoxSolid->GetZHalfLength();
+    const G4double waterMinX = -waterBoxSolid->GetXHalfLength();
+    const G4double waterMaxX = waterBoxSolid->GetXHalfLength();
+    const G4double waterMinY = -waterBoxSolid->GetYHalfLength();
+    const G4double waterMaxY = waterBoxSolid->GetYHalfLength();
     const G4double waterMinZ = -waterBoxSolid->GetZHalfLength();
-    if (centerRelativeToWater.z() + outerHalfSize <= interfaceZ) {
+    const G4double outerMinX = centerRelativeToWater.x() - outerHalfSize;
+    const G4double outerMaxX = centerRelativeToWater.x() + outerHalfSize;
+    const G4double outerMinY = centerRelativeToWater.y() - outerHalfSize;
+    const G4double outerMaxY = centerRelativeToWater.y() + outerHalfSize;
+    const G4double outerMinZ = centerRelativeToWater.z() - outerHalfSize;
+    const G4double outerMaxZ = centerRelativeToWater.z() + outerHalfSize;
+    const G4bool fullyInsideWater =
+        outerMinX >= waterMinX && outerMaxX <= waterMaxX &&
+        outerMinY >= waterMinY && outerMaxY <= waterMaxY &&
+        outerMinZ >= waterMinZ && outerMaxZ <= interfaceZ;
+    const G4bool fullyOutsideWater =
+        outerMaxX <= waterMinX || outerMinX >= waterMaxX ||
+        outerMaxY <= waterMinY || outerMinY >= waterMaxY ||
+        outerMaxZ <= waterMinZ || outerMinZ >= interfaceZ;
+
+    if (fullyInsideWater || fullyOutsideWater) {
         return;
     }
 
-    if (centerRelativeToWater.z() - outerHalfSize >= interfaceZ) {
-        G4Exception("DetectorCube::ValidateSplitPlacementSupport",
-                    "DetectorCubeSplitFullyOutsideWaterBox",
-                    FatalException,
-                    "split at interface does not support cube placements fully outside WaterBox.");
-        return;
-    }
-
-    if (centerRelativeToWater.z() - outerHalfSize < waterMinZ) {
+    if (outerMinZ < waterMinZ) {
         G4Exception("DetectorCube::ValidateSplitPlacementSupport",
                     "DetectorCubeSplitBottomFaceNotSupported",
                     FatalException,
@@ -432,14 +543,23 @@ void DetectorCube::ValidateSplitPlacementSupport(G4LogicalVolume* motherVolume,
         return;
     }
 
-    if (std::abs(centerRelativeToWater.x()) + outerHalfSize > waterBoxSolid->GetXHalfLength() ||
-        std::abs(centerRelativeToWater.y()) + outerHalfSize > waterBoxSolid->GetYHalfLength()) {
+    if (outerMinX < waterMinX || outerMaxX > waterMaxX ||
+        outerMinY < waterMinY || outerMaxY > waterMaxY) {
         G4Exception("DetectorCube::ValidateSplitPlacementSupport",
                     "DetectorCubeSplitLateralFaceNotSupported",
                     FatalException,
                     "split at interface does not support crossing the lateral faces of WaterBox.");
         return;
     }
+
+    if (outerMinZ < interfaceZ && outerMaxZ > interfaceZ) {
+        return;
+    }
+
+    G4Exception("DetectorCube::ValidateSplitPlacementSupport",
+                "DetectorCubeSplitPlacementNotSupported",
+                FatalException,
+                "split at interface encountered an unsupported cube placement relative to WaterBox.");
 }
 
 G4VPhysicalVolume* DetectorCube::GetWaterPhysicalVolume() const {

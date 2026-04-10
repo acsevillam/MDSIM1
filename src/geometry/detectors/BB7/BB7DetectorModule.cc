@@ -7,11 +7,11 @@
 #include "G4DigiManager.hh"
 #include "G4Event.hh"
 #include "G4Exception.hh"
-#include "G4LogicalVolumeStore.hh"
 #include "G4SDManager.hh"
 #include "G4RotationMatrix.hh"
 #include "G4SystemOfUnits.hh"
 
+#include "geometry/base/DetectorModuleUtils.hh"
 #include "geometry/detectors/BB7/geometry/DetectorDualBB7.hh"
 #include "geometry/detectors/BB7/readout/BB7Digit.hh"
 #include "geometry/detectors/BB7/readout/BB7Digitizer.hh"
@@ -26,47 +26,6 @@ struct BB7DetectorRuntimeState final : DetectorRuntimeState {
     G4int digitsCollectionId = -1;
 };
 
-G4LogicalVolume* GetLogicalVolumeOrThrow(const G4String& logicalVolumeName, const G4String& detectorName) {
-    auto* logicalVolume = G4LogicalVolumeStore::GetInstance()->GetVolume(logicalVolumeName, false);
-    if (logicalVolume == nullptr) {
-        G4Exception("BB7DetectorModule::GetLogicalVolumeOrThrow",
-                    "DetectorLogicalVolumeNotFound",
-                    FatalException,
-                    ("Detector module " + detectorName +
-                     " could not find logical volume " + logicalVolumeName + ".").c_str());
-    }
-    return logicalVolume;
-}
-
-template <typename TDigitizer>
-TDigitizer* GetDigitizerOrThrow(G4DigiManager* digiManager,
-                                const G4String& moduleName,
-                                const G4String& detectorName) {
-    auto* digitizer = static_cast<TDigitizer*>(digiManager->FindDigitizerModule(moduleName));
-    if (digitizer == nullptr) {
-        G4Exception("BB7DetectorModule::GetDigitizerOrThrow",
-                    "DetectorDigitizerNotFound",
-                    FatalException,
-                    ("Detector module " + detectorName +
-                     " is active but digitizer " + moduleName + " was not registered.").c_str());
-    }
-    return digitizer;
-}
-
-G4int GetDigiCollectionIdOrThrow(G4DigiManager* digiManager,
-                                 const G4String& collectionName,
-                                 const G4String& detectorName) {
-    const G4int collectionId = digiManager->GetDigiCollectionID(collectionName);
-    if (collectionId < 0) {
-        G4Exception("BB7DetectorModule::GetDigiCollectionIdOrThrow",
-                    "DetectorDigiCollectionNotFound",
-                    FatalException,
-                    ("Detector module " + detectorName +
-                     " could not resolve digi collection " + collectionName + ".").c_str());
-    }
-    return collectionId;
-}
-
 void ValidateAnalysisIdsOrThrow(G4int ntupleId, G4int chargeMapId, const G4String& detectorName) {
     if (ntupleId < 0 || chargeMapId < 0) {
         G4Exception("BB7DetectorModule::ValidateAnalysisIdsOrThrow",
@@ -79,15 +38,8 @@ void ValidateAnalysisIdsOrThrow(G4int ntupleId, G4int chargeMapId, const G4Strin
 
 BB7DetectorRuntimeState& GetRuntimeStateOrThrow(DetectorRuntimeState& runtimeState,
                                                 const G4String& detectorName) {
-    auto* typedState = dynamic_cast<BB7DetectorRuntimeState*>(&runtimeState);
-    if (typedState == nullptr) {
-        G4Exception("BB7DetectorModule::GetRuntimeStateOrThrow",
-                    "DetectorRuntimeStateTypeMismatch",
-                    FatalException,
-                    ("Detector module " + detectorName +
-                     " received an incompatible runtime state.").c_str());
-    }
-    return *typedState;
+    return DetectorModuleUtils::GetRuntimeStateOrThrow<BB7DetectorRuntimeState>(
+        runtimeState, detectorName, "BB7DetectorModule::GetRuntimeStateOrThrow");
 }
 
 } // namespace
@@ -117,10 +69,11 @@ void BB7DetectorModule::RegisterSensitiveDetectors(G4SDManager* sdManager) {
         return;
     }
 
-    auto* bb7SD = new BB7SensitiveDetector("BB7SD");
-    sdManager->AddNewDetector(bb7SD);
+    auto* bb7SD =
+        DetectorModuleUtils::GetOrCreateSensitiveDetector<BB7SensitiveDetector>(sdManager, "BB7SD");
 
-    auto* logicalVolume = GetLogicalVolumeOrThrow("SdCube", GetName());
+    auto* logicalVolume = DetectorModuleUtils::GetLogicalVolumeOrThrow(
+        "SdCube", GetName(), "BB7DetectorModule::GetLogicalVolumeOrThrow");
     logicalVolume->SetSensitiveDetector(bb7SD);
 }
 
@@ -189,12 +142,13 @@ DetectorEventData BB7DetectorModule::ProcessEvent(const G4Event* event,
 
     auto& state = GetRuntimeStateOrThrow(runtimeState, GetName());
     ValidateAnalysisIdsOrThrow(state.ntupleId, state.chargeMapId, GetName());
-    auto* digitizer = GetDigitizerOrThrow<BB7Digitizer>(digiManager, "BB7Digitizer", GetName());
+    auto* digitizer = DetectorModuleUtils::GetDigitizerOrThrow<BB7Digitizer>(
+        digiManager, "BB7Digitizer", GetName(), "BB7DetectorModule::GetDigitizerOrThrow");
     digitizer->Digitize();
 
     if (state.digitsCollectionId < 0) {
-        state.digitsCollectionId =
-            GetDigiCollectionIdOrThrow(digiManager, "BB7DigitsCollection", GetName());
+        state.digitsCollectionId = DetectorModuleUtils::GetDigiCollectionIdOrThrow(
+            digiManager, "BB7DigitsCollection", GetName(), "BB7DetectorModule::GetDigiCollectionIdOrThrow");
     }
     auto* digitsCollection =
         static_cast<const BB7DigitsCollection*>(digiManager->GetDigiCollection(state.digitsCollectionId));

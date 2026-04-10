@@ -45,7 +45,6 @@
 
 /MultiDetector1/phantoms/waterbox/phantomID 0
 /MultiDetector1/phantoms/waterbox/translateTo 0 0 -10 cm # SSD = 100 cm
-
 /MultiDetector1/detectors/cube/detectorID 0
 /MultiDetector1/detectors/cube/translateTo 0 0 10 cm # center at the water-air interface
 /MultiDetector1/detectors/cube/rotateX 0 deg

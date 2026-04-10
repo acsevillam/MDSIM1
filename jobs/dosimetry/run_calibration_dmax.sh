@@ -1,7 +1,10 @@
 #!/bin/bash
 
+set -euo pipefail
+
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${script_dir}/../.." && pwd)"
+source "${script_dir}/../lib/md1_job_helpers.sh"
 
 if [ "$#" -ne 4 ]; then
     echo "Usage: bash ${BASH_SOURCE[0]} <run_type> <output_dir> <timestamp> <job_dir>" >&2
@@ -16,30 +19,13 @@ job_dir="$4"
 n_histories=200000000
 n_replicas=10
 
-if [ -x "${repo_root}/MultiDetector1" ]; then
-    executable="${repo_root}/MultiDetector1"
-elif [ -x "${repo_root}/build/MultiDetector1" ]; then
-    executable="${repo_root}/build/MultiDetector1"
-else
-    echo "Could not find MultiDetector1 executable under ${repo_root} or ${repo_root}/build" >&2
-    exit 1
-fi
-
-if [ -f "${repo_root}/input/dosimetry/Calibration.in" ]; then
-    macro_file="${repo_root}/input/dosimetry/Calibration.in"
-elif [ -f "$(cd "${repo_root}/.." && pwd)/MDSIM1/input/dosimetry/Calibration.in" ]; then
-    repo_root="$(cd "${repo_root}/.." && pwd)/MDSIM1"
-    macro_file="${repo_root}/input/dosimetry/Calibration.in"
-else
-    echo "Could not find input/dosimetry/Calibration.in starting from ${repo_root}" >&2
-    exit 1
-fi
-
+project_root="$(md1_resolve_project_root_containing "${repo_root}" "input/dosimetry/Calibration.in")"
+executable="$(md1_resolve_executable "${project_root}")"
+macro_file="${project_root}/input/dosimetry/Calibration.in"
 analysis_dir="$(dirname "${executable}")/analysis"
 summary_file="${job_dir}/dose_depth_summary.csv"
 
-mkdir -p "$output_dir"
-mkdir -p "$job_dir"
+md1_prepare_job_directory "${output_dir}" "${job_dir}"
 
 echo "Timestamp for this execution: ${timestamp}"
 echo "Executable: ${executable}"
@@ -59,9 +45,7 @@ for ((replica=1; replica<=n_replicas; replica++)); do
     time "${executable}" -m "${result_dir}/macro.in" -b on -v off -n "${n_histories}" \
         > "${result_dir}/output.log"
 
-    if [ -d "${analysis_dir}" ]; then
-        mv "${analysis_dir}"/* "${result_dir}/" 2>/dev/null || true
-    fi
+    md1_move_analysis_contents "${analysis_dir}" "${result_dir}"
 
     dmax_line=$(awk '
         /------------------ Dose atDepth1\.4cm ---------------------/ {getline; print; exit}

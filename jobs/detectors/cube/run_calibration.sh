@@ -1,7 +1,10 @@
 #!/bin/bash
 
+set -euo pipefail
+
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${script_dir}/../../.." && pwd)"
+source "${script_dir}/../../lib/md1_job_helpers.sh"
 
 if [ "$#" -ne 8 ]; then
     echo "Usage: bash ${BASH_SOURCE[0]} <run_type> <cube_material> <cube_side_mm> <envelope_material> <envelope_thickness_mm> <output_dir> <timestamp> <job_dir>" >&2
@@ -20,26 +23,13 @@ job_dir="$8"
 n_histories=200000000
 n_replicas=10
 
-if [ -x "${repo_root}/MultiDetector1" ]; then
-    executable="${repo_root}/MultiDetector1"
-elif [ -x "${repo_root}/build/MultiDetector1" ]; then
-    executable="${repo_root}/build/MultiDetector1"
-else
-    echo "Could not find MultiDetector1 executable under ${repo_root} or ${repo_root}/build" >&2
-    exit 1
-fi
-
-template_macro="${repo_root}/input/detectors/cube/templates/CubeCalibration.intmp"
-if [ ! -f "${template_macro}" ]; then
-    echo "Could not find template macro: ${template_macro}" >&2
-    exit 1
-fi
-
+project_root="$(md1_resolve_project_root_containing "${repo_root}" "input/detectors/cube/templates/CubeCalibration.intmp")"
+executable="$(md1_resolve_executable "${project_root}")"
+template_macro="${project_root}/input/detectors/cube/templates/CubeCalibration.intmp"
 analysis_dir="$(dirname "${executable}")/analysis"
 summary_file="${job_dir}/calculated_total_collected_charge_summary.csv"
 
-mkdir -p "${output_dir}"
-mkdir -p "${job_dir}"
+md1_prepare_job_directory "${output_dir}" "${job_dir}"
 
 echo "Timestamp for this execution: ${timestamp}"
 echo "Executable: ${executable}"
@@ -60,28 +50,18 @@ for ((replica=1; replica<=n_replicas; replica++)); do
     macro_copy="${result_dir}/macro.in"
     cp "${template_macro}" "${macro_copy}"
 
-    sed "s|\\*\\*CubeSide\\*\\*|${cube_side_mm}|g" "${macro_copy}" > "${macro_copy}.tmp" && mv "${macro_copy}.tmp" "${macro_copy}"
-    sed "s|\\*\\*CubeMaterial\\*\\*|${cube_material}|g" "${macro_copy}" > "${macro_copy}.tmp" && mv "${macro_copy}.tmp" "${macro_copy}"
-    sed "s|\\*\\*PhspPrefix\\*\\*|beam/Varian_TrueBeam6MV_|g" "${macro_copy}" > "${macro_copy}.tmp" && mv "${macro_copy}.tmp" "${macro_copy}"
-    sed "s|\\*\\*Jaw1X\\*\\*|5|g" "${macro_copy}" > "${macro_copy}.tmp" && mv "${macro_copy}.tmp" "${macro_copy}"
-    sed "s|\\*\\*Jaw2X\\*\\*|5|g" "${macro_copy}" > "${macro_copy}.tmp" && mv "${macro_copy}.tmp" "${macro_copy}"
-    sed "s|\\*\\*Jaw1Y\\*\\*|5|g" "${macro_copy}" > "${macro_copy}.tmp" && mv "${macro_copy}.tmp" "${macro_copy}"
-    sed "s|\\*\\*Jaw2Y\\*\\*|5|g" "${macro_copy}" > "${macro_copy}.tmp" && mv "${macro_copy}.tmp" "${macro_copy}"
-    sed "s|\\*\\*GantryAngle\\*\\*|0|g" "${macro_copy}" > "${macro_copy}.tmp" && mv "${macro_copy}.tmp" "${macro_copy}"
-    sed "s|\\*\\*CollimatorAngle\\*\\*|0|g" "${macro_copy}" > "${macro_copy}.tmp" && mv "${macro_copy}.tmp" "${macro_copy}"
-    sed "s|\\*\\*MU\\*\\*|1|g" "${macro_copy}" > "${macro_copy}.tmp" && mv "${macro_copy}.tmp" "${macro_copy}"
-    sed "s|\\*\\*WaterBoxZ\\*\\*|-10|g" "${macro_copy}" > "${macro_copy}.tmp" && mv "${macro_copy}.tmp" "${macro_copy}"
-    sed "s|\\*\\*CubeZ\\*\\*|0|g" "${macro_copy}" > "${macro_copy}.tmp" && mv "${macro_copy}.tmp" "${macro_copy}"
-    sed "s|\\*\\*CubeAngle\\*\\*|0|g" "${macro_copy}" > "${macro_copy}.tmp" && mv "${macro_copy}.tmp" "${macro_copy}"
-    sed "s|^/MultiDetector1/detectors/cube/setEnvelopeThickness .*|/MultiDetector1/detectors/cube/setEnvelopeThickness ${envelope_thickness_mm} mm|g" "${macro_copy}" > "${macro_copy}.tmp" && mv "${macro_copy}.tmp" "${macro_copy}"
-    sed "s|^/MultiDetector1/detectors/cube/setEnvelopeMaterial .*|/MultiDetector1/detectors/cube/setEnvelopeMaterial ${envelope_material}|g" "${macro_copy}" > "${macro_copy}.tmp" && mv "${macro_copy}.tmp" "${macro_copy}"
+    md1_cube_configure_calibration_macro \
+        "${macro_copy}" \
+        "${cube_side_mm}" \
+        "${cube_material}" \
+        "0" \
+        "${envelope_material}" \
+        "${envelope_thickness_mm}"
 
     echo "Running replica ${replica}/${n_replicas}"
     time "${executable}" -m "${macro_copy}" -b on -v off -n "${n_histories}" > "${result_dir}/output.log"
 
-    if [ -d "${analysis_dir}" ]; then
-        mv "${analysis_dir}"/* "${result_dir}/" 2>/dev/null || true
-    fi
+    md1_move_analysis_contents "${analysis_dir}" "${result_dir}"
 
     charge_line=$(awk '
         /^\(7\)  Calculated total collected charge / {print; exit}

@@ -79,32 +79,32 @@ DetectorCubeMessenger::DetectorCubeMessenger(DetectorCube* detectorCube)
     fTranslateCmd->SetParameterName("dx", "dy", "dz", true, true);
     fTranslateCmd->SetDefaultUnit("cm");
     fTranslateCmd->SetUnitCategory("Length");
-    fTranslateCmd->AvailableForStates(G4State_Idle);
+    fTranslateCmd->AvailableForStates(G4State_PreInit, G4State_Idle);
 
     fTranslateToCmd = new G4UIcmdWith3VectorAndUnit("/MultiDetector1/detectors/cube/translateTo", this);
     fTranslateToCmd->SetGuidance("Translate the detector to a position.");
     fTranslateToCmd->SetParameterName("x", "y", "z", true, true);
     fTranslateToCmd->SetDefaultUnit("cm");
     fTranslateToCmd->SetUnitCategory("Length");
-    fTranslateToCmd->AvailableForStates(G4State_Idle);
+    fTranslateToCmd->AvailableForStates(G4State_PreInit, G4State_Idle);
 
     fRotateXCmd = new G4UIcmdWithADoubleAndUnit("/MultiDetector1/detectors/cube/rotateX", this);
     fRotateXCmd->SetGuidance("Rotate the detector around X-axis.");
     fRotateXCmd->SetParameterName("angle", false);
     fRotateXCmd->SetDefaultUnit("deg");
-    fRotateXCmd->AvailableForStates(G4State_Idle);
+    fRotateXCmd->AvailableForStates(G4State_PreInit, G4State_Idle);
 
     fRotateYCmd = new G4UIcmdWithADoubleAndUnit("/MultiDetector1/detectors/cube/rotateY", this);
     fRotateYCmd->SetGuidance("Rotate the detector around Y-axis.");
     fRotateYCmd->SetParameterName("angle", false);
     fRotateYCmd->SetDefaultUnit("deg");
-    fRotateYCmd->AvailableForStates(G4State_Idle);
+    fRotateYCmd->AvailableForStates(G4State_PreInit, G4State_Idle);
 
     fRotateZCmd = new G4UIcmdWithADoubleAndUnit("/MultiDetector1/detectors/cube/rotateZ", this);
     fRotateZCmd->SetGuidance("Rotate the detector around Z-axis.");
     fRotateZCmd->SetParameterName("angle", false);
     fRotateZCmd->SetDefaultUnit("deg");
-    fRotateZCmd->AvailableForStates(G4State_Idle);
+    fRotateZCmd->AvailableForStates(G4State_PreInit, G4State_Idle);
 
     fRotateToCmd = new G4UIcommand("/MultiDetector1/detectors/cube/rotateTo", this);
     fRotateToCmd->SetGuidance("Set the rotation angles of the detector.");
@@ -120,7 +120,7 @@ DetectorCubeMessenger::DetectorCubeMessenger(DetectorCube* detectorCube)
     auto* unitParam = new G4UIparameter("unit", 's', true);
     unitParam->SetDefaultValue("deg");
     fRotateToCmd->SetParameter(unitParam);
-    fRotateToCmd->AvailableForStates(G4State_Idle);
+    fRotateToCmd->AvailableForStates(G4State_PreInit, G4State_Idle);
 
     fAddGeometryToCmd = new G4UIcommand("/MultiDetector1/detectors/cube/addGeometryTo", this);
     fAddGeometryToCmd->SetGuidance("Add geometry to the detector.");

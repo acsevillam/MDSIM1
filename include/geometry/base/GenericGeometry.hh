@@ -17,6 +17,7 @@
 // Standard Headers
 #include <map>
 #include <string>
+#include <functional>
 #include <vector>
 
 // Geant4 Headers
@@ -207,6 +208,20 @@ protected:
     G4Transform3D BuildStoredTransform(const G4int& copyNo) const;
     void RebuildPlacement(const G4int& copyNo);
     virtual G4bool RequiresPlacementRebuild(const G4int& copyNo) const;
+    virtual void OnAfterPlacementRemoval(const G4int& copyNo);
+    G4bool HasPlacementRequest(const G4int& copyNo) const;
+    void ThrowMissingPlacementException(const char* methodName,
+                                        const char* errorCode,
+                                        const G4String& volumeDescription,
+                                        const G4int& copyNo) const;
+    void StoreRotation(const G4int& copyNo, const G4RotationMatrix& rotation);
+    void ApplyRotationMutation(const G4int& copyNo,
+                               const std::function<void(G4RotationMatrix&)>& mutation,
+                               const char* methodName,
+                               const char* errorCode);
+    void ApplyTranslationToFramesOrRebuild(const G4int& copyNo,
+                                           const std::vector<G4VPhysicalVolume*>& frames,
+                                           const G4ThreeVector& translation);
 
     G4String geometryName; ///< Name of the geometry.
 
