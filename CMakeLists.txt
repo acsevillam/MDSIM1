@@ -234,6 +234,13 @@ add_test(
           -P ${PROJECT_SOURCE_DIR}/cmake/tests/check_detector_signal_smoke.cmake
 )
 
+add_test(
+  NAME mdsim1_validation_summary_axes
+  COMMAND ${CMAKE_COMMAND}
+          -DWORKING_DIRECTORY=${PROJECT_BINARY_DIR}
+          -P ${PROJECT_SOURCE_DIR}/cmake/tests/check_validation_summary_axes.cmake
+)
+
 set_tests_properties(
   mdsim1_invalid_eof_policy
   mdsim1_zero_events_skip_phsp_open
@@ -244,6 +251,7 @@ set_tests_properties(
   mdsim1_idle_cube_split_rebuild_mt
   mdsim1_cube_signal_smoke
   mdsim1_bb7_signal_smoke
+  mdsim1_validation_summary_axes
   PROPERTIES
     TIMEOUT 180
 )
@@ -261,6 +269,7 @@ set_tests_properties(
   mdsim1_idle_detector_remove
   mdsim1_idle_detector_remove_mt
   mdsim1_idle_cube_split_rebuild_mt
+  mdsim1_validation_summary_axes
   PROPERTIES
     LABELS "detectors_quick;geometry_quick;quick"
 )

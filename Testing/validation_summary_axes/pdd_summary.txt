@@ -1,0 +1,9 @@
+pdd summary
+Run type: Validation
+PHSP prefix: beam/test_validation_
+Histories per replica: 200000000
+Number of replicas: 10
+
+iX,iY,iZ,depth_mm,mean_dose_cGy,stddev_dose_cGy,err_dose_cGy,err_rel_percent,mean_internal_rms_cGy,stddev_internal_rms_cGy,err_internal_rms_cGy,mean_entries,stddev_entries,err_entries
+0,0,0,497.5,1,0,0,0,0.1,0,0,10,0,0
+0,0,99,2.5,2,0,0,0,0.2,0,0,11,0,0
