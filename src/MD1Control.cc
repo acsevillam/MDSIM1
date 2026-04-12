@@ -13,12 +13,12 @@
  *
  */
 
-// Geant4 Headers
-#include "G4UImanager.hh"
-
-// MD1 Headers
 #include "MD1Control.hh"
-#include "G4SystemOfUnits.hh"
+#include "MD1ControlMessenger.hh"
+
+#include <string>
+
+#include "G4Exception.hh"
 
 namespace MD1 {
 
@@ -27,9 +27,6 @@ MD1Control* MD1Control::instance = nullptr;
 
 MD1Control::MD1Control() {
 	fMD1ControlMessenger = new MD1ControlMessenger(this);
-	fTrackingAction = nullptr;
-	fSteppingAction = nullptr;
-	fSensitiveDetectorAction = nullptr;
 }
 
 MD1Control::~MD1Control()
@@ -53,15 +50,18 @@ void MD1Control::Kill() {
 	}
 }
 
-void MD1Control::Setup(int argc,char** argv){
-
-	if (argc>2) {  // batch mode
-		// command line contains name of the macro to execute
-		G4String command = "/control/execute " ;
-		G4String fileName = argv[1] ;
-		G4UImanager::GetUIpointer()->ApplyCommand(command+fileName) ;
+void MD1Control::SetPrimaryGeneratorType(G4int aPrimaryGeneratorType) {
+	if (aPrimaryGeneratorType != 1 && aPrimaryGeneratorType != 2) {
+		G4Exception("MD1Control::SetPrimaryGeneratorType",
+		            "InvalidPrimaryGeneratorType",
+		            FatalException,
+		            ("Unsupported primary generator type " +
+		             std::to_string(aPrimaryGeneratorType) +
+		             ". Use 1 for IAEA phase-space or 2 for GPS.")
+		                .c_str());
 	}
 
+	fPrimaryGeneratorType = aPrimaryGeneratorType;
 }
 
 }

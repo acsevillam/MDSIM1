@@ -6,7 +6,7 @@
 /MultiDetector1/detectors/model11/detectorID 0
 /MultiDetector1/detectors/model11/setSplitAtInterface false
 /MultiDetector1/detectors/model11/setImportedGeometryGDML cmake/tests/data/model11/imported_geometry.gdml
-/MultiDetector1/detectors/model11/setImportedGeometryRoot PassiveAssemblyLV
+/MultiDetector1/detectors/model11/setImportedGeometryRootLogical PassiveAssemblyLV
 /MultiDetector1/detectors/model11/addSensitiveVolume PassiveAssemblyCapLV
 /MultiDetector1/detectors/model11/setScintillationYield 10000
 /MultiDetector1/detectors/model11/setBirksConstant 0.126

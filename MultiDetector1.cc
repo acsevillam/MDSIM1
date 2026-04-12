@@ -37,6 +37,7 @@
 #include "MD1Control.hh"
 #include "MD1PhspSourceConfig.hh"
 #include "geometry/base/DetectorRegistry.hh"
+#include "geometry/gdml/MD1GeometryExport.hh"
 
 using namespace MD1;
 
@@ -163,6 +164,7 @@ int main(int argc,char** argv)
   MD1Control::GetInstance();
   MD1PhspSourceConfig::GetInstance();
   DetectorRegistry::GetInstance();
+  MD1GeometryExport::GetInstance();
 
   // Optionally: choose a different Random engine...
   G4Random::setTheEngine(new CLHEP::MTwistEngine);
@@ -238,6 +240,7 @@ int main(int argc,char** argv)
 		G4String command = "/control/execute ";
 		if (!ApplyCommandOrReportFailure(UImanager, command + options.macro, "input macro")) {
       runManager.reset();
+      MD1GeometryExport::Kill();
       DetectorRegistry::Kill();
       MD1PhspSourceConfig::Kill();
       MD1Control::Kill();
@@ -250,6 +253,7 @@ int main(int argc,char** argv)
 		G4String command = "/control/execute ";
 		if (!ApplyCommandOrReportFailure(UImanager, command + options.visMacro, "visualization macro")) {
       runManager.reset();
+      MD1GeometryExport::Kill();
       DetectorRegistry::Kill();
       MD1PhspSourceConfig::Kill();
       MD1Control::Kill();
@@ -266,6 +270,7 @@ int main(int argc,char** argv)
   // in the main() program !
 
   runManager.reset();
+  MD1GeometryExport::Kill();
   DetectorRegistry::Kill();
   MD1PhspSourceConfig::Kill();
   MD1Control::Kill();

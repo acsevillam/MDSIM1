@@ -1,0 +1,13 @@
+/control/verbose 0
+/run/verbose 0
+
+/MultiDetector1/control/SetPrimaryGeneratorType 2
+/MultiDetector1/detectors/model11/addGeometryTo world_log 0
+/MultiDetector1/detectors/model11/detectorID 0
+/MultiDetector1/detectors/model11/setSplitAtInterface false
+/MultiDetector1/detectors/model11/setImportedGeometryGDML cmake/tests/data/model11/imported_geometry_invalid_schema.gdml
+/MultiDetector1/detectors/model11/setImportedGeometryRootLogical PassiveAssemblyLV
+/MultiDetector1/detectors/model11/setImportedGeometryValidate true
+/MultiDetector1/detectors/model11/setImportedGeometrySchema /opt/geant4/geant4-v11.4.1/source/persistency/gdml/schema/gdml.xsd
+
+/run/initialize

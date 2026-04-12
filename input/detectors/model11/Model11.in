@@ -11,7 +11,7 @@
 
 /MultiDetector1/detectors/model11/setSplitAtInterface false
 /MultiDetector1/detectors/model11/setImportedGeometryGDML models/detectors/model11/gdml/model11.gdml
-/MultiDetector1/detectors/model11/setImportedGeometryRoot Detector
+/MultiDetector1/detectors/model11/setImportedGeometryRootAssembly Detector
 #/MultiDetector1/detectors/model11/addSensitiveVolume LV_A1SLbodyforcnc2
 /MultiDetector1/detectors/model11/setScintillationYield 10000
 /MultiDetector1/detectors/model11/setBirksConstant 0.126

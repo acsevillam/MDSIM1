@@ -27,12 +27,40 @@ DetectorModel11Messenger::DetectorModel11Messenger(DetectorModel11* detectorMode
     fSetImportedGeometryGDMLCmd->SetParameterName("ImportedGeometryGDML", false);
     fSetImportedGeometryGDMLCmd->AvailableForStates(G4State_PreInit);
 
-    fSetImportedGeometryRootCmd =
-        new G4UIcmdWithAString("/MultiDetector1/detectors/model11/setImportedGeometryRoot", this);
-    fSetImportedGeometryRootCmd->SetGuidance(
-        "Optionally select a physical or logical volume name inside the GDML to use as the imported root assembly.");
-    fSetImportedGeometryRootCmd->SetParameterName("ImportedGeometryRoot", false);
-    fSetImportedGeometryRootCmd->AvailableForStates(G4State_PreInit);
+    fSetImportedGeometryRootLogicalCmd = new G4UIcmdWithAString(
+        "/MultiDetector1/detectors/model11/setImportedGeometryRootLogical", this);
+    fSetImportedGeometryRootLogicalCmd->SetGuidance(
+        "Select the imported GDML root by exact logical-volume name.");
+    fSetImportedGeometryRootLogicalCmd->SetParameterName("ImportedGeometryRootLogical", false);
+    fSetImportedGeometryRootLogicalCmd->AvailableForStates(G4State_PreInit);
+
+    fSetImportedGeometryRootPhysicalCmd = new G4UIcmdWithAString(
+        "/MultiDetector1/detectors/model11/setImportedGeometryRootPhysical", this);
+    fSetImportedGeometryRootPhysicalCmd->SetGuidance(
+        "Select the imported GDML root by exact physical-volume name.");
+    fSetImportedGeometryRootPhysicalCmd->SetParameterName("ImportedGeometryRootPhysical", false);
+    fSetImportedGeometryRootPhysicalCmd->AvailableForStates(G4State_PreInit);
+
+    fSetImportedGeometryRootAssemblyCmd = new G4UIcmdWithAString(
+        "/MultiDetector1/detectors/model11/setImportedGeometryRootAssembly", this);
+    fSetImportedGeometryRootAssemblyCmd->SetGuidance(
+        "Select the imported GDML root by exact assembly name.");
+    fSetImportedGeometryRootAssemblyCmd->SetParameterName("ImportedGeometryRootAssembly", false);
+    fSetImportedGeometryRootAssemblyCmd->AvailableForStates(G4State_PreInit);
+
+    fSetImportedGeometryValidateCmd = new G4UIcmdWithABool(
+        "/MultiDetector1/detectors/model11/setImportedGeometryValidate", this);
+    fSetImportedGeometryValidateCmd->SetGuidance(
+        "Enable XML schema validation when reading the imported GDML.");
+    fSetImportedGeometryValidateCmd->SetParameterName("ValidateImportedGeometry", false);
+    fSetImportedGeometryValidateCmd->AvailableForStates(G4State_PreInit);
+
+    fSetImportedGeometrySchemaCmd = new G4UIcmdWithAString(
+        "/MultiDetector1/detectors/model11/setImportedGeometrySchema", this);
+    fSetImportedGeometrySchemaCmd->SetGuidance(
+        "Optionally override the XML schema used to validate the imported GDML.");
+    fSetImportedGeometrySchemaCmd->SetParameterName("ImportedGeometrySchema", false);
+    fSetImportedGeometrySchemaCmd->AvailableForStates(G4State_PreInit);
 
     fAddSensitiveVolumeCmd =
         new G4UIcmdWithAString("/MultiDetector1/detectors/model11/addSensitiveVolume", this);
@@ -267,7 +295,11 @@ DetectorModel11Messenger::DetectorModel11Messenger(DetectorModel11* detectorMode
 DetectorModel11Messenger::~DetectorModel11Messenger() {
     delete fSetSplitAtInterfaceCmd;
     delete fSetImportedGeometryGDMLCmd;
-    delete fSetImportedGeometryRootCmd;
+    delete fSetImportedGeometryRootLogicalCmd;
+    delete fSetImportedGeometryRootPhysicalCmd;
+    delete fSetImportedGeometryRootAssemblyCmd;
+    delete fSetImportedGeometryValidateCmd;
+    delete fSetImportedGeometrySchemaCmd;
     delete fAddSensitiveVolumeCmd;
     delete fRemoveSensitiveVolumeCmd;
     delete fClearSensitiveVolumesCmd;
@@ -307,8 +339,17 @@ void DetectorModel11Messenger::SetNewValue(G4UIcommand* command, G4String newVal
             fCurrentDetectorID, fSetSplitAtInterfaceCmd->GetNewBoolValue(newValue));
     } else if (command == fSetImportedGeometryGDMLCmd) {
         fDetectorModel11->SetImportedGeometryGDMLPath(fCurrentDetectorID, newValue);
-    } else if (command == fSetImportedGeometryRootCmd) {
-        fDetectorModel11->SetImportedGeometryRootName(fCurrentDetectorID, newValue);
+    } else if (command == fSetImportedGeometryRootLogicalCmd) {
+        fDetectorModel11->SetImportedGeometryRootLogicalName(fCurrentDetectorID, newValue);
+    } else if (command == fSetImportedGeometryRootPhysicalCmd) {
+        fDetectorModel11->SetImportedGeometryRootPhysicalName(fCurrentDetectorID, newValue);
+    } else if (command == fSetImportedGeometryRootAssemblyCmd) {
+        fDetectorModel11->SetImportedGeometryRootAssemblyName(fCurrentDetectorID, newValue);
+    } else if (command == fSetImportedGeometryValidateCmd) {
+        fDetectorModel11->SetImportedGeometryValidate(
+            fCurrentDetectorID, fSetImportedGeometryValidateCmd->GetNewBoolValue(newValue));
+    } else if (command == fSetImportedGeometrySchemaCmd) {
+        fDetectorModel11->SetImportedGeometrySchema(fCurrentDetectorID, newValue);
     } else if (command == fAddSensitiveVolumeCmd) {
         fDetectorModel11->AddSensitiveVolume(fCurrentDetectorID, newValue);
     } else if (command == fRemoveSensitiveVolumeCmd) {

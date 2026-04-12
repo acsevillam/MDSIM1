@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gdml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="/opt/geant4/geant4-v11.4.1/source/persistency/gdml/schema/gdml.xsd">
+  <materials>
+    <material name="PassiveAssemblyAir">
+      <D value="1.290" unit="mg/cm3"/>
+      <fraction n="1.0" ref="G4_AIR"/>
+    </material>
+    <material name="PassiveAssemblyAl">
+      <D value="2.700" unit="g/cm3"/>
+      <fraction n="1.0" ref="G4_Al"/>
+    </material>
+  </materials>
+
+  <solids>
+    <box name="PassiveAssemblyWorld" x="20.0" y="20.0" z="20.0" lunit="mm"/>
+    <box name="PassiveAssemblyEnvelope" x="4.0" y="4.0" z="8.0" lunit="mm"/>
+    <tube name="PassiveAssemblyBody" rmin="0.65" rmax="1.15" z="3.0" deltaphi="360.0" aunit="deg" lunit="mm"/>
+    <tube name="PassiveAssemblyCap" rmin="0.0" rmax="1.15" z="0.8" deltaphi="360.0" aunit="deg" lunit="mm"/>
+  </solids>
+
+  <structure>
+    <volume name="PassiveAssemblyBodyLV">
+      <materialref ref="PassiveAssemblyAl"/>
+      <solidref ref="PassiveAssemblyBody"/>
+    </volume>
+    <volume name="PassiveAssemblyCapLV">
+      <materialref ref="PassiveAssemblyAl"/>
+      <solidref ref="PassiveAssemblyCap"/>
+    </volume>
+    <volume name="PassiveAssemblyLV">
+      <materialref ref="PassiveAssemblyAir"/>
+      <solidref ref="PassiveAssemblyEnvelope"/>
+      <physvol name="PassiveAssemblyBodyPV">
+        <volumeref ref="PassiveAssemblyBodyLV"/>
+        <position name="PassiveAssemblyBodyPos" unit="mm" x="0.0" y="0.0" z="0.0"/>
+      </physvol>
+      <physvol name="PassiveAssemblyCapPV">
+        <volumeref ref="PassiveAssemblyCapLV"/>
+        <position name="PassiveAssemblyCapPos" unit="mm" x="0.0" y="0.0" z="2.2"/>
+      </physvol>
+    </volume>
+    <volume name="PassiveAssemblyWorldLV">
+      <materialref ref="PassiveAssemblyAir"/>
+      <solidref ref="PassiveAssemblyWorld"/>
+      <physvol name="PassiveAssemblyPV">
+        <volumeref ref="PassiveAssemblyLV"/>
+      </physvol>
+    </volume>
+  </structure>
+
+  <setup name="Default" version="1.0">
+    <world ref="PassiveAssemblyWorldLV"/>
+  </setup>
+</gdml>

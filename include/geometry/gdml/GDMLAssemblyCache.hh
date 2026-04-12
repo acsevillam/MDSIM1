@@ -15,13 +15,16 @@ namespace MD1 {
 class GDMLAssemblyCache {
 public:
     std::shared_ptr<const GDMLImportedAssembly> Load(const G4String& gdmlPath,
-                                                     const G4String& rootName = "");
+                                                     const GDMLRootSelector& rootSelector = {},
+                                                     const GDMLReadOptions& readOptions = {});
     void RetainOnly(const std::set<G4String>& referencedCacheKeys);
     void Clear();
     std::size_t Size() const { return fEntries.size(); }
 
     static G4String NormalizePath(const G4String& gdmlPath);
-    static G4String BuildCacheKey(const G4String& gdmlPath, const G4String& rootName);
+    static G4String BuildCacheKey(const G4String& gdmlPath,
+                                  const GDMLRootSelector& rootSelector,
+                                  const GDMLReadOptions& readOptions = {});
 
 private:
     struct CacheEntry {

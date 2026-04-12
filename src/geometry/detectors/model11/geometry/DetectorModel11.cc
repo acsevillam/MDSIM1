@@ -2,14 +2,17 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstdlib>
 #include <sstream>
 
+#include "G4Colour.hh"
 #include "G4Exception.hh"
 #include "G4PVPlacement.hh"
 #include "G4SystemOfUnits.hh"
 #include "G4VisAttributes.hh"
 
 #include "geometry/detectors/model11/messenger/DetectorModel11Messenger.hh"
+#include "geometry/gdml/GeometryAuxiliaryRegistry.hh"
 
 namespace {
 
@@ -46,6 +49,102 @@ G4String JoinVolumeNames(const std::set<G4String>& names) {
         first = false;
     }
     return stream.str();
+}
+
+G4GDMLAuxListType FlattenAuxiliaryList(const G4GDMLAuxListType& auxiliaries) {
+    G4GDMLAuxListType flatCopy;
+    flatCopy.reserve(auxiliaries.size());
+    for (const auto& aux : auxiliaries) {
+        flatCopy.push_back(G4GDMLAuxStructType{aux.type, aux.value, aux.unit, nullptr});
+    }
+    return flatCopy;
+}
+
+G4bool TryParseHexColorComponent(const std::string& hexPair, G4double& component) {
+    if (hexPair.size() != 2) {
+        return false;
+    }
+
+    char* end = nullptr;
+    const long parsed = std::strtol(hexPair.c_str(), &end, 16);
+    if (end == nullptr || *end != '\0' || parsed < 0 || parsed > 255) {
+        return false;
+    }
+
+    component = static_cast<G4double>(parsed) / 255.0;
+    return true;
+}
+
+G4bool TryCreateVisAttributesFromColorAux(const G4GDMLAuxListType& auxiliaries,
+                                          G4VisAttributes*& visAttributes) {
+    const auto colorIt = std::find_if(auxiliaries.begin(), auxiliaries.end(), [](const auto& aux) {
+        return aux.type == "Color";
+    });
+    if (colorIt == auxiliaries.end()) {
+        return false;
+    }
+
+    G4double red = 0.0;
+    G4double green = 0.0;
+    G4double blue = 0.0;
+    G4double alpha = 1.0;
+    const auto colorValue = colorIt->value;
+
+    if (colorValue.size() == 7 || colorValue.size() == 9) {
+        if (colorValue[0] != '#') {
+            return false;
+        }
+
+        const std::string rgb = colorValue.substr(1);
+        if (!TryParseHexColorComponent(rgb.substr(0, 2), red) ||
+            !TryParseHexColorComponent(rgb.substr(2, 2), green) ||
+            !TryParseHexColorComponent(rgb.substr(4, 2), blue)) {
+            return false;
+        }
+        if (rgb.size() == 8 && !TryParseHexColorComponent(rgb.substr(6, 2), alpha)) {
+            return false;
+        }
+    } else {
+        G4String normalizedColor = colorValue;
+        std::transform(normalizedColor.begin(),
+                       normalizedColor.end(),
+                       normalizedColor.begin(),
+                       [](unsigned char ch) { return std::tolower(ch); });
+
+        if (normalizedColor == "red") {
+            red = 1.0;
+        } else if (normalizedColor == "green") {
+            green = 1.0;
+        } else if (normalizedColor == "blue") {
+            blue = 1.0;
+        } else if (normalizedColor == "yellow") {
+            red = 1.0;
+            green = 1.0;
+        } else if (normalizedColor == "cyan") {
+            green = 1.0;
+            blue = 1.0;
+        } else if (normalizedColor == "magenta") {
+            red = 1.0;
+            blue = 1.0;
+        } else if (normalizedColor == "white") {
+            red = 1.0;
+            green = 1.0;
+            blue = 1.0;
+        } else if (normalizedColor == "black") {
+            red = 0.0;
+            green = 0.0;
+            blue = 0.0;
+        } else if (normalizedColor == "gray" || normalizedColor == "grey") {
+            red = 0.5;
+            green = 0.5;
+            blue = 0.5;
+        } else {
+            return false;
+        }
+    }
+
+    visAttributes = new G4VisAttributes(G4Colour(red, green, blue, alpha));
+    return true;
 }
 
 } // namespace
@@ -213,9 +312,40 @@ void DetectorModel11::SetImportedGeometryGDMLPath(G4int detectorID, const G4Stri
     PruneUnusedImportedGDMLAssemblies();
 }
 
-void DetectorModel11::SetImportedGeometryRootName(G4int detectorID, const G4String& rootName) {
+void DetectorModel11::SetImportedGeometryRootLogicalName(G4int detectorID, const G4String& rootName) {
     auto& config = EnsureDetectorConfig(detectorID);
-    config.importedGeometryRootName = TrimVolumeName(rootName);
+    config.importedGeometryRootSelector =
+        MD1::GDMLRootSelector{MD1::GDMLRootSelectorType::Logical, TrimVolumeName(rootName)};
+    fDefaultConfig = config;
+    PruneUnusedImportedGDMLAssemblies();
+}
+
+void DetectorModel11::SetImportedGeometryRootPhysicalName(G4int detectorID, const G4String& rootName) {
+    auto& config = EnsureDetectorConfig(detectorID);
+    config.importedGeometryRootSelector =
+        MD1::GDMLRootSelector{MD1::GDMLRootSelectorType::Physical, TrimVolumeName(rootName)};
+    fDefaultConfig = config;
+    PruneUnusedImportedGDMLAssemblies();
+}
+
+void DetectorModel11::SetImportedGeometryRootAssemblyName(G4int detectorID, const G4String& rootName) {
+    auto& config = EnsureDetectorConfig(detectorID);
+    config.importedGeometryRootSelector =
+        MD1::GDMLRootSelector{MD1::GDMLRootSelectorType::Assembly, TrimVolumeName(rootName)};
+    fDefaultConfig = config;
+    PruneUnusedImportedGDMLAssemblies();
+}
+
+void DetectorModel11::SetImportedGeometryValidate(G4int detectorID, G4bool validate) {
+    auto& config = EnsureDetectorConfig(detectorID);
+    config.importedGeometryReadOptions.validate = validate;
+    fDefaultConfig = config;
+    PruneUnusedImportedGDMLAssemblies();
+}
+
+void DetectorModel11::SetImportedGeometrySchema(G4int detectorID, const G4String& schemaPath) {
+    auto& config = EnsureDetectorConfig(detectorID);
+    config.importedGeometryReadOptions.schemaPath = TrimVolumeName(schemaPath);
     fDefaultConfig = config;
     PruneUnusedImportedGDMLAssemblies();
 }
@@ -287,7 +417,7 @@ G4String DetectorModel11::GetImportedGeometryRootVolumeName(G4int detectorID) co
 }
 
 std::vector<G4String> DetectorModel11::GetSensitiveVolumeNames(G4int detectorID) const {
-    const auto& sensitiveNames = GetDetectorConfig(detectorID).sensitiveVolumeNames;
+    const auto sensitiveNames = ResolveSensitiveVolumeNames(GetDetectorConfig(detectorID));
     return std::vector<G4String>(sensitiveNames.begin(), sensitiveNames.end());
 }
 
@@ -296,8 +426,8 @@ G4bool DetectorModel11::ShouldBuildImportedGeometry(const Model11DetectorConfig&
 }
 
 G4bool DetectorModel11::ShouldActivateSensitiveImportedVolumes(
-    const Model11DetectorConfig& config) const {
-    return !config.sensitiveVolumeNames.empty();
+    const std::set<G4String>& sensitiveVolumeNames) const {
+    return !sensitiveVolumeNames.empty();
 }
 
 std::shared_ptr<const MD1::GDMLImportedAssembly> DetectorModel11::LoadImportedGDMLAssembly(
@@ -306,14 +436,35 @@ std::shared_ptr<const MD1::GDMLImportedAssembly> DetectorModel11::LoadImportedGD
         return nullptr;
     }
 
-    return fImportedGDMLCache.Load(config.importedGeometryGDMLPath, config.importedGeometryRootName);
+    return fImportedGDMLCache.Load(config.importedGeometryGDMLPath,
+                                   config.importedGeometryRootSelector,
+                                   config.importedGeometryReadOptions);
 }
 
-G4bool DetectorModel11::IsSensitiveVolumeSelected(const Model11DetectorConfig& config,
+std::set<G4String> DetectorModel11::ResolveSensitiveVolumeNames(
+    const Model11DetectorConfig& config) const {
+    if (!config.sensitiveVolumeNames.empty()) {
+        return config.sensitiveVolumeNames;
+    }
+
+    if (!ShouldBuildImportedGeometry(config)) {
+        return {};
+    }
+
+    const auto assembly = LoadImportedGDMLAssembly(config);
+    if (assembly == nullptr) {
+        return {};
+    }
+
+    const auto auxSensitiveNames = assembly->GetAuxSensitiveVolumeNames();
+    return std::set<G4String>(auxSensitiveNames.begin(), auxSensitiveNames.end());
+}
+
+G4bool DetectorModel11::IsSensitiveVolumeSelected(const std::set<G4String>& sensitiveVolumeNames,
                                                   const G4String& logicalVolumeName,
                                                   const G4String& physicalVolumeName) const {
-    return config.sensitiveVolumeNames.find(logicalVolumeName) != config.sensitiveVolumeNames.end() ||
-           config.sensitiveVolumeNames.find(physicalVolumeName) != config.sensitiveVolumeNames.end();
+    return sensitiveVolumeNames.find(logicalVolumeName) != sensitiveVolumeNames.end() ||
+           sensitiveVolumeNames.find(physicalVolumeName) != sensitiveVolumeNames.end();
 }
 
 std::set<G4String> DetectorModel11::CollectReferencedImportedGDMLKeys() const {
@@ -322,8 +473,10 @@ std::set<G4String> DetectorModel11::CollectReferencedImportedGDMLKeys() const {
     for (const auto& [detectorID, config] : fDetectorConfigs) {
         (void)detectorID;
         if (ShouldBuildImportedGeometry(config)) {
-            referencedKeys.insert(MD1::GDMLAssemblyCache::BuildCacheKey(config.importedGeometryGDMLPath,
-                                                                        config.importedGeometryRootName));
+            referencedKeys.insert(MD1::GDMLAssemblyCache::BuildCacheKey(
+                config.importedGeometryGDMLPath,
+                config.importedGeometryRootSelector,
+                config.importedGeometryReadOptions));
         }
     }
 
@@ -332,7 +485,9 @@ std::set<G4String> DetectorModel11::CollectReferencedImportedGDMLKeys() const {
             (void)motherName;
             if (fDetectorConfigs.find(copyNo) == fDetectorConfigs.end()) {
                 referencedKeys.insert(MD1::GDMLAssemblyCache::BuildCacheKey(
-                    fDefaultConfig.importedGeometryGDMLPath, fDefaultConfig.importedGeometryRootName));
+                    fDefaultConfig.importedGeometryGDMLPath,
+                    fDefaultConfig.importedGeometryRootSelector,
+                    fDefaultConfig.importedGeometryReadOptions));
                 break;
             }
         }
@@ -353,39 +508,30 @@ void DetectorModel11::PruneUnusedImportedGDMLAssemblies() {
 }
 
 G4LogicalVolume* DetectorModel11::CloneImportedSubtree(
-    const G4VPhysicalVolume* sourcePhysicalVolume,
-    const Model11DetectorConfig& config,
+    G4LogicalVolume* sourceLogicalVolume,
+    const G4String& sourcePhysicalName,
+    const MD1::GDMLImportedAssembly& importedAssembly,
+    const std::set<G4String>& sensitiveVolumeNames,
     G4int copyNo,
     std::size_t& cloneSequence,
     PlacementOwnedResources& resources) {
-    if (sourcePhysicalVolume == nullptr) {
+    if (sourceLogicalVolume == nullptr) {
         G4Exception("DetectorModel11::CloneImportedSubtree",
                     "DetectorModel11ImportedGeometryInvalidRoot",
                     FatalException,
-                    "model11 cannot clone a null GDML physical volume.");
-        return nullptr;
-    }
-
-    auto* sourceLogicalVolume = sourcePhysicalVolume->GetLogicalVolume();
-    if (sourceLogicalVolume == nullptr) {
-        G4Exception("DetectorModel11::CloneImportedSubtree",
-                    "DetectorModel11ImportedGeometryInvalidLogical",
-                    FatalException,
-                    ("GDML physical volume " + sourcePhysicalVolume->GetName() +
-                     " does not have an associated logical volume.")
-                        .c_str());
+                    "model11 cannot clone a null GDML logical volume.");
         return nullptr;
     }
 
     const auto sourceLogicalName = sourceLogicalVolume->GetName();
-    const auto sourcePhysicalName = sourcePhysicalVolume->GetName();
     const auto nodeId =
         SanitizeIdentifier(sourcePhysicalName.empty() ? sourceLogicalName : sourcePhysicalName);
     const auto cloneIndex = cloneSequence++;
+    const auto isSensitive =
+        IsSensitiveVolumeSelected(sensitiveVolumeNames, sourceLogicalName, sourcePhysicalName);
     const auto logicalVolumeName =
-        (IsSensitiveVolumeSelected(config, sourceLogicalName, sourcePhysicalName) ? "Model11SensitiveLV_"
-                                                                                  : "Model11PassiveLV_") +
-        nodeId + "_" + std::to_string(copyNo) + "_" + std::to_string(cloneIndex);
+        (isSensitive ? "Model11SensitiveLV_" : "Model11PassiveLV_") + nodeId + "_" +
+        std::to_string(copyNo) + "_" + std::to_string(cloneIndex);
 
     auto* clonedLogicalVolume = new G4LogicalVolume(sourceLogicalVolume->GetSolid(),
                                                     sourceLogicalVolume->GetMaterial(),
@@ -397,9 +543,22 @@ G4LogicalVolume* DetectorModel11::CloneImportedSubtree(
         auto* clonedVisAttributes = new G4VisAttributes(*sourceVisAttributes);
         resources.visAttributes.push_back(clonedVisAttributes);
         clonedLogicalVolume->SetVisAttributes(clonedVisAttributes);
+    } else if (const auto* sourceAuxiliaries = importedAssembly.GetAuxiliaryInfo(sourceLogicalVolume);
+               sourceAuxiliaries != nullptr) {
+        G4VisAttributes* clonedVisAttributes = nullptr;
+        if (TryCreateVisAttributesFromColorAux(*sourceAuxiliaries, clonedVisAttributes)) {
+            resources.visAttributes.push_back(clonedVisAttributes);
+            clonedLogicalVolume->SetVisAttributes(clonedVisAttributes);
+        }
     }
 
-    if (IsSensitiveVolumeSelected(config, sourceLogicalName, sourcePhysicalName)) {
+    if (const auto* sourceAuxiliaries = importedAssembly.GetAuxiliaryInfo(sourceLogicalVolume);
+        sourceAuxiliaries != nullptr) {
+        MD1::GeometryAuxiliaryRegistry::GetInstance()->Register(
+            clonedLogicalVolume, FlattenAuxiliaryList(*sourceAuxiliaries));
+    }
+
+    if (isSensitive) {
         resources.sensitiveLogicalVolumes.push_back(clonedLogicalVolume);
         if (auto* sensitiveDetector = GetCurrentSensitiveDetector(); sensitiveDetector != nullptr) {
             clonedLogicalVolume->SetSensitiveDetector(sensitiveDetector);
@@ -409,7 +568,13 @@ G4LogicalVolume* DetectorModel11::CloneImportedSubtree(
     for (G4int daughterIndex = 0; daughterIndex < sourceLogicalVolume->GetNoDaughters(); ++daughterIndex) {
         auto* sourceDaughterPhysical = sourceLogicalVolume->GetDaughter(daughterIndex);
         auto* clonedDaughterLogical =
-            CloneImportedSubtree(sourceDaughterPhysical, config, copyNo, cloneSequence, resources);
+            CloneImportedSubtree(sourceDaughterPhysical->GetLogicalVolume(),
+                                 sourceDaughterPhysical->GetName(),
+                                 importedAssembly,
+                                 sensitiveVolumeNames,
+                                 copyNo,
+                                 cloneSequence,
+                                 resources);
         const auto daughterId = SanitizeIdentifier(sourceDaughterPhysical->GetName().empty()
                                                        ? sourceDaughterPhysical->GetLogicalVolume()->GetName()
                                                        : sourceDaughterPhysical->GetName());
@@ -481,9 +646,10 @@ void DetectorModel11::AddGeometry(G4LogicalVolume* motherVolume,
         availableVolumeNames.insert(availableName);
     }
 
-    if (ShouldActivateSensitiveImportedVolumes(config)) {
+    const auto effectiveSensitiveVolumeNames = ResolveSensitiveVolumeNames(config);
+    if (ShouldActivateSensitiveImportedVolumes(effectiveSensitiveVolumeNames)) {
         std::set<G4String> unresolvedVolumeNames;
-        for (const auto& selectedName : config.sensitiveVolumeNames) {
+        for (const auto& selectedName : effectiveSensitiveVolumeNames) {
             if (availableVolumeNames.find(selectedName) == availableVolumeNames.end()) {
                 unresolvedVolumeNames.insert(selectedName);
             }
@@ -511,8 +677,15 @@ void DetectorModel11::AddGeometry(G4LogicalVolume* motherVolume,
     G4VPhysicalVolume* primaryPlacement = nullptr;
     std::size_t partIndex = 0;
     for (const auto& part : assembly->GetParts()) {
-        auto* clonedRootLogical =
-            CloneImportedSubtree(part.physicalVolume, config, copyNo, cloneSequence, resources);
+        auto* clonedRootLogical = CloneImportedSubtree(part.logicalVolume,
+                                                       (part.physicalVolume != nullptr)
+                                                           ? part.physicalVolume->GetName()
+                                                           : part.name,
+                                                       *assembly,
+                                                       effectiveSensitiveVolumeNames,
+                                                       copyNo,
+                                                       cloneSequence,
+                                                       resources);
         const auto rootId = SanitizeIdentifier(
             part.name.empty() ? assembly->GetRootVolumeName() : part.name);
         auto* placement = new G4PVPlacement(finalTransform * G4Transform3D(part.rotation, part.translation),
@@ -550,7 +723,8 @@ void DetectorModel11::AddGeometry(G4LogicalVolume* motherVolume,
 
     fPlacementImportedGDMLKeys[copyNo] =
         MD1::GDMLAssemblyCache::BuildCacheKey(config.importedGeometryGDMLPath,
-                                              config.importedGeometryRootName);
+                                              config.importedGeometryRootSelector,
+                                              config.importedGeometryReadOptions);
     fPlacementResources[copyNo] = std::move(resources);
     fAreVolumensAssembled = true;
     detPosition[copyNo] = centerRelativeToMother;
@@ -586,6 +760,7 @@ void DetectorModel11::ReleasePlacementResources(const G4int& copyNo) {
 
     auto& resources = resourcesIt->second;
     for (auto* logicalVolume : resources.logicalVolumes) {
+        MD1::GeometryAuxiliaryRegistry::GetInstance()->Unregister(logicalVolume);
         delete logicalVolume;
     }
     for (auto* visAttributes : resources.visAttributes) {

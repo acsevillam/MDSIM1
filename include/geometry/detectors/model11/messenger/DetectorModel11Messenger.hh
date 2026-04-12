@@ -27,7 +27,11 @@ private:
 
     G4UIcmdWithABool* fSetSplitAtInterfaceCmd;
     G4UIcmdWithAString* fSetImportedGeometryGDMLCmd;
-    G4UIcmdWithAString* fSetImportedGeometryRootCmd;
+    G4UIcmdWithAString* fSetImportedGeometryRootLogicalCmd;
+    G4UIcmdWithAString* fSetImportedGeometryRootPhysicalCmd;
+    G4UIcmdWithAString* fSetImportedGeometryRootAssemblyCmd;
+    G4UIcmdWithABool* fSetImportedGeometryValidateCmd;
+    G4UIcmdWithAString* fSetImportedGeometrySchemaCmd;
     G4UIcmdWithAString* fAddSensitiveVolumeCmd;
     G4UIcmdWithAString* fRemoveSensitiveVolumeCmd;
     G4UIcommand* fClearSensitiveVolumesCmd;

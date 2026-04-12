@@ -8,14 +8,26 @@ namespace {
 
 namespace fs = std::filesystem;
 
-G4String TrimName(const G4String& value) {
-    const auto begin = value.find_first_not_of(" \t\r\n");
-    if (begin == G4String::npos) {
+G4String NormalizeOptionalPath(const G4String& path) {
+    if (path.empty()) {
         return "";
     }
 
-    const auto end = value.find_last_not_of(" \t\r\n");
-    return value.substr(begin, end - begin + 1);
+    return fs::absolute(fs::path(path.c_str())).lexically_normal().string();
+}
+
+G4String RootSelectorTypeToString(const MD1::GDMLRootSelectorType type) {
+    switch (type) {
+        case MD1::GDMLRootSelectorType::Logical:
+            return "logical";
+        case MD1::GDMLRootSelectorType::Physical:
+            return "physical";
+        case MD1::GDMLRootSelectorType::Assembly:
+            return "assembly";
+        case MD1::GDMLRootSelectorType::Auto:
+        default:
+            return "auto";
+    }
 }
 
 } // namespace
@@ -30,14 +42,23 @@ G4String GDMLAssemblyCache::NormalizePath(const G4String& gdmlPath) {
     return fs::absolute(fs::path(gdmlPath.c_str())).lexically_normal().string();
 }
 
-G4String GDMLAssemblyCache::BuildCacheKey(const G4String& gdmlPath, const G4String& rootName) {
+G4String GDMLAssemblyCache::BuildCacheKey(const G4String& gdmlPath,
+                                          const GDMLRootSelector& rootSelector,
+                                          const GDMLReadOptions& readOptions) {
     const auto normalizedPath = NormalizePath(gdmlPath);
-    const auto normalizedRootName = TrimName(rootName);
-    if (normalizedRootName.empty()) {
-        return normalizedPath;
+    const auto normalizedRootName = rootSelector.name;
+    const auto normalizedSchemaPath = NormalizeOptionalPath(readOptions.schemaPath);
+    G4String cacheKey = normalizedPath + "::rootType=" + RootSelectorTypeToString(rootSelector.type);
+
+    if (!normalizedRootName.empty()) {
+        cacheKey += "::rootName=" + normalizedRootName;
+    }
+    cacheKey += "::validate=" + G4String(readOptions.validate ? "1" : "0");
+    if (!normalizedSchemaPath.empty()) {
+        cacheKey += "::schema=" + normalizedSchemaPath;
     }
 
-    return normalizedPath + "::root=" + normalizedRootName;
+    return cacheKey;
 }
 
 fs::file_time_type GDMLAssemblyCache::GetLastWriteTimeOrThrow(const G4String& normalizedPath) {
@@ -62,10 +83,12 @@ fs::file_time_type GDMLAssemblyCache::GetLastWriteTimeOrThrow(const G4String& no
     return lastWriteTime;
 }
 
-std::shared_ptr<const GDMLImportedAssembly> GDMLAssemblyCache::Load(const G4String& gdmlPath,
-                                                                    const G4String& rootName) {
+std::shared_ptr<const GDMLImportedAssembly> GDMLAssemblyCache::Load(
+    const G4String& gdmlPath,
+    const GDMLRootSelector& rootSelector,
+    const GDMLReadOptions& readOptions) {
     const auto normalizedPath = NormalizePath(gdmlPath);
-    const auto cacheKey = BuildCacheKey(normalizedPath, rootName);
+    const auto cacheKey = BuildCacheKey(normalizedPath, rootSelector, readOptions);
     const auto lastWriteTime = GetLastWriteTimeOrThrow(normalizedPath);
 
     const auto cacheIt = fEntries.find(cacheKey);
@@ -75,7 +98,8 @@ std::shared_ptr<const GDMLImportedAssembly> GDMLAssemblyCache::Load(const G4Stri
     }
 
     auto assembly =
-        std::make_shared<const GDMLImportedAssembly>(GDMLAssemblyReader::ReadAssembly(normalizedPath, rootName));
+        std::make_shared<const GDMLImportedAssembly>(
+            GDMLAssemblyReader::ReadAssembly(normalizedPath, rootSelector, readOptions));
     fEntries[cacheKey] = CacheEntry{normalizedPath, lastWriteTime, assembly};
     return assembly;
 }

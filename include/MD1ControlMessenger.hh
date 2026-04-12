@@ -16,28 +16,9 @@
 #ifndef MD1ControlMessenger_h
 #define MD1ControlMessenger_h 1
 
-// C++ Headers
-#include <vector>
-#include <map>
-
 // Geant4 Headers
 #include "G4UImessenger.hh"
-#include "globals.hh"
-#include "G4UIdirectory.hh"
-#include "G4UIcmdWithAString.hh"
-#include "G4UIcmdWithABool.hh"
-#include "G4UIcmdWithADoubleAndUnit.hh"
 #include "G4UIcmdWithAnInteger.hh"
-
-// MD1 Headers
-#include "MD1Control.hh"
-
-using namespace std;
-
-class G4UIdirectory ;
-class G4UIcmdWithAString ;
-class G4UIcmdWithABool ;
-class G4UIcmdWithADoubleAndUnit ;
 
 namespace MD1 {
 
@@ -55,7 +36,7 @@ public:
 private:
 
 	MD1Control*								fMD1Control ;
-	G4UIcmdWithAnInteger* fSetPrimaryGeneratorTypeCmd; ///< Command to set the phase space filename
+	G4UIcmdWithAnInteger* fSetPrimaryGeneratorTypeCmd; ///< Command to select the primary generator backend.
 
 
 };

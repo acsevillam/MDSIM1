@@ -16,16 +16,11 @@
 #ifndef MD1Control_h
 #define MD1Control_h 1
 
-// MD1 Headers
-#include "MD1ControlMessenger.hh"
-#include "G4UserTrackingAction.hh"
-#include "G4UserSteppingAction.hh"
-#include "G4VSensitiveDetector.hh"
-#include "G4VUserPrimaryGeneratorAction.hh"
-
-class MD1ControlMessenger ;
+#include "globals.hh"
 
 namespace MD1 {
+
+class MD1ControlMessenger;
 
 class MD1Control {
 
@@ -35,23 +30,9 @@ public:
     /// Static method killing the instance.
     static void Kill() ;
 
-    void Setup(int argc,char** argv);
-
-    inline G4UserTrackingAction* GetTrackingAction() const { return fTrackingAction;}
-
-    inline void SetTrackingAction(G4UserTrackingAction* aTrackingAction){fTrackingAction=aTrackingAction;}
-
-    inline G4UserSteppingAction* GetSteppingAction() const { return fSteppingAction;}
-
-    inline void SetSteppingAction(G4UserSteppingAction* aSteppingAction){fSteppingAction=aSteppingAction;}
-
-    inline G4UserSteppingAction* GetSensitiveDetectorAction() const{ return fSensitiveDetectorAction;}
-
-    inline void SetSensitiveVolumeAction(G4UserSteppingAction* aSensitiveDetectorAction){fSensitiveDetectorAction=aSensitiveDetectorAction;}
-
     inline G4int GetPrimaryGeneratorType() const{ return fPrimaryGeneratorType;}
 
-    inline void SetPrimaryGeneratorType(G4int aPrimaryGeneratorType){fPrimaryGeneratorType=aPrimaryGeneratorType;}
+    void SetPrimaryGeneratorType(G4int aPrimaryGeneratorType);
 
 private:
     // Constructor
@@ -63,10 +44,6 @@ private:
     static MD1Control*			instance ;
 
     MD1ControlMessenger*		fMD1ControlMessenger ;
-
-    G4UserTrackingAction*		fTrackingAction ;
-    G4UserSteppingAction*    	fSteppingAction ;
-    G4UserSteppingAction*    	fSensitiveDetectorAction ;
 
     G4int                       fPrimaryGeneratorType = 1;
 

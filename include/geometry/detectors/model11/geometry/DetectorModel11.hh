@@ -27,7 +27,8 @@ struct Model11DetectorConfig {
     Model11ReadoutParameters readoutParameters;
     Model11CalibrationParameters calibrationParameters;
     G4String importedGeometryGDMLPath;
-    G4String importedGeometryRootName;
+    MD1::GDMLRootSelector importedGeometryRootSelector;
+    MD1::GDMLReadOptions importedGeometryReadOptions;
     std::set<G4String> sensitiveVolumeNames;
 };
 
@@ -66,7 +67,11 @@ public:
     void SetDoseCalibrationFactor(G4int detectorID, G4double doseCalibrationFactorInGyPerPhotoelectron);
     void SetDoseCalibrationFactorError(G4int detectorID, G4double doseCalibrationFactorErrorInGyPerPhotoelectron);
     void SetImportedGeometryGDMLPath(G4int detectorID, const G4String& gdmlPath);
-    void SetImportedGeometryRootName(G4int detectorID, const G4String& rootName);
+    void SetImportedGeometryRootLogicalName(G4int detectorID, const G4String& rootName);
+    void SetImportedGeometryRootPhysicalName(G4int detectorID, const G4String& rootName);
+    void SetImportedGeometryRootAssemblyName(G4int detectorID, const G4String& rootName);
+    void SetImportedGeometryValidate(G4int detectorID, G4bool validate);
+    void SetImportedGeometrySchema(G4int detectorID, const G4String& schemaPath);
     void AddSensitiveVolume(G4int detectorID, const G4String& logicalVolumeName);
     void RemoveSensitiveVolume(G4int detectorID, const G4String& logicalVolumeName);
     void ClearSensitiveVolumes(G4int detectorID);
@@ -93,15 +98,18 @@ private:
 
     Model11DetectorConfig& EnsureDetectorConfig(G4int detectorID);
     G4bool ShouldBuildImportedGeometry(const Model11DetectorConfig& config) const;
-    G4bool ShouldActivateSensitiveImportedVolumes(const Model11DetectorConfig& config) const;
+    G4bool ShouldActivateSensitiveImportedVolumes(const std::set<G4String>& sensitiveVolumeNames) const;
     std::shared_ptr<const MD1::GDMLImportedAssembly> LoadImportedGDMLAssembly(
         const Model11DetectorConfig& config) const;
-    G4LogicalVolume* CloneImportedSubtree(const G4VPhysicalVolume* sourcePhysicalVolume,
-                                          const Model11DetectorConfig& config,
+    std::set<G4String> ResolveSensitiveVolumeNames(const Model11DetectorConfig& config) const;
+    G4LogicalVolume* CloneImportedSubtree(G4LogicalVolume* sourceLogicalVolume,
+                                          const G4String& sourcePhysicalName,
+                                          const MD1::GDMLImportedAssembly& importedAssembly,
+                                          const std::set<G4String>& sensitiveVolumeNames,
                                           G4int copyNo,
                                           std::size_t& cloneSequence,
                                           PlacementOwnedResources& resources);
-    G4bool IsSensitiveVolumeSelected(const Model11DetectorConfig& config,
+    G4bool IsSensitiveVolumeSelected(const std::set<G4String>& sensitiveVolumeNames,
                                      const G4String& logicalVolumeName,
                                      const G4String& physicalVolumeName) const;
     std::set<G4String> CollectReferencedImportedGDMLKeys() const;

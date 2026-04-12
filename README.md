@@ -19,13 +19,13 @@ La carpeta `jobs/` contiene lanzadores reproducibles para campañas batch.
 
 En dosimetría, además del barrido de validación, existe:
 
-- [launch_calibration_dmax_average.sh](/Users/acsevillam/workspace/Geant4/MDSIM1/jobs/dosimetry/launch_calibration_dmax_average.sh): ejecuta 5 réplicas de `input/dosimetry/Calibration.in` con `-b on -v off -n 300000000` y calcula promedios para `Dose atDepth1.4cm` (`dmax` en este caso) y `Dose atDepth10cm`.
+- [launch_calibration_dmax.sh](/Users/acsevillam/workspace/Geant4/MDSIM1/jobs/dosimetry/launch_calibration_dmax.sh): ejecuta 10 réplicas de `input/dosimetry/Calibration.in` con `-b on -v off -n 200000000` y resume `Dose atDepth1.4cm` (`dmax` en este caso) y `Dose atDepth10cm`.
 
 Este job escribe:
 
 - una carpeta por réplica con `output.log`, `macro.in` y los archivos de `analysis/`
-- `dmax_summary.csv` con una fila por réplica
-- `dmax_average.txt` con media, desviación estándar entre réplicas, `err = stddev / sqrt(n)` y error relativo para `Dose atDepth1.4cm` y `Dose atDepth10cm`
+- `dose_depth_summary.csv` con una fila por réplica
+- `dose_depth_average.txt` con media, desviación estándar entre réplicas, `err = stddev / sqrt(n)` y error relativo para `Dose atDepth1.4cm` y `Dose atDepth10cm`
 
 Para el detector `cube`, existen jobs de calibración de carga para cuatro escenarios:
 
@@ -271,7 +271,7 @@ Para la geometría importada de `model11`:
 - el runtime usa `G4GDMLParser` para leer un archivo GDML completo exportado desde FreeCAD
 - el GDML importado contiene tanto el ensamble pasivo como los volúmenes potencialmente sensibles
 - el comando de configuración es `/MultiDetector1/detectors/model11/setImportedGeometryGDML`
-- opcionalmente puedes fijar un root explícito del GDML con `/MultiDetector1/detectors/model11/setImportedGeometryRoot`
+- opcionalmente puedes fijar un root explícito del GDML con `/MultiDetector1/detectors/model11/setImportedGeometryRootLogical`, `/MultiDetector1/detectors/model11/setImportedGeometryRootPhysical` o `/MultiDetector1/detectors/model11/setImportedGeometryRootAssembly`
 - la selección de volúmenes sensibles se hace con `/MultiDetector1/detectors/model11/addSensitiveVolume`
 - si no seleccionas ningún volumen sensible, `model11` se comporta como una geometría pasiva para inspección
 - el GDML integrado del detector está en `models/detectors/model11/gdml/model11.gdml`
@@ -633,7 +633,7 @@ Los siguientes comandos de macro son propios del proyecto y complementan los com
 
 ### Control global
 
-- `/MultiDetector1/control/SetPrimaryGeneratorType <int>`: selecciona el generador primario.
+- `/MultiDetector1/control/SetPrimaryGeneratorType <int>`: selecciona el generador primario. `1` usa IAEA phase-space y `2` usa GPS. Cualquier otro valor aborta con error.
 
 ### Run
 

@@ -14,6 +14,8 @@
  */
 
 #include "MD1ControlMessenger.hh"
+
+#include "MD1Control.hh"
 namespace MD1 {
 
 MD1ControlMessenger::MD1ControlMessenger(MD1Control* aMD1Control) {
@@ -21,7 +23,8 @@ MD1ControlMessenger::MD1ControlMessenger(MD1Control* aMD1Control) {
 	fMD1Control = aMD1Control ;
 
     fSetPrimaryGeneratorTypeCmd = new G4UIcmdWithAnInteger("/MultiDetector1/control/SetPrimaryGeneratorType", this);
-    fSetPrimaryGeneratorTypeCmd->SetGuidance("Set primary generator type");
+    fSetPrimaryGeneratorTypeCmd->SetGuidance(
+        "Set primary generator type: 1 for IAEA phase-space, 2 for GPS.");
     fSetPrimaryGeneratorTypeCmd->SetParameterName("PrimaryGeneratorType", false);
     fSetPrimaryGeneratorTypeCmd->AvailableForStates(G4State_PreInit);
 

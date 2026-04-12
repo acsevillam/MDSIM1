@@ -1,0 +1,17 @@
+/control/verbose 0
+/run/verbose 0
+
+/MultiDetector1/control/SetPrimaryGeneratorType 2
+/MultiDetector1/detectors/model11/addGeometryTo world_log 0
+/MultiDetector1/detectors/model11/detectorID 0
+/MultiDetector1/detectors/model11/setSplitAtInterface false
+/MultiDetector1/detectors/model11/setImportedGeometryGDML cmake/tests/data/model11/imported_geometry_aux.gdml
+/MultiDetector1/detectors/model11/setImportedGeometryRootLogical PassiveAssemblyLV
+
+/run/initialize
+
+/MultiDetector1/geometry/listPhysicalVolumes WaterBox
+/MultiDetector1/geometry/listLogicalVolumes WaterBox
+/MultiDetector1/geometry/writePhysicalGDML WaterBox 0 cmake/tests/output/exported_waterbox.gdml
+/MultiDetector1/geometry/writeLogicalGDML WaterBox cmake/tests/output/exported_waterbox_logical.gdml
+/MultiDetector1/geometry/writePhysicalGDML ImportedModel11Phys_PassiveAssemblyLV_0_0 0 cmake/tests/output/exported_model11_root.gdml

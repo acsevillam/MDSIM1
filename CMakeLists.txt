@@ -49,11 +49,19 @@ target_link_libraries(MultiDetector1 PRIVATE ${Geant4_LIBRARIES})
 add_executable(
   md1_gdml_cache_probe
   cmake/tests/GDMLAssemblyCacheProbe.cc
+  src/geometry/gdml/MD1GDMLReadStructure.cc
   src/geometry/gdml/GDMLAssemblyReader.cc
   src/geometry/gdml/GDMLAssemblyCache.cc
 )
 target_include_directories(md1_gdml_cache_probe PRIVATE ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(md1_gdml_cache_probe PRIVATE ${Geant4_LIBRARIES})
+
+add_executable(
+  md1_gdml_export_probe
+  cmake/tests/GDMLExportProbe.cc
+)
+target_include_directories(md1_gdml_export_probe PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_link_libraries(md1_gdml_export_probe PRIVATE ${Geant4_LIBRARIES})
 
 #----------------------------------------------------------------------------
 # Copy all scripts to the build directory
@@ -63,6 +71,7 @@ set(MDSIM1_RUNTIME_FILES
   mac/init.mac
   mac/scorers1.mac
   mac/tests/invalid_eof_policy.mac
+  mac/tests/invalid_primary_generator_type.mac
   mac/tests/idle_detector_refresh.mac
   mac/tests/idle_detector_remove.mac
   mac/tests/idle_cube_split_rebuild.mac
@@ -75,8 +84,12 @@ set(MDSIM1_RUNTIME_FILES
   mac/tests/model11_signal_smoke.mac
   mac/tests/model11_imported_geometry_smoke.mac
   mac/tests/model11_imported_geometry_passive_only_smoke.mac
+  mac/tests/model11_imported_geometry_aux_sensdet.mac
+  mac/tests/model11_imported_geometry_validate_smoke.mac
+  mac/tests/model11_imported_geometry_validate_invalid.mac
   mac/tests/model11_imported_geometry_missing_gdml.mac
   mac/tests/model11_imported_geometry_split_unsupported.mac
+  mac/tests/geometry_export_smoke.mac
   mac/tests/bb7_signal_smoke.mac
   analysis/README.md
   beam/photon6MV.txt
@@ -108,6 +121,9 @@ set(MDSIM1_RUNTIME_FILES
   input/detectors/model11/templates/Model11.intmp
   models/detectors/model11/gdml/model11.gdml
   cmake/tests/data/model11/imported_geometry.gdml
+  cmake/tests/data/model11/imported_geometry_aux.gdml
+  cmake/tests/data/model11/imported_geometry_validate.gdml
+  cmake/tests/data/model11/imported_geometry_invalid_schema.gdml
   cmake/tests/data/model11/imported_geometry_reloaded.gdml
   input/detectors/sphere/Sphere.in
   input/detectors/sphere/SphereCalibration.in
@@ -213,6 +229,17 @@ add_test(
           -DWORKING_DIRECTORY=${PROJECT_BINARY_DIR}
           -DMACRO_PATH=mac/tests/invalid_eof_policy.mac
           -P ${PROJECT_SOURCE_DIR}/cmake/tests/check_invalid_eof_policy.cmake
+)
+
+add_test(
+  NAME mdsim1_invalid_primary_generator_type
+  COMMAND ${CMAKE_COMMAND}
+          -DEXECUTABLE=$<TARGET_FILE:MultiDetector1>
+          -DWORKING_DIRECTORY=${PROJECT_BINARY_DIR}
+          -DMACRO_PATH=mac/tests/invalid_primary_generator_type.mac
+          -DEXPECTED_REGEX=InvalidPrimaryGeneratorType
+          -DFAILURE_LABEL=invalid_primary_generator_type
+          -P ${PROJECT_SOURCE_DIR}/cmake/tests/check_expected_failure.cmake
 )
 
 add_test(
@@ -359,6 +386,24 @@ add_test(
 )
 
 add_test(
+  NAME mdsim1_model11_imported_geometry_aux_sensdet
+  COMMAND ${CMAKE_COMMAND}
+          -DEXECUTABLE=$<TARGET_FILE:MultiDetector1>
+          -DWORKING_DIRECTORY=${PROJECT_BINARY_DIR}
+          -DMACRO_PATH=mac/tests/model11_imported_geometry_aux_sensdet.mac
+          -P ${PROJECT_SOURCE_DIR}/cmake/tests/check_model11_imported_geometry_aux_sensdet.cmake
+)
+
+add_test(
+  NAME mdsim1_model11_imported_geometry_validate_smoke
+  COMMAND ${CMAKE_COMMAND}
+          -DEXECUTABLE=$<TARGET_FILE:MultiDetector1>
+          -DWORKING_DIRECTORY=${PROJECT_BINARY_DIR}
+          -DMACRO_PATH=mac/tests/model11_imported_geometry_validate_smoke.mac
+          -P ${PROJECT_SOURCE_DIR}/cmake/tests/check_model11_imported_geometry_passive_only_smoke.cmake
+)
+
+add_test(
   NAME mdsim1_bb7_signal_smoke
   COMMAND ${CMAKE_COMMAND}
           -DEXECUTABLE=$<TARGET_FILE:MultiDetector1>
@@ -400,6 +445,15 @@ add_test(
 )
 
 add_test(
+  NAME mdsim1_model11_imported_geometry_validate_invalid
+  COMMAND ${CMAKE_COMMAND}
+          -DEXECUTABLE=$<TARGET_FILE:MultiDetector1>
+          -DWORKING_DIRECTORY=${PROJECT_BINARY_DIR}
+          -DMACRO_PATH=mac/tests/model11_imported_geometry_validate_invalid.mac
+          -P ${PROJECT_SOURCE_DIR}/cmake/tests/check_model11_imported_geometry_validate_invalid.cmake
+)
+
+add_test(
   NAME mdsim1_gdml_import_cleanup
   COMMAND ${CMAKE_COMMAND}
           -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
@@ -416,6 +470,16 @@ add_test(
 )
 
 add_test(
+  NAME mdsim1_geometry_export_smoke
+  COMMAND ${CMAKE_COMMAND}
+          -DEXECUTABLE=$<TARGET_FILE:MultiDetector1>
+          -DPROBE_EXECUTABLE=$<TARGET_FILE:md1_gdml_export_probe>
+          -DWORKING_DIRECTORY=${PROJECT_BINARY_DIR}
+          -DMACRO_PATH=mac/tests/geometry_export_smoke.mac
+          -P ${PROJECT_SOURCE_DIR}/cmake/tests/check_geometry_export_smoke.cmake
+)
+
+add_test(
   NAME mdsim1_validation_summary_axes
   COMMAND ${CMAKE_COMMAND}
           -DWORKING_DIRECTORY=${PROJECT_BINARY_DIR}
@@ -424,6 +488,7 @@ add_test(
 
 set_tests_properties(
   mdsim1_invalid_eof_policy
+  mdsim1_invalid_primary_generator_type
   mdsim1_zero_events_skip_phsp_open
   mdsim1_incomplete_phsp_dataset_fails_early
   mdsim1_idle_detector_refresh
@@ -451,6 +516,7 @@ set_tests_properties(
 
 set_tests_properties(
   mdsim1_invalid_eof_policy
+  mdsim1_invalid_primary_generator_type
   mdsim1_zero_events_skip_phsp_open
   mdsim1_incomplete_phsp_dataset_fails_early
   PROPERTIES

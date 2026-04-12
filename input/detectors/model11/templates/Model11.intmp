@@ -11,7 +11,7 @@
 
 /MultiDetector1/detectors/model11/setSplitAtInterface **SplitAtInterface**
 /MultiDetector1/detectors/model11/setImportedGeometryGDML models/detectors/model11/gdml/model11.gdml
-/MultiDetector1/detectors/model11/setImportedGeometryRoot **Model11GDMLRoot**
+/MultiDetector1/detectors/model11/setImportedGeometryRootAssembly **Model11GDMLRoot**
 /MultiDetector1/detectors/model11/addSensitiveVolume **Model11SensitiveVolume**
 /MultiDetector1/detectors/model11/setScintillationYield **ScintillationYield**
 /MultiDetector1/detectors/model11/setBirksConstant **BirksConstant**

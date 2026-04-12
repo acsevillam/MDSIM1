@@ -1,21 +1,38 @@
 #include "geometry/gdml/GDMLAssemblyReader.hh"
 
+#include <algorithm>
 #include <filesystem>
-#include <fstream>
-#include <iterator>
+#include <map>
 #include <memory>
-#include <regex>
 #include <set>
+#include <sstream>
 #include <string>
 #include <vector>
 
+#include "G4AssemblyTriplet.hh"
+#include "G4AssemblyVolume.hh"
 #include "G4Exception.hh"
 #include "G4LogicalVolume.hh"
+#include "G4Transform3D.hh"
 #include "G4VPhysicalVolume.hh"
+
+#include "geometry/gdml/MD1GDMLReadStructure.hh"
 
 namespace {
 
 namespace fs = std::filesystem;
+
+struct BuiltAssemblyData {
+    G4String rootVolumeName;
+    G4String rootPhysicalVolumeName;
+    std::vector<MD1::GDMLAssemblyPart> parts;
+    std::set<G4String> availableVolumeNames;
+};
+
+struct FlattenedAssemblyPart {
+    G4LogicalVolume* logicalVolume = nullptr;
+    G4Transform3D transform;
+};
 
 G4String ResolveGDMLPathOrThrow(const G4String& gdmlPath) {
     const fs::path requestedPath(gdmlPath.c_str());
@@ -30,6 +47,14 @@ G4String ResolveGDMLPathOrThrow(const G4String& gdmlPath) {
     return resolvedPath.string();
 }
 
+G4String NormalizeOptionalPath(const G4String& path) {
+    if (path.empty()) {
+        return "";
+    }
+
+    return fs::absolute(fs::path(path.c_str())).lexically_normal().string();
+}
+
 G4String TrimName(const G4String& value) {
     const auto begin = value.find_first_not_of(" \t\r\n");
     if (begin == G4String::npos) {
@@ -40,45 +65,47 @@ G4String TrimName(const G4String& value) {
     return value.substr(begin, end - begin + 1);
 }
 
-std::string ReadTextFileOrThrow(const G4String& gdmlPath) {
-    std::ifstream input(gdmlPath.c_str());
-    if (!input.is_open()) {
-        G4Exception("GDMLAssemblyReader::ReadTextFileOrThrow",
-                    "ImportedGDMLFileNotReadable",
-                    FatalException,
-                    ("Could not open imported GDML file for text inspection: " + gdmlPath).c_str());
+G4String RootSelectorTypeToString(const MD1::GDMLRootSelectorType type) {
+    switch (type) {
+        case MD1::GDMLRootSelectorType::Logical:
+            return "logical";
+        case MD1::GDMLRootSelectorType::Physical:
+            return "physical";
+        case MD1::GDMLRootSelectorType::Assembly:
+            return "assembly";
+        case MD1::GDMLRootSelectorType::Auto:
+        default:
+            return "auto";
     }
-
-    return std::string(std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>());
 }
 
-std::string EscapeRegexLiteral(const G4String& value) {
-    std::string escaped;
-    escaped.reserve(value.size() * 2);
-    for (const auto ch : value) {
-        switch (ch) {
-            case '\\':
-            case '^':
-            case '$':
-            case '.':
-            case '|':
-            case '?':
-            case '*':
-            case '+':
-            case '(':
-            case ')':
-            case '[':
-            case ']':
-            case '{':
-            case '}':
-                escaped.push_back('\\');
-                break;
-            default:
-                break;
-        }
-        escaped.push_back(ch);
+MD1::GDMLRootSelector NormalizeRootSelector(const MD1::GDMLRootSelector& selector) {
+    MD1::GDMLRootSelector normalized = selector;
+    normalized.name = TrimName(selector.name);
+    if (normalized.type == MD1::GDMLRootSelectorType::Auto && !normalized.name.empty()) {
+        G4Exception("GDMLAssemblyReader::NormalizeRootSelector",
+                    "ImportedGDMLRootSelectorInvalid",
+                    FatalException,
+                    ("Imported GDML auto root selection no longer accepts an explicit name ('" +
+                     normalized.name +
+                     "'). Use a typed selector instead: logical, physical, or assembly.")
+                        .c_str());
     }
-    return escaped;
+    if (normalized.type != MD1::GDMLRootSelectorType::Auto && normalized.name.empty()) {
+        G4Exception("GDMLAssemblyReader::NormalizeRootSelector",
+                    "ImportedGDMLRootEmpty",
+                    FatalException,
+                    ("Imported GDML root selector of type '" +
+                     RootSelectorTypeToString(normalized.type) + "' requires a non-empty name.")
+                        .c_str());
+    }
+    return normalized;
+}
+
+MD1::GDMLReadOptions NormalizeReadOptions(const MD1::GDMLReadOptions& options) {
+    MD1::GDMLReadOptions normalized = options;
+    normalized.schemaPath = NormalizeOptionalPath(options.schemaPath);
+    return normalized;
 }
 
 void ValidateLogicalVolumeOrThrow(const G4LogicalVolume* logicalVolume,
@@ -103,225 +130,406 @@ void ValidatePhysicalVolumeOrThrow(const G4VPhysicalVolume* physicalVolume,
     }
 }
 
-MD1::GDMLAssemblyPart BuildPartFromPhysicalVolumeOrThrow(const G4VPhysicalVolume* physicalVolume,
-                                                         const G4String& gdmlPath) {
-    ValidatePhysicalVolumeOrThrow(
-        physicalVolume, "GDMLAssemblyReader::BuildPartFromPhysicalVolumeOrThrow", gdmlPath);
+G4String JoinNames(const std::vector<G4String>& names) {
+    std::ostringstream stream;
+    for (std::size_t index = 0; index < names.size(); ++index) {
+        if (index != 0) {
+            stream << ", ";
+        }
+        stream << names[index];
+    }
+    return stream.str();
+}
 
+std::vector<G4String> SortedKeys(const std::set<G4String>& names) {
+    return std::vector<G4String>(names.begin(), names.end());
+}
+
+void CollectAvailableNamesFromLogical(const G4LogicalVolume* logicalVolume,
+                                      std::set<G4String>& availableNames,
+                                      std::set<const G4LogicalVolume*>& visitedLogicals) {
+    if (logicalVolume == nullptr || !visitedLogicals.insert(logicalVolume).second) {
+        return;
+    }
+
+    availableNames.insert(logicalVolume->GetName());
+
+    for (G4int daughterIndex = 0; daughterIndex < logicalVolume->GetNoDaughters(); ++daughterIndex) {
+        const auto* daughter = logicalVolume->GetDaughter(daughterIndex);
+        if (daughter == nullptr) {
+            continue;
+        }
+
+        if (!daughter->GetName().empty()) {
+            availableNames.insert(daughter->GetName());
+        }
+        CollectAvailableNamesFromLogical(daughter->GetLogicalVolume(), availableNames, visitedLogicals);
+    }
+}
+
+MD1::GDMLAssemblyPart BuildPartFromPhysicalVolume(const G4VPhysicalVolume* physicalVolume,
+                                                  const G4Transform3D& transform,
+                                                  const G4String& gdmlPath) {
+    ValidatePhysicalVolumeOrThrow(
+        physicalVolume, "GDMLAssemblyReader::BuildPartFromPhysicalVolume", gdmlPath);
     auto* logicalVolume = physicalVolume->GetLogicalVolume();
     ValidateLogicalVolumeOrThrow(
-        logicalVolume, "GDMLAssemblyReader::BuildPartFromPhysicalVolumeOrThrow", gdmlPath);
+        logicalVolume, "GDMLAssemblyReader::BuildPartFromPhysicalVolume", gdmlPath);
 
     MD1::GDMLAssemblyPart part;
     part.name = physicalVolume->GetName();
     part.logicalVolume = logicalVolume;
     part.physicalVolume = physicalVolume;
-    part.translation = physicalVolume->GetObjectTranslation();
-    part.rotation = physicalVolume->GetObjectRotationValue();
+    part.translation = transform.getTranslation();
+    part.rotation = transform.getRotation();
     return part;
 }
 
-struct RootCandidate {
-    const G4VPhysicalVolume* physicalVolume = nullptr;
-    G4ThreeVector translation;
-    G4RotationMatrix rotation;
-};
-
-struct BuiltAssemblyData {
-    G4String rootVolumeName;
-    G4String rootPhysicalVolumeName;
-    std::vector<MD1::GDMLAssemblyPart> parts;
-    std::set<G4String> availableVolumeNames;
-};
-
-struct GDMLWorldPhysvolHint {
-    G4String name;
-    G4String volumeRef;
-};
-
-struct GDMLStructureHint {
-    G4String worldVolumeName;
-    std::vector<GDMLWorldPhysvolHint> worldPhysvols;
-    std::set<G4String> assemblyNames;
-};
-
-void CollectAvailableVolumeNames(const G4VPhysicalVolume* physicalVolume,
-                                 std::set<G4String>& availableVolumeNames) {
-    ValidatePhysicalVolumeOrThrow(
-        physicalVolume, "GDMLAssemblyReader::CollectAvailableVolumeNames", "unknown");
-
-    auto* logicalVolume = physicalVolume->GetLogicalVolume();
+MD1::GDMLAssemblyPart BuildPartFromLogicalVolume(G4LogicalVolume* logicalVolume,
+                                                 const G4Transform3D& transform,
+                                                 const G4String& displayName,
+                                                 const G4String& gdmlPath) {
     ValidateLogicalVolumeOrThrow(
-        logicalVolume, "GDMLAssemblyReader::CollectAvailableVolumeNames", "unknown");
+        logicalVolume, "GDMLAssemblyReader::BuildPartFromLogicalVolume", gdmlPath);
 
-    availableVolumeNames.insert(logicalVolume->GetName());
-    if (!physicalVolume->GetName().empty()) {
-        availableVolumeNames.insert(physicalVolume->GetName());
+    MD1::GDMLAssemblyPart part;
+    part.name = displayName.empty() ? logicalVolume->GetName() : displayName;
+    part.logicalVolume = logicalVolume;
+    part.physicalVolume = nullptr;
+    part.translation = transform.getTranslation();
+    part.rotation = transform.getRotation();
+    return part;
+}
+
+void FlattenAssemblyOrThrow(G4AssemblyVolume* assembly,
+                            const G4Transform3D& parentTransform,
+                            const G4String& gdmlPath,
+                            std::vector<FlattenedAssemblyPart>& flattenedParts) {
+    if (assembly == nullptr) {
+        G4Exception("GDMLAssemblyReader::FlattenAssemblyOrThrow",
+                    "ImportedGDMLAssemblyMissing",
+                    FatalException,
+                    ("Imported GDML " + gdmlPath + " referenced a null assembly volume.").c_str());
     }
 
-    for (G4int daughterIndex = 0; daughterIndex < logicalVolume->GetNoDaughters(); ++daughterIndex) {
-        CollectAvailableVolumeNames(logicalVolume->GetDaughter(daughterIndex), availableVolumeNames);
+    auto tripletIt = assembly->GetTripletsIterator();
+    for (std::size_t index = 0; index < assembly->TotalTriplets(); ++index, ++tripletIt) {
+        const auto& triplet = *tripletIt;
+        if (triplet.IsReflection()) {
+            G4Exception("GDMLAssemblyReader::FlattenAssemblyOrThrow",
+                        "ImportedGDMLAssemblyReflectionUnsupported",
+                        FatalException,
+                        ("Imported GDML " + gdmlPath +
+                         " contains a reflected assembly element, which model11 does not support.")
+                            .c_str());
+        }
+
+        const G4RotationMatrix tripletRotation =
+            (triplet.GetRotation() != nullptr) ? *triplet.GetRotation() : G4RotationMatrix();
+        const G4Transform3D tripletTransform(tripletRotation, triplet.GetTranslation());
+        const G4Transform3D currentTransform = parentTransform * tripletTransform;
+
+        if (auto* logicalVolume = triplet.GetVolume(); logicalVolume != nullptr) {
+            flattenedParts.push_back(FlattenedAssemblyPart{logicalVolume, currentTransform});
+            continue;
+        }
+
+        if (auto* nestedAssembly = triplet.GetAssembly(); nestedAssembly != nullptr) {
+            FlattenAssemblyOrThrow(nestedAssembly, currentTransform, gdmlPath, flattenedParts);
+            continue;
+        }
+
+        G4Exception("GDMLAssemblyReader::FlattenAssemblyOrThrow",
+                    "ImportedGDMLAssemblyElementInvalid",
+                    FatalException,
+                    ("Imported GDML " + gdmlPath +
+                     " contains an assembly triplet with neither a logical volume nor a nested assembly.")
+                        .c_str());
     }
 }
 
-void CollectRootCandidates(const G4VPhysicalVolume* physicalVolume,
-                           const G4String& targetName,
-                           const G4ThreeVector& parentTranslation,
-                           const G4RotationMatrix& parentRotation,
-                           std::vector<RootCandidate>& matches) {
-    ValidatePhysicalVolumeOrThrow(
-        physicalVolume, "GDMLAssemblyReader::CollectRootCandidates", targetName);
-
-    auto* logicalVolume = physicalVolume->GetLogicalVolume();
-    ValidateLogicalVolumeOrThrow(
-        logicalVolume, "GDMLAssemblyReader::CollectRootCandidates", targetName);
-
-    const auto localTranslation = physicalVolume->GetObjectTranslation();
-    const auto localRotation = physicalVolume->GetObjectRotationValue();
-    const auto currentTranslation = parentRotation * localTranslation + parentTranslation;
-    const auto currentRotation = parentRotation * localRotation;
-
-    if (physicalVolume->GetName() == targetName || logicalVolume->GetName() == targetName) {
-        matches.push_back(RootCandidate{physicalVolume, currentTranslation, currentRotation});
-    }
-
-    for (G4int daughterIndex = 0; daughterIndex < logicalVolume->GetNoDaughters(); ++daughterIndex) {
-        CollectRootCandidates(logicalVolume->GetDaughter(daughterIndex),
-                              targetName,
-                              currentTranslation,
-                              currentRotation,
-                              matches);
-    }
-}
-
-GDMLStructureHint ParseGDMLStructureHint(const G4String& gdmlPath) {
-    const std::string text = ReadTextFileOrThrow(gdmlPath);
-    GDMLStructureHint hint;
-
-    const std::regex setupWorldRegex(R"(<setup\b[\s\S]*?<world\b[^>]*ref=['"]([^'"]+)['"])",
-                                     std::regex::icase);
-    std::smatch setupMatch;
-    if (!std::regex_search(text, setupMatch, setupWorldRegex) || setupMatch.size() < 2) {
-        return hint;
-    }
-    hint.worldVolumeName = setupMatch[1].str();
-
-    const std::regex assemblyRegex(R"(<assembly\b[^>]*name=['"]([^'"]+)['"])", std::regex::icase);
-    for (std::sregex_iterator it(text.begin(), text.end(), assemblyRegex), end; it != end; ++it) {
-        if ((*it).size() >= 2) {
-            hint.assemblyNames.insert((*it)[1].str());
-        }
-    }
-
-    const std::regex worldBlockRegex(
-        "<volume\\b[^>]*name=['\"]" + EscapeRegexLiteral(hint.worldVolumeName) + "['\"][^>]*>([\\s\\S]*?)</volume>",
-        std::regex::icase);
-    std::smatch worldBlockMatch;
-    if (!std::regex_search(text, worldBlockMatch, worldBlockRegex) || worldBlockMatch.size() < 2) {
-        return hint;
-    }
-
-    const auto worldBlock = worldBlockMatch[1].str();
-    const std::regex physvolRegex(R"(<physvol\b([^>]*)>([\s\S]*?)</physvol>)", std::regex::icase);
-    const std::regex nameRegex(R"(name=['"]([^'"]+)['"])", std::regex::icase);
-    const std::regex volumerefRegex(R"(<volumeref\b[^>]*ref=['"]([^'"]+)['"])", std::regex::icase);
-
-    for (std::sregex_iterator it(worldBlock.begin(), worldBlock.end(), physvolRegex), end; it != end; ++it) {
-        GDMLWorldPhysvolHint physvolHint;
-        const auto attributes = (*it)[1].str();
-        const auto body = (*it)[2].str();
-
-        std::smatch attributeMatch;
-        if (std::regex_search(attributes, attributeMatch, nameRegex) && attributeMatch.size() >= 2) {
-            physvolHint.name = attributeMatch[1].str();
-        }
-
-        std::smatch volumerefMatch;
-        if (std::regex_search(body, volumerefMatch, volumerefRegex) && volumerefMatch.size() >= 2) {
-            physvolHint.volumeRef = volumerefMatch[1].str();
-        }
-
-        if (!physvolHint.volumeRef.empty()) {
-            hint.worldPhysvols.push_back(std::move(physvolHint));
-        }
-    }
-
-    return hint;
-}
-
-const GDMLWorldPhysvolHint* FindSingleTopLevelAssemblyHint(const GDMLStructureHint& hint) {
-    if (hint.worldPhysvols.size() != 1) {
-        return nullptr;
-    }
-
-    const auto& worldPhysvol = hint.worldPhysvols.front();
-    if (hint.assemblyNames.find(worldPhysvol.volumeRef) == hint.assemblyNames.end()) {
-        return nullptr;
-    }
-
-    return &worldPhysvol;
-}
-
-BuiltAssemblyData BuildAssemblyFromRoot(const G4VPhysicalVolume* rootPhysicalVolume,
-                                        const G4ThreeVector& rootTranslation,
-                                        const G4RotationMatrix& rootRotation,
-                                        const G4String& gdmlPath) {
-    ValidatePhysicalVolumeOrThrow(
-        rootPhysicalVolume, "GDMLAssemblyReader::BuildAssemblyFromRoot", gdmlPath);
-
-    auto* rootLogicalVolume = rootPhysicalVolume->GetLogicalVolume();
-    ValidateLogicalVolumeOrThrow(
-        rootLogicalVolume, "GDMLAssemblyReader::BuildAssemblyFromRoot", gdmlPath);
-
+BuiltAssemblyData BuildAssemblyFromPhysicalRoot(const MD1::MD1GDMLReadStructure::PhysicalVolumeMatch& rootMatch,
+                                                const G4String& displayRootName,
+                                                const G4String& gdmlPath) {
     BuiltAssemblyData builtAssembly;
-    builtAssembly.rootVolumeName = rootLogicalVolume->GetName();
-    builtAssembly.rootPhysicalVolumeName = rootPhysicalVolume->GetName();
-    CollectAvailableVolumeNames(rootPhysicalVolume, builtAssembly.availableVolumeNames);
-    auto rootPart = BuildPartFromPhysicalVolumeOrThrow(rootPhysicalVolume, gdmlPath);
-    rootPart.name = rootLogicalVolume->GetName();
-    rootPart.translation = rootTranslation;
-    rootPart.rotation = rootRotation;
-    builtAssembly.parts.push_back(std::move(rootPart));
+    builtAssembly.rootVolumeName = displayRootName;
+    builtAssembly.rootPhysicalVolumeName =
+        (rootMatch.physicalVolume != nullptr) ? rootMatch.physicalVolume->GetName() : "";
+    builtAssembly.parts.push_back(BuildPartFromPhysicalVolume(rootMatch.physicalVolume,
+                                                              rootMatch.transform,
+                                                              gdmlPath));
+
+    std::set<const G4LogicalVolume*> visitedLogicals;
+    CollectAvailableNamesFromLogical(rootMatch.physicalVolume->GetLogicalVolume(),
+                                     builtAssembly.availableVolumeNames,
+                                     visitedLogicals);
+    if (rootMatch.physicalVolume != nullptr && !rootMatch.physicalVolume->GetName().empty()) {
+        builtAssembly.availableVolumeNames.insert(rootMatch.physicalVolume->GetName());
+    }
 
     return builtAssembly;
 }
 
-BuiltAssemblyData BuildAssemblyFromCandidates(const std::vector<RootCandidate>& rootCandidates,
-                                              const G4String& rootVolumeName,
-                                              const G4String& rootPhysicalVolumeName,
-                                              const G4String& gdmlPath) {
+BuiltAssemblyData BuildAssemblyFromLogicalRoot(G4LogicalVolume* logicalVolume,
+                                               const G4String& displayRootName,
+                                               const G4String& gdmlPath) {
     BuiltAssemblyData builtAssembly;
-    builtAssembly.rootVolumeName = rootVolumeName;
-    builtAssembly.rootPhysicalVolumeName = rootPhysicalVolumeName;
+    builtAssembly.rootVolumeName = displayRootName.empty() ? logicalVolume->GetName() : displayRootName;
+    builtAssembly.rootPhysicalVolumeName = builtAssembly.rootVolumeName;
+    builtAssembly.parts.push_back(BuildPartFromLogicalVolume(logicalVolume,
+                                                             G4Transform3D(),
+                                                             builtAssembly.rootVolumeName,
+                                                             gdmlPath));
 
-    for (const auto& candidate : rootCandidates) {
-        auto part = BuildPartFromPhysicalVolumeOrThrow(candidate.physicalVolume, gdmlPath);
-        part.translation = candidate.translation;
-        part.rotation = candidate.rotation;
-        builtAssembly.parts.push_back(std::move(part));
-        CollectAvailableVolumeNames(candidate.physicalVolume, builtAssembly.availableVolumeNames);
-    }
+    std::set<const G4LogicalVolume*> visitedLogicals;
+    CollectAvailableNamesFromLogical(logicalVolume, builtAssembly.availableVolumeNames, visitedLogicals);
+    return builtAssembly;
+}
 
-    if (!rootVolumeName.empty()) {
-        builtAssembly.availableVolumeNames.insert(rootVolumeName);
-    }
-    if (!rootPhysicalVolumeName.empty()) {
-        builtAssembly.availableVolumeNames.insert(rootPhysicalVolumeName);
+BuiltAssemblyData BuildAssemblyFromFlattenedAssembly(
+    const std::vector<FlattenedAssemblyPart>& flattenedParts,
+    const G4String& assemblyName,
+    const G4String& gdmlPath) {
+    BuiltAssemblyData builtAssembly;
+    builtAssembly.rootVolumeName = assemblyName;
+    builtAssembly.rootPhysicalVolumeName = assemblyName;
+
+    std::set<const G4LogicalVolume*> visitedLogicals;
+    for (const auto& flattenedPart : flattenedParts) {
+        builtAssembly.parts.push_back(BuildPartFromLogicalVolume(flattenedPart.logicalVolume,
+                                                                 flattenedPart.transform,
+                                                                 flattenedPart.logicalVolume->GetName(),
+                                                                 gdmlPath));
+        CollectAvailableNamesFromLogical(flattenedPart.logicalVolume,
+                                         builtAssembly.availableVolumeNames,
+                                         visitedLogicals);
     }
 
     return builtAssembly;
+}
+
+BuiltAssemblyData BuildAssemblyFromWorldTopLevelAssembly(const G4LogicalVolume* worldLogicalVolume,
+                                                         const G4String& assemblyName,
+                                                         const G4String& gdmlPath) {
+    BuiltAssemblyData builtAssembly;
+    builtAssembly.rootVolumeName = assemblyName;
+    builtAssembly.rootPhysicalVolumeName = assemblyName;
+
+    std::set<const G4LogicalVolume*> visitedLogicals;
+    for (G4int daughterIndex = 0; daughterIndex < worldLogicalVolume->GetNoDaughters(); ++daughterIndex) {
+        const auto* daughter = worldLogicalVolume->GetDaughter(daughterIndex);
+        if (daughter == nullptr) {
+            continue;
+        }
+
+        const G4Transform3D daughterTransform(daughter->GetObjectRotationValue(),
+                                              daughter->GetObjectTranslation());
+        builtAssembly.parts.push_back(BuildPartFromPhysicalVolume(daughter, daughterTransform, gdmlPath));
+        if (!daughter->GetName().empty()) {
+            builtAssembly.availableVolumeNames.insert(daughter->GetName());
+        }
+        CollectAvailableNamesFromLogical(daughter->GetLogicalVolume(),
+                                         builtAssembly.availableVolumeNames,
+                                         visitedLogicals);
+    }
+
+    return builtAssembly;
+}
+
+bool MatchesWorldTopLevelAssembly(const G4LogicalVolume* worldLogicalVolume,
+                                  G4AssemblyVolume* assembly,
+                                  const G4String& gdmlPath) {
+    if (worldLogicalVolume == nullptr || assembly == nullptr) {
+        return false;
+    }
+
+    std::vector<FlattenedAssemblyPart> flattenedParts;
+    FlattenAssemblyOrThrow(assembly, G4Transform3D(), gdmlPath, flattenedParts);
+    if (flattenedParts.size() != static_cast<std::size_t>(worldLogicalVolume->GetNoDaughters())) {
+        return false;
+    }
+
+    std::multiset<G4LogicalVolume*> assemblyLogicals;
+    std::multiset<G4LogicalVolume*> worldLogicals;
+    for (const auto& part : flattenedParts) {
+        assemblyLogicals.insert(part.logicalVolume);
+    }
+    for (G4int daughterIndex = 0; daughterIndex < worldLogicalVolume->GetNoDaughters(); ++daughterIndex) {
+        auto* daughter = worldLogicalVolume->GetDaughter(daughterIndex);
+        worldLogicals.insert((daughter != nullptr) ? daughter->GetLogicalVolume() : nullptr);
+    }
+
+    return assemblyLogicals == worldLogicals;
+}
+
+std::vector<G4String> FindTopLevelAssemblyCandidates(const MD1::MD1GDMLReadStructure& reader,
+                                                     const G4LogicalVolume* worldLogicalVolume,
+                                                     const G4String& gdmlPath) {
+    std::vector<G4String> candidates;
+    for (const auto& [assemblyName, assembly] : reader.GetAssemblyMap()) {
+        if (MatchesWorldTopLevelAssembly(worldLogicalVolume, assembly, gdmlPath)) {
+            candidates.push_back(assemblyName);
+        }
+    }
+
+    std::sort(candidates.begin(), candidates.end());
+    return candidates;
+}
+
+void ThrowRootNotFound(const G4String& gdmlPath,
+                       const G4String& rootName,
+                       const G4String& rootKind,
+                       const std::vector<G4String>& candidates) {
+    const G4String candidateMessage =
+        candidates.empty() ? "" : (" Available " + rootKind + " roots: " + JoinNames(candidates) + ".");
+    G4Exception("GDMLAssemblyReader::ReadAssembly",
+                "ImportedGDMLRootNotFound",
+                FatalException,
+                ("Imported GDML " + gdmlPath + " does not contain a " + rootKind +
+                 " root named '" + rootName + "'." + candidateMessage)
+                    .c_str());
+}
+
+void ThrowTypedAmbiguity(const G4String& gdmlPath,
+                         const G4String& rootName,
+                         const G4String& rootKind,
+                         const std::size_t matchCount) {
+    G4Exception("GDMLAssemblyReader::ReadAssembly",
+                "ImportedGDMLRootAmbiguous",
+                FatalException,
+                ("Imported GDML " + gdmlPath + " contains " + std::to_string(matchCount) + " " +
+                 rootKind + " roots named '" + rootName + "'. Use a unique exact name.")
+                    .c_str());
+}
+
+BuiltAssemblyData ResolveAutoRoot(const MD1::MD1GDMLReadStructure& reader,
+                                  const G4LogicalVolume* worldLogicalVolume,
+                                  const G4String& gdmlPath,
+                                  G4String& resolvedRootName) {
+    if (worldLogicalVolume->GetNoDaughters() == 1) {
+        const auto* rootPhysical = worldLogicalVolume->GetDaughter(0);
+        resolvedRootName = (rootPhysical != nullptr && rootPhysical->GetLogicalVolume() != nullptr)
+                               ? rootPhysical->GetLogicalVolume()->GetName()
+                               : "world_daughter";
+        return BuildAssemblyFromPhysicalRoot(
+            MD1::MD1GDMLReadStructure::PhysicalVolumeMatch{
+                rootPhysical,
+                G4Transform3D(rootPhysical->GetObjectRotationValue(), rootPhysical->GetObjectTranslation())},
+            resolvedRootName,
+            gdmlPath);
+    }
+
+    const auto topLevelAssemblyCandidates =
+        FindTopLevelAssemblyCandidates(reader, worldLogicalVolume, gdmlPath);
+    if (topLevelAssemblyCandidates.size() == 1) {
+        resolvedRootName = topLevelAssemblyCandidates.front();
+        return BuildAssemblyFromWorldTopLevelAssembly(worldLogicalVolume, resolvedRootName, gdmlPath);
+    }
+
+    const G4String assemblyHint =
+        topLevelAssemblyCandidates.empty()
+            ? ""
+            : (" Matching top-level assemblies: " + JoinNames(topLevelAssemblyCandidates) + ".");
+    G4Exception("GDMLAssemblyReader::ReadAssembly",
+                "ImportedGDMLInvalidTopLevel",
+                FatalException,
+                ("Imported GDML " + gdmlPath +
+                 " must define exactly one top-level daughter or one unique top-level assembly "
+                 "when no explicit root is configured." + assemblyHint)
+                    .c_str());
+    return {};
+}
+
+BuiltAssemblyData ResolveExplicitAssemblyRoot(const MD1::MD1GDMLReadStructure& reader,
+                                              const G4LogicalVolume* worldLogicalVolume,
+                                              const G4String& gdmlPath,
+                                              const G4String& assemblyName) {
+    const auto matchingAssemblies = reader.FindAssemblies(assemblyName);
+    if (matchingAssemblies.empty()) {
+        ThrowRootNotFound(gdmlPath, assemblyName, "assembly", reader.GetAssemblyNames());
+    }
+    if (matchingAssemblies.size() > 1) {
+        ThrowTypedAmbiguity(gdmlPath, assemblyName, "assembly", matchingAssemblies.size());
+    }
+
+    const auto topLevelAssemblyCandidates =
+        FindTopLevelAssemblyCandidates(reader, worldLogicalVolume, gdmlPath);
+    if (std::find(topLevelAssemblyCandidates.begin(),
+                  topLevelAssemblyCandidates.end(),
+                  assemblyName) != topLevelAssemblyCandidates.end()) {
+        return BuildAssemblyFromWorldTopLevelAssembly(worldLogicalVolume, assemblyName, gdmlPath);
+    }
+
+    std::vector<FlattenedAssemblyPart> flattenedParts;
+    FlattenAssemblyOrThrow(matchingAssemblies.front(), G4Transform3D(), gdmlPath, flattenedParts);
+    return BuildAssemblyFromFlattenedAssembly(flattenedParts, assemblyName, gdmlPath);
+}
+
+void CollectAuxSensitiveNames(const MD1::GDMLImportedAssembly& assembly,
+                              const G4LogicalVolume* logicalVolume,
+                              std::set<G4String>& sensitiveNames,
+                              std::set<const G4LogicalVolume*>& visitedLogicals) {
+    if (logicalVolume == nullptr || !visitedLogicals.insert(logicalVolume).second) {
+        return;
+    }
+
+    if (const auto* auxiliaries = assembly.GetAuxiliaryInfo(logicalVolume); auxiliaries != nullptr) {
+        const auto hasSensDet =
+            std::any_of(auxiliaries->begin(), auxiliaries->end(), [](const auto& aux) {
+                return aux.type == "SensDet";
+            });
+        if (hasSensDet) {
+            sensitiveNames.insert(logicalVolume->GetName());
+        }
+    }
+
+    for (G4int daughterIndex = 0; daughterIndex < logicalVolume->GetNoDaughters(); ++daughterIndex) {
+        auto* daughter = logicalVolume->GetDaughter(daughterIndex);
+        if (daughter != nullptr) {
+            CollectAuxSensitiveNames(
+                assembly, daughter->GetLogicalVolume(), sensitiveNames, visitedLogicals);
+        }
+    }
 }
 
 } // namespace
 
 namespace MD1 {
 
+std::vector<G4String> GDMLImportedAssembly::GetAuxSensitiveVolumeNames() const {
+    std::set<G4String> sensitiveNames;
+    std::set<const G4LogicalVolume*> visitedLogicals;
+    for (const auto& part : fParts) {
+        CollectAuxSensitiveNames(*this, part.logicalVolume, sensitiveNames, visitedLogicals);
+    }
+
+    return SortedKeys(sensitiveNames);
+}
+
+const G4GDMLAuxListType* GDMLImportedAssembly::GetAuxiliaryInfo(
+    const G4LogicalVolume* logicalVolume) const {
+    if (fReader == nullptr) {
+        return nullptr;
+    }
+
+    return fReader->FindAuxiliaryInformation(logicalVolume);
+}
+
 GDMLImportedAssembly GDMLAssemblyReader::ReadAssembly(const G4String& gdmlPath,
-                                                      const G4String& rootName) {
+                                                      const GDMLRootSelector& rootSelector,
+                                                      const GDMLReadOptions& readOptions) {
     GDMLImportedAssembly assembly;
     assembly.fSourcePath = ResolveGDMLPathOrThrow(gdmlPath);
-    assembly.fParser = std::make_shared<G4GDMLParser>();
-    assembly.fParser->Read(assembly.fSourcePath, false);
+    assembly.fRootSelector = NormalizeRootSelector(rootSelector);
+    const auto normalizedReadOptions = NormalizeReadOptions(readOptions);
+
+    auto* reader = new MD1GDMLReadStructure();
+    assembly.fReader = reader;
+    assembly.fParser = std::make_shared<G4GDMLParser>(reader);
+    if (!normalizedReadOptions.schemaPath.empty()) {
+        assembly.fParser->SetImportSchema(normalizedReadOptions.schemaPath);
+    }
+    assembly.fParser->Read(assembly.fSourcePath, normalizedReadOptions.validate);
 
     auto* worldPhysicalVolume = assembly.fParser->GetWorldVolume();
     ValidatePhysicalVolumeOrThrow(worldPhysicalVolume,
@@ -333,126 +541,66 @@ GDMLImportedAssembly GDMLAssemblyReader::ReadAssembly(const G4String& gdmlPath,
                                  "GDMLAssemblyReader::ReadAssembly",
                                  assembly.fSourcePath);
 
-    const auto structureHint = ParseGDMLStructureHint(assembly.fSourcePath);
-    const auto* singleTopLevelAssemblyHint = FindSingleTopLevelAssemblyHint(structureHint);
-    const auto requestedRootName = TrimName(rootName);
-    if (requestedRootName.empty()) {
-        if (worldLogicalVolume->GetNoDaughters() == 1) {
-            auto* rootPhysicalVolume = worldLogicalVolume->GetDaughter(0);
-            auto builtAssembly = BuildAssemblyFromRoot(rootPhysicalVolume,
-                                                       rootPhysicalVolume->GetObjectTranslation(),
-                                                       rootPhysicalVolume->GetObjectRotationValue(),
-                                                       assembly.fSourcePath);
-            assembly.fRootVolumeName = std::move(builtAssembly.rootVolumeName);
-            assembly.fRootPhysicalVolumeName = std::move(builtAssembly.rootPhysicalVolumeName);
-            assembly.fParts = std::move(builtAssembly.parts);
-            assembly.fAvailableVolumeNames.assign(builtAssembly.availableVolumeNames.begin(),
-                                                  builtAssembly.availableVolumeNames.end());
-        } else if (singleTopLevelAssemblyHint != nullptr) {
-            std::vector<RootCandidate> topLevelCandidates;
-            for (G4int daughterIndex = 0; daughterIndex < worldLogicalVolume->GetNoDaughters(); ++daughterIndex) {
-                auto* worldDaughter = worldLogicalVolume->GetDaughter(daughterIndex);
-                topLevelCandidates.push_back(
-                    RootCandidate{worldDaughter,
-                                  worldDaughter->GetObjectTranslation(),
-                                  worldDaughter->GetObjectRotationValue()});
-            }
+    reader->BuildInventory(worldPhysicalVolume);
+    assembly.fAvailableLogicalVolumeNames = reader->GetLogicalVolumeNames();
+    assembly.fAvailablePhysicalVolumeNames = reader->GetPhysicalVolumeNames();
+    assembly.fAvailableAssemblyNames = reader->GetAssemblyNames();
 
-            auto builtAssembly = BuildAssemblyFromCandidates(topLevelCandidates,
-                                                             singleTopLevelAssemblyHint->volumeRef,
-                                                             singleTopLevelAssemblyHint->name,
-                                                             assembly.fSourcePath);
-            assembly.fRootVolumeName = std::move(builtAssembly.rootVolumeName);
-            assembly.fRootPhysicalVolumeName = std::move(builtAssembly.rootPhysicalVolumeName);
-            assembly.fParts = std::move(builtAssembly.parts);
-            assembly.fAvailableVolumeNames.assign(builtAssembly.availableVolumeNames.begin(),
-                                                  builtAssembly.availableVolumeNames.end());
-        } else {
-            G4Exception("GDMLAssemblyReader::ReadAssembly",
-                        "ImportedGDMLInvalidTopLevel",
-                        FatalException,
-                        ("Imported GDML " + assembly.fSourcePath +
-                         " must define exactly one top-level daughter inside the world volume "
-                         "when no explicit root name is configured.").c_str());
+    BuiltAssemblyData builtAssembly;
+    G4String resolvedRootName = assembly.fRootSelector.name;
+    if (assembly.fRootSelector.type == GDMLRootSelectorType::Auto && resolvedRootName.empty()) {
+        builtAssembly = ResolveAutoRoot(*reader, worldLogicalVolume, assembly.fSourcePath, resolvedRootName);
+    } else if (assembly.fRootSelector.type == GDMLRootSelectorType::Logical) {
+        const auto& logicalMatches = reader->FindLogicalVolumes(resolvedRootName);
+        if (logicalMatches.empty()) {
+            ThrowRootNotFound(
+                assembly.fSourcePath, resolvedRootName, "logical", reader->GetLogicalVolumeNames());
         }
+        if (logicalMatches.size() > 1) {
+            ThrowTypedAmbiguity(
+                assembly.fSourcePath, resolvedRootName, "logical", logicalMatches.size());
+        }
+        builtAssembly =
+            BuildAssemblyFromLogicalRoot(logicalMatches.front(), resolvedRootName, assembly.fSourcePath);
+    } else if (assembly.fRootSelector.type == GDMLRootSelectorType::Physical) {
+        const auto& physicalMatches = reader->FindPhysicalVolumes(resolvedRootName);
+        if (physicalMatches.empty()) {
+            ThrowRootNotFound(
+                assembly.fSourcePath, resolvedRootName, "physical", reader->GetPhysicalVolumeNames());
+        }
+        if (physicalMatches.size() > 1) {
+            ThrowTypedAmbiguity(
+                assembly.fSourcePath, resolvedRootName, "physical", physicalMatches.size());
+        }
+        builtAssembly =
+            BuildAssemblyFromPhysicalRoot(physicalMatches.front(), resolvedRootName, assembly.fSourcePath);
+    } else if (assembly.fRootSelector.type == GDMLRootSelectorType::Assembly) {
+        builtAssembly = ResolveExplicitAssemblyRoot(
+            *reader, worldLogicalVolume, assembly.fSourcePath, resolvedRootName);
     } else {
-        std::vector<RootCandidate> matches;
-        for (G4int daughterIndex = 0; daughterIndex < worldLogicalVolume->GetNoDaughters(); ++daughterIndex) {
-            CollectRootCandidates(worldLogicalVolume->GetDaughter(daughterIndex),
-                                  requestedRootName,
-                                  G4ThreeVector(),
-                                  G4RotationMatrix(),
-                                  matches);
-        }
-
-        if (matches.empty()) {
-            if (singleTopLevelAssemblyHint != nullptr &&
-                (requestedRootName == singleTopLevelAssemblyHint->volumeRef ||
-                 requestedRootName == singleTopLevelAssemblyHint->name)) {
-                std::vector<RootCandidate> topLevelCandidates;
-                for (G4int daughterIndex = 0; daughterIndex < worldLogicalVolume->GetNoDaughters();
-                     ++daughterIndex) {
-                    auto* worldDaughter = worldLogicalVolume->GetDaughter(daughterIndex);
-                    topLevelCandidates.push_back(
-                        RootCandidate{worldDaughter,
-                                      worldDaughter->GetObjectTranslation(),
-                                      worldDaughter->GetObjectRotationValue()});
-                }
-
-                auto builtAssembly = BuildAssemblyFromCandidates(topLevelCandidates,
-                                                                 singleTopLevelAssemblyHint->volumeRef,
-                                                                 singleTopLevelAssemblyHint->name,
-                                                                 assembly.fSourcePath);
-                assembly.fRootVolumeName = std::move(builtAssembly.rootVolumeName);
-                assembly.fRootPhysicalVolumeName = std::move(builtAssembly.rootPhysicalVolumeName);
-                assembly.fParts = std::move(builtAssembly.parts);
-                assembly.fAvailableVolumeNames.assign(builtAssembly.availableVolumeNames.begin(),
-                                                      builtAssembly.availableVolumeNames.end());
-            } else {
-                const G4String assemblyHintMessage =
-                    (singleTopLevelAssemblyHint != nullptr)
-                        ? (" Known top-level assembly aliases: '" + singleTopLevelAssemblyHint->volumeRef +
-                           "' and '" + singleTopLevelAssemblyHint->name + "'.")
-                        : "";
-                G4Exception("GDMLAssemblyReader::ReadAssembly",
-                            "ImportedGDMLRootNotFound",
-                            FatalException,
-                            ("Imported GDML " + assembly.fSourcePath +
-                             " does not contain a unique physical or logical volume named '" +
-                             requestedRootName + "'." + assemblyHintMessage)
-                                .c_str());
-            }
-        }
-
-        if (!matches.empty() && matches.size() > 1) {
-            G4Exception("GDMLAssemblyReader::ReadAssembly",
-                        "ImportedGDMLRootAmbiguous",
-                        FatalException,
-                        ("Imported GDML " + assembly.fSourcePath +
-                         " contains multiple physical/logical volumes named '" +
-                         requestedRootName + "'. Use a unique root name.").c_str());
-        }
-
-        if (!matches.empty()) {
-            const auto& selectedRoot = matches.front();
-            auto builtAssembly = BuildAssemblyFromRoot(selectedRoot.physicalVolume,
-                                                       selectedRoot.translation,
-                                                       selectedRoot.rotation,
-                                                       assembly.fSourcePath);
-            assembly.fRootVolumeName = std::move(builtAssembly.rootVolumeName);
-            assembly.fRootPhysicalVolumeName = std::move(builtAssembly.rootPhysicalVolumeName);
-            assembly.fParts = std::move(builtAssembly.parts);
-            assembly.fAvailableVolumeNames.assign(builtAssembly.availableVolumeNames.begin(),
-                                                  builtAssembly.availableVolumeNames.end());
-        }
+        G4Exception("GDMLAssemblyReader::ReadAssembly",
+                    "ImportedGDMLRootSelectorInvalid",
+                    FatalException,
+                    ("Imported GDML " + assembly.fSourcePath +
+                     " received an unsupported auto root selector with explicit name '" +
+                     resolvedRootName +
+                     "'. Use logical, physical, or assembly root selection instead.")
+                        .c_str());
     }
+
+    assembly.fRootVolumeName =
+        builtAssembly.rootVolumeName.empty() ? resolvedRootName : builtAssembly.rootVolumeName;
+    assembly.fRootPhysicalVolumeName = builtAssembly.rootPhysicalVolumeName;
+    assembly.fParts = std::move(builtAssembly.parts);
+    assembly.fAvailableVolumeNames = SortedKeys(builtAssembly.availableVolumeNames);
 
     if (assembly.fParts.empty()) {
         G4Exception("GDMLAssemblyReader::ReadAssembly",
                     "ImportedGDMLEmptyAssembly",
                     FatalException,
                     ("Imported GDML " + assembly.fSourcePath +
-                     " did not provide any reusable passive parts.").c_str());
+                     " did not provide any reusable parts for model11.")
+                        .c_str());
     }
 
     return assembly;
