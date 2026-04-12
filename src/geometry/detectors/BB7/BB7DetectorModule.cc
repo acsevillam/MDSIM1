@@ -3,15 +3,19 @@
 #include <algorithm>
 #include <map>
 
+#include "G4AccumulableManager.hh"
 #include "G4AnalysisManager.hh"
 #include "G4DigiManager.hh"
 #include "G4Event.hh"
 #include "G4Exception.hh"
+#include "G4Run.hh"
 #include "G4SDManager.hh"
 #include "G4RotationMatrix.hh"
 #include "G4SystemOfUnits.hh"
 
+#include "geometry/base/DosimetricDetectorResults.hh"
 #include "geometry/base/DetectorModuleUtils.hh"
+#include "geometry/detectors/BB7/calibration/BB7DoseCalibrator.hh"
 #include "geometry/detectors/BB7/geometry/DetectorDualBB7.hh"
 #include "geometry/detectors/BB7/readout/BB7Digit.hh"
 #include "geometry/detectors/BB7/readout/BB7Digitizer.hh"
@@ -21,13 +25,19 @@
 namespace {
 
 struct BB7DetectorRuntimeState final : DetectorRuntimeState {
-    G4int ntupleId = -1;
+    G4int signalNtupleId = -1;
+    G4int calibrationNtupleId = -1;
     G4int chargeMapId = -1;
     G4int digitsCollectionId = -1;
+    MD1::DosimetricDetectorResultsAccumulable resultsAccumulable{"BB7Results"};
+    G4bool resultsRegistered = false;
 };
 
-void ValidateAnalysisIdsOrThrow(G4int ntupleId, G4int chargeMapId, const G4String& detectorName) {
-    if (ntupleId < 0 || chargeMapId < 0) {
+void ValidateAnalysisIdsOrThrow(G4int signalNtupleId,
+                                G4int calibrationNtupleId,
+                                G4int chargeMapId,
+                                const G4String& detectorName) {
+    if (signalNtupleId < 0 || calibrationNtupleId < 0 || chargeMapId < 0) {
         G4Exception("BB7DetectorModule::ValidateAnalysisIdsOrThrow",
                     "DetectorAnalysisNotInitialized",
                     FatalException,
@@ -38,6 +48,12 @@ void ValidateAnalysisIdsOrThrow(G4int ntupleId, G4int chargeMapId, const G4Strin
 
 BB7DetectorRuntimeState& GetRuntimeStateOrThrow(DetectorRuntimeState& runtimeState,
                                                 const G4String& detectorName) {
+    return DetectorModuleUtils::GetRuntimeStateOrThrow<BB7DetectorRuntimeState>(
+        runtimeState, detectorName, "BB7DetectorModule::GetRuntimeStateOrThrow");
+}
+
+const BB7DetectorRuntimeState& GetRuntimeStateOrThrow(const DetectorRuntimeState& runtimeState,
+                                                      const G4String& detectorName) {
     return DetectorModuleUtils::GetRuntimeStateOrThrow<BB7DetectorRuntimeState>(
         runtimeState, detectorName, "BB7DetectorModule::GetRuntimeStateOrThrow");
 }
@@ -91,23 +107,44 @@ std::unique_ptr<DetectorRuntimeState> BB7DetectorModule::CreateRuntimeState() co
     return std::make_unique<BB7DetectorRuntimeState>();
 }
 
+void BB7DetectorModule::PrepareForRun(DetectorRuntimeState& runtimeState, G4bool /*isMaster*/) {
+    auto& state = GetRuntimeStateOrThrow(runtimeState, GetName());
+    if (!state.resultsRegistered) {
+        G4AccumulableManager::Instance()->Register(&state.resultsAccumulable);
+        state.resultsRegistered = true;
+    }
+}
+
+void BB7DetectorModule::MergeRunResults(DetectorRuntimeState& /*runtimeState*/, G4bool /*isMaster*/) {}
+
 void BB7DetectorModule::CreateAnalysis(G4AnalysisManager* analysisManager,
                                        DetectorRuntimeState& runtimeState) {
     auto& state = GetRuntimeStateOrThrow(runtimeState, GetName());
-    if (state.ntupleId >= 0) {
+    if (state.signalNtupleId >= 0 || state.calibrationNtupleId >= 0) {
         return;
     }
 
-    state.ntupleId = analysisManager->CreateNtuple("BB7Hits", "Variables related to BB7 detector hits");
-    analysisManager->CreateNtupleDColumn(state.ntupleId, "DetectorID");
-    analysisManager->CreateNtupleDColumn(state.ntupleId, "SensorID");
-    analysisManager->CreateNtupleDColumn(state.ntupleId, "StripID");
-    analysisManager->CreateNtupleDColumn(state.ntupleId, "Edep[eV]");
-    analysisManager->CreateNtupleDColumn(state.ntupleId, "Charge[coulomb]");
-    analysisManager->CreateNtupleDColumn(state.ntupleId, "Dose[Gy]");
-    analysisManager->CreateNtupleDColumn(state.ntupleId, "EstimatedDoseToWater[Gy]");
-    analysisManager->CreateNtupleDColumn(state.ntupleId, "EventID");
-    analysisManager->FinishNtuple(state.ntupleId);
+    state.signalNtupleId =
+        analysisManager->CreateNtuple("BB7Hits", "Physical readout variables related to BB7 detector hits");
+    analysisManager->CreateNtupleDColumn(state.signalNtupleId, "DetectorID");
+    analysisManager->CreateNtupleDColumn(state.signalNtupleId, "SensorID");
+    analysisManager->CreateNtupleDColumn(state.signalNtupleId, "StripID");
+    analysisManager->CreateNtupleDColumn(state.signalNtupleId, "Edep[eV]");
+    analysisManager->CreateNtupleDColumn(state.signalNtupleId, "Charge[coulomb]");
+    analysisManager->CreateNtupleDColumn(state.signalNtupleId, "Dose[Gy]");
+    analysisManager->CreateNtupleDColumn(state.signalNtupleId, "EventID");
+    analysisManager->FinishNtuple(state.signalNtupleId);
+
+    state.calibrationNtupleId =
+        analysisManager->CreateNtuple("BB7DoseCalibration", "BB7 calibrated dose output");
+    analysisManager->CreateNtupleDColumn(state.calibrationNtupleId, "DetectorID");
+    analysisManager->CreateNtupleDColumn(state.calibrationNtupleId, "SensorID");
+    analysisManager->CreateNtupleDColumn(state.calibrationNtupleId, "StripID");
+    analysisManager->CreateNtupleDColumn(state.calibrationNtupleId, "Charge[coulomb]");
+    analysisManager->CreateNtupleDColumn(state.calibrationNtupleId, "EstimatedDoseToWater[Gy]");
+    analysisManager->CreateNtupleDColumn(state.calibrationNtupleId, "CalibrationError[Gy]");
+    analysisManager->CreateNtupleDColumn(state.calibrationNtupleId, "EventID");
+    analysisManager->FinishNtuple(state.calibrationNtupleId);
 
     state.chargeMapId = analysisManager->CreateH2("CollectedChargeMap",
                                                   "2D collected charge map reconstruction",
@@ -131,17 +168,17 @@ G4String BB7DetectorModule::GetSummaryLabel(G4int detectorID) const {
     return GetName() + "[" + std::to_string(detectorID) + "]";
 }
 
-DetectorEventData BB7DetectorModule::ProcessEvent(const G4Event* event,
-                                                  G4AnalysisManager* analysisManager,
-                                                  G4DigiManager* digiManager,
-                                                  DetectorRuntimeState& runtimeState) {
-    DetectorEventData eventData;
+void BB7DetectorModule::ProcessEvent(const G4Event* event,
+                                     G4AnalysisManager* analysisManager,
+                                     G4DigiManager* digiManager,
+                                     DetectorRuntimeState& runtimeState) {
     if (!fEnabled || !HasPlacedGeometry()) {
-        return eventData;
+        return;
     }
 
     auto& state = GetRuntimeStateOrThrow(runtimeState, GetName());
-    ValidateAnalysisIdsOrThrow(state.ntupleId, state.chargeMapId, GetName());
+    ValidateAnalysisIdsOrThrow(
+        state.signalNtupleId, state.calibrationNtupleId, state.chargeMapId, GetName());
     auto* digitizer = DetectorModuleUtils::GetDigitizerOrThrow<BB7Digitizer>(
         digiManager, "BB7Digitizer", GetName(), "BB7DetectorModule::GetDigitizerOrThrow");
     digitizer->Digitize();
@@ -153,36 +190,41 @@ DetectorEventData BB7DetectorModule::ProcessEvent(const G4Event* event,
     auto* digitsCollection =
         static_cast<const BB7DigitsCollection*>(digiManager->GetDigiCollection(state.digitsCollectionId));
     if (digitsCollection == nullptr) {
-        return eventData;
+        return;
     }
 
-    std::map<G4int, std::size_t> instanceIndices;
-
-    auto getInstanceData = [&](G4int detectorID) -> DetectorInstanceEventData& {
-        const auto it = instanceIndices.find(detectorID);
-        if (it != instanceIndices.end()) {
-            return eventData.instanceData[it->second];
-        }
-
-        DetectorInstanceEventData instanceData;
-        instanceData.summaryLabel = GetSummaryLabel(detectorID);
-        eventData.instanceData.push_back(instanceData);
-        const std::size_t instanceIndex = eventData.instanceData.size() - 1;
-        instanceIndices.emplace(detectorID, instanceIndex);
-        return eventData.instanceData[instanceIndex];
+    struct EventTotals {
+        G4double totalEdep = 0.;
+        G4double totalCollectedCharge = 0.;
+        G4double totalDose = 0.;
+        MD1::CalibratedDoseToWaterData estimatedDoseToWater;
     };
+    std::map<G4int, EventTotals> eventTotalsByDetector;
 
     for (size_t i = 0; i < digitsCollection->entries(); ++i) {
         auto* digit = (*digitsCollection)[i];
-        analysisManager->FillNtupleDColumn(state.ntupleId, 0, digit->GetDetectorID());
-        analysisManager->FillNtupleDColumn(state.ntupleId, 1, digit->GetSensorID());
-        analysisManager->FillNtupleDColumn(state.ntupleId, 2, digit->GetStripID());
-        analysisManager->FillNtupleDColumn(state.ntupleId, 3, digit->GetEdep());
-        analysisManager->FillNtupleDColumn(state.ntupleId, 4, digit->GetCollectedCharge());
-        analysisManager->FillNtupleDColumn(state.ntupleId, 5, digit->GetDose());
-        analysisManager->FillNtupleDColumn(state.ntupleId, 6, digit->GetEstimatedDoseToWater());
-        analysisManager->FillNtupleDColumn(state.ntupleId, 7, event->GetEventID());
-        analysisManager->AddNtupleRow(state.ntupleId);
+        analysisManager->FillNtupleDColumn(state.signalNtupleId, 0, digit->GetDetectorID());
+        analysisManager->FillNtupleDColumn(state.signalNtupleId, 1, digit->GetSensorID());
+        analysisManager->FillNtupleDColumn(state.signalNtupleId, 2, digit->GetStripID());
+        analysisManager->FillNtupleDColumn(state.signalNtupleId, 3, digit->GetEdep());
+        analysisManager->FillNtupleDColumn(state.signalNtupleId, 4, digit->GetCollectedCharge());
+        analysisManager->FillNtupleDColumn(state.signalNtupleId, 5, digit->GetDose());
+        analysisManager->FillNtupleDColumn(state.signalNtupleId, 6, event->GetEventID());
+        analysisManager->AddNtupleRow(state.signalNtupleId);
+
+        const BB7DoseCalibrator calibrator(fGeometry->GetCalibrationParameters(digit->GetDetectorID()));
+        const auto calibratedDose = calibrator.Calibrate(*digit);
+        analysisManager->FillNtupleDColumn(state.calibrationNtupleId, 0, digit->GetDetectorID());
+        analysisManager->FillNtupleDColumn(state.calibrationNtupleId, 1, digit->GetSensorID());
+        analysisManager->FillNtupleDColumn(state.calibrationNtupleId, 2, digit->GetStripID());
+        analysisManager->FillNtupleDColumn(
+            state.calibrationNtupleId, 3, digit->GetCollectedCharge());
+        analysisManager->FillNtupleDColumn(
+            state.calibrationNtupleId, 4, calibratedDose.estimatedDoseToWater);
+        analysisManager->FillNtupleDColumn(
+            state.calibrationNtupleId, 5, calibratedDose.calibrationError);
+        analysisManager->FillNtupleDColumn(state.calibrationNtupleId, 6, event->GetEventID());
+        analysisManager->AddNtupleRow(state.calibrationNtupleId);
 
         for (size_t pStripID = 0; pStripID < 32; ++pStripID) {
             if (digit->GetSensorID() == 0) {
@@ -195,19 +237,27 @@ DetectorEventData BB7DetectorModule::ProcessEvent(const G4Event* event,
             }
         }
 
-        eventData.totalEdep += digit->GetEdep();
-        eventData.totalCollectedCharge += digit->GetCollectedCharge();
-        eventData.totalDose += digit->GetDose();
-        eventData.totalEstimatedDoseToWater += digit->GetEstimatedDoseToWater();
-        eventData.hasSignal = true;
-
-        auto& instanceData = getInstanceData(digit->GetDetectorID());
-        instanceData.totalEdep += digit->GetEdep();
-        instanceData.totalCollectedCharge += digit->GetCollectedCharge();
-        instanceData.totalDose += digit->GetDose();
-        instanceData.estimatedDoseToWater.Add(digit->GetEstimatedDoseToWater(),
-                                              digit->GetEstimatedDoseToWaterCalibrationError());
+        auto& eventTotals = eventTotalsByDetector[digit->GetDetectorID()];
+        eventTotals.totalEdep += digit->GetEdep();
+        eventTotals.totalCollectedCharge += digit->GetCollectedCharge();
+        eventTotals.totalDose += digit->GetDose();
+        eventTotals.estimatedDoseToWater.Add(calibratedDose.estimatedDoseToWater,
+                                             calibratedDose.calibrationError);
     }
 
-    return eventData;
+    for (const auto& [detectorID, eventTotals] : eventTotalsByDetector) {
+        auto& summary = state.resultsAccumulable.FindOrCreate(GetSummaryLabel(detectorID));
+        summary.AddEvent(eventTotals.totalEdep,
+                         eventTotals.totalCollectedCharge,
+                         eventTotals.totalDose,
+                         eventTotals.estimatedDoseToWater);
+    }
+}
+
+void BB7DetectorModule::PrintResults(const G4Run* /*run*/,
+                                     const DetectorRuntimeState& runtimeState,
+                                     const MD1::DetectorPrintContext& context) const {
+    const auto& state = GetRuntimeStateOrThrow(runtimeState, GetName());
+    MD1::PrintDosimetricDetectorResults(
+        "BB7", GetSummaryLabels(), state.resultsAccumulable, context);
 }

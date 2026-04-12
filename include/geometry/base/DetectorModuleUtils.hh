@@ -70,6 +70,21 @@ TRuntimeState& GetRuntimeStateOrThrow(DetectorRuntimeState& runtimeState,
     return *typedState;
 }
 
+template <typename TRuntimeState>
+const TRuntimeState& GetRuntimeStateOrThrow(const DetectorRuntimeState& runtimeState,
+                                            const G4String& detectorName,
+                                            const char* scope) {
+    auto* typedState = dynamic_cast<const TRuntimeState*>(&runtimeState);
+    if (typedState == nullptr) {
+        G4Exception(scope,
+                    "DetectorRuntimeStateTypeMismatch",
+                    FatalException,
+                    ("Detector module " + detectorName +
+                     " received an incompatible runtime state.").c_str());
+    }
+    return *typedState;
+}
+
 template <typename TSensitiveDetector>
 TSensitiveDetector* GetOrCreateSensitiveDetector(G4SDManager* sdManager,
                                                  const G4String& sensitiveDetectorName) {

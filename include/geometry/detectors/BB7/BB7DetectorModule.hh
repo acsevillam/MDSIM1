@@ -23,14 +23,19 @@ public:
     void RegisterSensitiveDetectors(G4SDManager* sdManager) override;
     void RegisterDigitizers(G4DigiManager* digiManager) override;
     std::unique_ptr<DetectorRuntimeState> CreateRuntimeState() const override;
+    void PrepareForRun(DetectorRuntimeState& runtimeState, G4bool isMaster) override;
+    void MergeRunResults(DetectorRuntimeState& runtimeState, G4bool isMaster) override;
     void CreateAnalysis(G4AnalysisManager* analysisManager,
                         DetectorRuntimeState& runtimeState) override;
     std::vector<G4String> GetSummaryLabels() const override;
     G4String GetSummaryLabel(G4int detectorID) const override;
-    DetectorEventData ProcessEvent(const G4Event* event,
-                                   G4AnalysisManager* analysisManager,
-                                   G4DigiManager* digiManager,
-                                   DetectorRuntimeState& runtimeState) override;
+    void ProcessEvent(const G4Event* event,
+                      G4AnalysisManager* analysisManager,
+                      G4DigiManager* digiManager,
+                      DetectorRuntimeState& runtimeState) override;
+    void PrintResults(const G4Run* run,
+                      const DetectorRuntimeState& runtimeState,
+                      const MD1::DetectorPrintContext& context) const override;
 
 private:
     G4bool fEnabled;

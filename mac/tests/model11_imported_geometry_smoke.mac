@@ -1,0 +1,33 @@
+/control/verbose 0
+/run/verbose 0
+
+/MultiDetector1/control/SetPrimaryGeneratorType 2
+/MultiDetector1/detectors/model11/addGeometryTo world_log 0
+/MultiDetector1/detectors/model11/detectorID 0
+/MultiDetector1/detectors/model11/setSplitAtInterface false
+/MultiDetector1/detectors/model11/setImportedGeometryGDML cmake/tests/data/model11/imported_geometry.gdml
+/MultiDetector1/detectors/model11/setImportedGeometryRoot PassiveAssemblyLV
+/MultiDetector1/detectors/model11/addSensitiveVolume PassiveAssemblyCapLV
+/MultiDetector1/detectors/model11/setScintillationYield 10000
+/MultiDetector1/detectors/model11/setBirksConstant 0.126
+/MultiDetector1/detectors/model11/setLightCollectionEfficiency 0.25
+/MultiDetector1/detectors/model11/setDecayTime 2.1 ns
+/MultiDetector1/detectors/model11/setTransportDelay 0.5 ns
+/MultiDetector1/detectors/model11/setTimeJitter 0.1 ns
+/MultiDetector1/detectors/model11/setResolutionScale 1.0
+/MultiDetector1/detectors/model11/setDoseCalibrationFactor 1.0e-12
+/MultiDetector1/detectors/model11/setDoseCalibrationFactorError 5.0e-14
+
+/run/initialize
+
+/gps/particle e-
+/gps/ene/type Mono
+/gps/energy 10 MeV
+/gps/pos/type Point
+/gps/pos/centre 0 0 20 cm
+/gps/direction 0 0 -1
+
+/MultiDetector1/detectors/model11/detectorID 0
+/MultiDetector1/detectors/model11/translateTo 0 0 0 cm
+
+/run/beamOn 100

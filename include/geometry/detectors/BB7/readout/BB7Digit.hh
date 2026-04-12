@@ -115,10 +115,6 @@ public:
      * @param dose The dose.
      */
     void SetDose(G4double dose) { fDose = dose; }
-    void SetEstimatedDoseToWater(G4double dose) { fEstimatedDoseToWater = dose; }
-    void SetEstimatedDoseToWaterCalibrationError(G4double doseError) {
-        fEstimatedDoseToWaterCalibrationError = doseError;
-    }
 
     /**
      * @brief Get the detector ID.
@@ -155,10 +151,6 @@ public:
      * @return The dose.
      */
     G4double GetDose() const { return fDose; }
-    G4double GetEstimatedDoseToWater() const { return fEstimatedDoseToWater; }
-    G4double GetEstimatedDoseToWaterCalibrationError() const {
-        return fEstimatedDoseToWaterCalibrationError;
-    }
 
 private:
     G4int fDetectorID = -1; ///< Detector ID
@@ -167,8 +159,6 @@ private:
     G4double fEdep = 0.; ///< Energy deposition
     G4double fCollectedCharge = 0.; ///< Collected charge
     G4double fDose = 0.; ///< Absorbed dose in the detector sensitive volume
-    G4double fEstimatedDoseToWater = 0.; ///< Estimated absorbed dose in water from calibration
-    G4double fEstimatedDoseToWaterCalibrationError = 0.; ///< Absolute calibration uncertainty on estimated absorbed dose
 };
 
 typedef G4TDigiCollection<BB7Digit> BB7DigitsCollection;

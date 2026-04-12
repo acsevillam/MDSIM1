@@ -79,12 +79,14 @@ for ((replica=1; replica<=n_replicas; replica++)); do
 
         md1_move_analysis_contents "${analysis_dir}" "${result_dir}"
 
-        estimated_line=$(awk '
-            /^\(8\)  Estimated total absorbed dose in water / {print; exit}
-        ' "${result_dir}/output.log")
+        estimated_line=$(md1_extract_detector_results_line \
+            "${result_dir}/output.log" \
+            "Cube" \
+            "cube[0]" \
+            "(8)  Estimated absorbed dose in water ")
 
         if [ -z "${estimated_line}" ]; then
-            echo "Could not find global summary line (8) in ${result_dir}/output.log" >&2
+            echo "Could not find cube results line (8) in ${result_dir}/output.log" >&2
             exit 1
         fi
 
@@ -96,7 +98,7 @@ for ((replica=1; replica<=n_replicas; replica++)); do
         rms_cGy=$(echo "${estimated_line}" | sed -E 's/^.* rms = ([^ ]+) cGy$/\1/')
 
         if [ -z "${estimated_cGy}" ] || [ -z "${mc_err_cGy}" ] || [ -z "${mu_err_cGy}" ] || [ -z "${det_err_cGy}" ] || [ -z "${total_err_cGy}" ] || [ -z "${rms_cGy}" ]; then
-            echo "Could not parse estimated absorbed dose line: ${estimated_line}" >&2
+            echo "Could not parse cube estimated absorbed dose line: ${estimated_line}" >&2
             exit 1
         fi
 

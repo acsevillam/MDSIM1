@@ -12,8 +12,6 @@
  *
  */
 
-#include <cmath>
-
 // Geant4 Headers
 #include "G4DigiManager.hh"
 #include "G4LogicalVolumeStore.hh"
@@ -79,10 +77,6 @@ void BB7Digitizer::Digitize() {
                     fReadoutParameters.elementaryCharge;
                 const G4double weightedEdep = edep * weight;
                 const G4double weightedCollectedCharge = collectedCharge * weight;
-                const G4double estimatedDoseToWater =
-                    weightedCollectedCharge * fReadoutParameters.calibrationFactor;
-                const G4double estimatedDoseToWaterCalibrationError =
-                    std::abs(weightedCollectedCharge) * fReadoutParameters.calibrationFactorError;
                 auto newDigit = std::make_unique<BB7Digit>();
                 newDigit->SetDetectorID(detectorID);
                 newDigit->SetSensorID(sensorID);
@@ -90,8 +84,6 @@ void BB7Digitizer::Digitize() {
                 newDigit->SetEdep(weightedEdep);
                 newDigit->SetCollectedCharge(weightedCollectedCharge);
                 newDigit->SetDose(weightedEdep / sensitiveMass);
-                newDigit->SetEstimatedDoseToWater(estimatedDoseToWater);
-                newDigit->SetEstimatedDoseToWaterCalibrationError(estimatedDoseToWaterCalibrationError);
                 // newDigit->Print();
                 fDigitsCollection->insert(newDigit.release());
             }

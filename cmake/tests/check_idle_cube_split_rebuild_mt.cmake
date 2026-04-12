@@ -26,21 +26,17 @@ if(NOT run_result EQUAL 0)
   message(FATAL_ERROR "Idle cube split rebuild MT test failed to run.\n${run_output}")
 endif()
 
-string(REGEX MATCHALL "--------------------End of Global Run-----------------------"
-       end_of_run_matches "${run_output}")
-list(LENGTH end_of_run_matches end_of_run_count)
-
-if(NOT end_of_run_count EQUAL 3)
-  message(FATAL_ERROR
-    "Expected three completed runs while rebuilding cube split placements in Idle under MT.\n${run_output}")
-endif()
-
-string(REGEX MATCHALL "Detector Summary: cube\\[0\\]" cube_summary_matches "${run_output}")
+string(REGEX MATCHALL "Cube Results: cube\\[0\\]" cube_summary_matches "${run_output}")
 list(LENGTH cube_summary_matches cube_summary_count)
 
 if(NOT cube_summary_count EQUAL 3)
   message(FATAL_ERROR
-    "Expected cube[0] to appear in all three runs during split rebuild under MT.\n${run_output}")
+    "Expected cube[0] to appear in all three detector-specific result blocks during split rebuild under MT.\n${run_output}")
+endif()
+
+if(run_output MATCHES "End of Global Run")
+  message(FATAL_ERROR
+    "Idle cube split rebuild MT should not emit the legacy global detector summary.\n${run_output}")
 endif()
 
 if(NOT run_output MATCHES "DetectorCube_water_phys_0")

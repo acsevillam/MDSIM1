@@ -1,0 +1,56 @@
+# Macro file for a reference model11 setup
+/control/verbose 0
+/run/verbose 0
+
+##################### G4State_PreInit ###################
+
+/MultiDetector1/detectors/model11/addGeometryTo WaterBox 0
+/MultiDetector1/detectors/model11/detectorID 0
+
+# ================= Model11 settings ===============
+
+/MultiDetector1/detectors/model11/setSplitAtInterface false
+/MultiDetector1/detectors/model11/setImportedGeometryGDML models/detectors/model11/gdml/model11.gdml
+/MultiDetector1/detectors/model11/setImportedGeometryRoot Detector
+#/MultiDetector1/detectors/model11/addSensitiveVolume LV_A1SLbodyforcnc2
+/MultiDetector1/detectors/model11/setScintillationYield 10000
+/MultiDetector1/detectors/model11/setBirksConstant 0.126
+/MultiDetector1/detectors/model11/setLightCollectionEfficiency 0.25
+/MultiDetector1/detectors/model11/setDecayTime 2.1 ns
+/MultiDetector1/detectors/model11/setTransportDelay 0.5 ns
+/MultiDetector1/detectors/model11/setTimeJitter 0.1 ns
+/MultiDetector1/detectors/model11/setResolutionScale 1.0
+/MultiDetector1/detectors/model11/setPhotosensorType PMT
+/MultiDetector1/detectors/model11/setPMTQuantumEfficiency 0.25
+/MultiDetector1/detectors/model11/setPMTDynodeCollectionEfficiency 0.90
+/MultiDetector1/detectors/model11/setPMTTransitTime 5.0 ns
+/MultiDetector1/detectors/model11/setPMTTransitTimeSpread 0.3 ns
+/MultiDetector1/detectors/model11/setDoseCalibrationFactor 1.0e-12
+/MultiDetector1/detectors/model11/setDoseCalibrationFactorError 5.0e-14
+
+# ================= Phase Space settings ===============
+
+/MultiDetector1/beamline/clinac/phsp/clearFiles
+/MultiDetector1/beamline/clinac/phsp/setPrefix beam/Varian_TrueBeam6MV_
+/MultiDetector1/beamline/clinac/setJaw1X 5 cm
+/MultiDetector1/beamline/clinac/setJaw2X 5 cm
+/MultiDetector1/beamline/clinac/setJaw1Y 5 cm
+/MultiDetector1/beamline/clinac/setJaw2Y 5 cm
+/MultiDetector1/beamline/clinac/rotateGantry 0 deg
+/MultiDetector1/beamline/clinac/rotateCollimator 0 deg
+
+##################### Initialization ###################
+
+/run/initialize
+/run/printProgress 10000
+
+##################### G4State_Idle ###################
+
+/MultiDetector1/run/SetMU 1
+/MultiDetector1/phantoms/waterbox/phantomID 0
+/MultiDetector1/phantoms/waterbox/translateTo 0 0 -10 cm
+/MultiDetector1/detectors/model11/detectorID 0
+/MultiDetector1/detectors/model11/translateTo 0 0 0 cm
+/MultiDetector1/detectors/model11/rotateX 90 deg
+
+/control/execute mac/scorers1.mac

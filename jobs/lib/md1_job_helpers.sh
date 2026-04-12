@@ -163,6 +163,21 @@ md1_parse_single_voxel_dose_out() {
     ' "${scorer_file}"
 }
 
+md1_extract_detector_results_line() {
+    local output_log="$1"
+    local detector_title="$2"
+    local summary_label="$3"
+    local line_prefix="$4"
+
+    local header="---------------- ${detector_title} Results: ${summary_label} ----------------"
+
+    awk -v header="${header}" -v line_prefix="${line_prefix}" '
+        $0 == header { in_block = 1; next }
+        in_block && $0 ~ /^---------------- / { exit }
+        in_block && index($0, line_prefix) == 1 { print; exit }
+    ' "${output_log}"
+}
+
 md1_cube_configure_calibration_macro() {
     local macro_copy="$1"
     local cube_side_mm="$2"
@@ -194,6 +209,88 @@ md1_cube_configure_calibration_macro() {
         "${macro_copy}" \
         "^/MultiDetector1/detectors/cube/setEnvelopeMaterial .*" \
         "/MultiDetector1/detectors/cube/setEnvelopeMaterial ${envelope_material}"
+
+    if [ -n "${eof_policy}" ]; then
+        md1_insert_line_after_first_match \
+            "${macro_copy}" \
+            "/MultiDetector1/beamline/clinac/phsp/setPrefix " \
+            "/MultiDetector1/beamline/clinac/phsp/setEOFPolicy ${eof_policy}"
+    fi
+}
+
+md1_cylinder_configure_calibration_macro() {
+    local macro_copy="$1"
+    local cylinder_radius_mm="$2"
+    local cylinder_height_mm="$3"
+    local cylinder_material="$4"
+    local cylinder_z_cm="$5"
+    local envelope_material="$6"
+    local envelope_thickness_mm="$7"
+    local eof_policy="${8:-}"
+
+    md1_replace_placeholder "${macro_copy}" "**CylinderRadius**" "${cylinder_radius_mm}"
+    md1_replace_placeholder "${macro_copy}" "**CylinderHeight**" "${cylinder_height_mm}"
+    md1_replace_placeholder "${macro_copy}" "**CylinderMaterial**" "${cylinder_material}"
+    md1_replace_placeholder "${macro_copy}" "**PhspPrefix**" "beam/Varian_TrueBeam6MV_"
+    md1_replace_placeholder "${macro_copy}" "**Jaw1X**" "5"
+    md1_replace_placeholder "${macro_copy}" "**Jaw2X**" "5"
+    md1_replace_placeholder "${macro_copy}" "**Jaw1Y**" "5"
+    md1_replace_placeholder "${macro_copy}" "**Jaw2Y**" "5"
+    md1_replace_placeholder "${macro_copy}" "**GantryAngle**" "0"
+    md1_replace_placeholder "${macro_copy}" "**CollimatorAngle**" "0"
+    md1_replace_placeholder "${macro_copy}" "**MU**" "1"
+    md1_replace_placeholder "${macro_copy}" "**WaterBoxZ**" "-10"
+    md1_replace_placeholder "${macro_copy}" "**CylinderZ**" "${cylinder_z_cm}"
+    md1_replace_placeholder "${macro_copy}" "**CylinderAngle**" "0"
+
+    md1_replace_line_matching \
+        "${macro_copy}" \
+        "^/MultiDetector1/detectors/cylinder/setEnvelopeThickness .*" \
+        "/MultiDetector1/detectors/cylinder/setEnvelopeThickness ${envelope_thickness_mm} mm"
+    md1_replace_line_matching \
+        "${macro_copy}" \
+        "^/MultiDetector1/detectors/cylinder/setEnvelopeMaterial .*" \
+        "/MultiDetector1/detectors/cylinder/setEnvelopeMaterial ${envelope_material}"
+
+    if [ -n "${eof_policy}" ]; then
+        md1_insert_line_after_first_match \
+            "${macro_copy}" \
+            "/MultiDetector1/beamline/clinac/phsp/setPrefix " \
+            "/MultiDetector1/beamline/clinac/phsp/setEOFPolicy ${eof_policy}"
+    fi
+}
+
+md1_sphere_configure_calibration_macro() {
+    local macro_copy="$1"
+    local sphere_radius_mm="$2"
+    local sphere_material="$3"
+    local sphere_z_cm="$4"
+    local envelope_material="$5"
+    local envelope_thickness_mm="$6"
+    local eof_policy="${7:-}"
+
+    md1_replace_placeholder "${macro_copy}" "**SphereRadius**" "${sphere_radius_mm}"
+    md1_replace_placeholder "${macro_copy}" "**SphereMaterial**" "${sphere_material}"
+    md1_replace_placeholder "${macro_copy}" "**PhspPrefix**" "beam/Varian_TrueBeam6MV_"
+    md1_replace_placeholder "${macro_copy}" "**Jaw1X**" "5"
+    md1_replace_placeholder "${macro_copy}" "**Jaw2X**" "5"
+    md1_replace_placeholder "${macro_copy}" "**Jaw1Y**" "5"
+    md1_replace_placeholder "${macro_copy}" "**Jaw2Y**" "5"
+    md1_replace_placeholder "${macro_copy}" "**GantryAngle**" "0"
+    md1_replace_placeholder "${macro_copy}" "**CollimatorAngle**" "0"
+    md1_replace_placeholder "${macro_copy}" "**MU**" "1"
+    md1_replace_placeholder "${macro_copy}" "**WaterBoxZ**" "-10"
+    md1_replace_placeholder "${macro_copy}" "**SphereZ**" "${sphere_z_cm}"
+    md1_replace_placeholder "${macro_copy}" "**SphereAngle**" "0"
+
+    md1_replace_line_matching \
+        "${macro_copy}" \
+        "^/MultiDetector1/detectors/sphere/setEnvelopeThickness .*" \
+        "/MultiDetector1/detectors/sphere/setEnvelopeThickness ${envelope_thickness_mm} mm"
+    md1_replace_line_matching \
+        "${macro_copy}" \
+        "^/MultiDetector1/detectors/sphere/setEnvelopeMaterial .*" \
+        "/MultiDetector1/detectors/sphere/setEnvelopeMaterial ${envelope_material}"
 
     if [ -n "${eof_policy}" ]; then
         md1_insert_line_after_first_match \

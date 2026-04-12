@@ -20,8 +20,6 @@
 struct BB7ReadoutParameters {
     G4double meanEnergyPerIon = 0.;
     G4double elementaryCharge = 0.;
-    G4double calibrationFactor = 0.;
-    G4double calibrationFactorError = 0.;
 };
 
 #endif // BB7_READOUT_PARAMETERS_H

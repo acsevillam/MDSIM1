@@ -50,7 +50,7 @@ private:
     const BB7HitsCollection* fHitsCollection; ///< Hits collection
     BB7DigitsCollection* fDigitsCollection; ///< Digits collection
     G4int fDCID; ///< Digits collection ID
-    BB7ReadoutParameters fReadoutParameters; ///< BB7 readout parameters and calibration
+    BB7ReadoutParameters fReadoutParameters; ///< BB7 physical readout parameters
 };
 
 #endif // BB7_DIGITIZER_H

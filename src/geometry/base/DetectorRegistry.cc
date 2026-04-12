@@ -4,7 +4,11 @@
 
 #include "geometry/base/DetectorRegistryMessenger.hh"
 #include "geometry/detectors/BB7/BB7DetectorModule.hh"
-#include "geometry/detectors/cube/CubeDetectorModule.hh"
+#include "geometry/detectors/basic/cylinder/CylinderDetectorModule.hh"
+#include "geometry/detectors/basic/cube/CubeDetectorModule.hh"
+#include "geometry/detectors/model11/Model11DetectorModule.hh"
+#include "geometry/detectors/scintCube/ScintCubeDetectorModule.hh"
+#include "geometry/detectors/basic/sphere/SphereDetectorModule.hh"
 
 DetectorRegistry* DetectorRegistry::fInstance = nullptr;
 
@@ -33,6 +37,10 @@ DetectorRegistry::~DetectorRegistry() {
 
 void DetectorRegistry::RegisterDefaults() {
     fDetectors.push_back(std::make_unique<CubeDetectorModule>());
+    fDetectors.push_back(std::make_unique<CylinderDetectorModule>());
+    fDetectors.push_back(std::make_unique<SphereDetectorModule>());
+    fDetectors.push_back(std::make_unique<ScintCubeDetectorModule>());
+    fDetectors.push_back(std::make_unique<Model11DetectorModule>());
     fDetectors.push_back(std::make_unique<BB7DetectorModule>());
 }
 

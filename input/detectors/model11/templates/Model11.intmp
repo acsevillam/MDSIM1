@@ -1,0 +1,52 @@
+# Template macro for model11 studies
+/control/verbose 0
+/run/verbose 0
+
+##################### G4State_PreInit ###################
+
+/MultiDetector1/detectors/model11/addGeometryTo WaterBox 0
+/MultiDetector1/detectors/model11/detectorID 0
+
+# ================= Model11 settings ===============
+
+/MultiDetector1/detectors/model11/setSplitAtInterface **SplitAtInterface**
+/MultiDetector1/detectors/model11/setImportedGeometryGDML models/detectors/model11/gdml/model11.gdml
+/MultiDetector1/detectors/model11/setImportedGeometryRoot **Model11GDMLRoot**
+/MultiDetector1/detectors/model11/addSensitiveVolume **Model11SensitiveVolume**
+/MultiDetector1/detectors/model11/setScintillationYield **ScintillationYield**
+/MultiDetector1/detectors/model11/setBirksConstant **BirksConstant**
+/MultiDetector1/detectors/model11/setLightCollectionEfficiency **LightCollectionEfficiency**
+/MultiDetector1/detectors/model11/setDecayTime **DecayTime** ns
+/MultiDetector1/detectors/model11/setTransportDelay **TransportDelay** ns
+/MultiDetector1/detectors/model11/setTimeJitter **TimeJitter** ns
+/MultiDetector1/detectors/model11/setResolutionScale **ResolutionScale**
+/MultiDetector1/detectors/model11/setPhotosensorType **PhotosensorType**
+/MultiDetector1/detectors/model11/setDoseCalibrationFactor **DoseCalibrationFactor**
+/MultiDetector1/detectors/model11/setDoseCalibrationFactorError **DoseCalibrationFactorError**
+
+# ================= Phase Space settings ===============
+
+/MultiDetector1/beamline/clinac/phsp/clearFiles
+/MultiDetector1/beamline/clinac/phsp/setPrefix **PhspPrefix**
+/MultiDetector1/beamline/clinac/setJaw1X **Jaw1X** cm
+/MultiDetector1/beamline/clinac/setJaw2X **Jaw2X** cm
+/MultiDetector1/beamline/clinac/setJaw1Y **Jaw1Y** cm
+/MultiDetector1/beamline/clinac/setJaw2Y **Jaw2Y** cm
+/MultiDetector1/beamline/clinac/rotateGantry **GantryAngle** deg
+/MultiDetector1/beamline/clinac/rotateCollimator **CollimatorAngle** deg
+
+##################### Initialization ###################
+
+/run/initialize
+/run/printProgress 10000
+
+##################### G4State_Idle ###################
+
+/MultiDetector1/run/SetMU **MU**
+/MultiDetector1/phantoms/waterbox/phantomID 0
+/MultiDetector1/phantoms/waterbox/translateTo 0 0 **WaterBoxZ** cm
+/MultiDetector1/detectors/model11/detectorID 0
+/MultiDetector1/detectors/model11/translateTo 0 0 **Model11Z** cm
+/MultiDetector1/detectors/model11/rotateX **Model11Angle** deg
+
+/control/execute mac/scorers1.mac

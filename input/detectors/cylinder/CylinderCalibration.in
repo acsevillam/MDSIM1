@@ -1,0 +1,75 @@
+# Macro file for the initialization of example B1
+# in interactive session
+#
+# Set some default verbose
+/control/verbose 0
+/run/verbose 0
+
+##################### G4State_PreInit ###################
+
+/MultiDetector1/detectors/cylinder/addGeometryTo WaterBox 0
+
+# ================= Cylinder settings ===============
+
+/MultiDetector1/detectors/cylinder/setRadius 2.5 mm
+/MultiDetector1/detectors/cylinder/setHeight 5.0 mm
+/MultiDetector1/detectors/cylinder/setMaterial G4_WATER
+/MultiDetector1/detectors/cylinder/setEnvelopeThickness 0.0 mm
+/MultiDetector1/detectors/cylinder/setEnvelopeMaterial G4_PLEXIGLASS
+/MultiDetector1/detectors/cylinder/setSplitAtInterface true
+
+# ================= Phase Space settings ===============
+
+/MultiDetector1/beamline/clinac/phsp/clearFiles
+/MultiDetector1/beamline/clinac/phsp/setPrefix beam/Varian_TrueBeam6MV_
+/MultiDetector1/beamline/clinac/setJaw1X 5 cm
+/MultiDetector1/beamline/clinac/setJaw2X 5 cm
+/MultiDetector1/beamline/clinac/setJaw1Y 5 cm
+/MultiDetector1/beamline/clinac/setJaw2Y 5 cm
+/MultiDetector1/beamline/clinac/rotateGantry 0 deg
+/MultiDetector1/beamline/clinac/rotateCollimator 0 deg
+
+##################### Initialization ###################
+#
+# Initialize kernel
+/run/initialize
+/run/printProgress 10000
+#
+
+##################### G4State_Idle ###################
+
+# ==================== Beam settings ==================
+
+/MultiDetector1/run/SetMU 1
+
+# ================== Geometry settings ================
+
+/MultiDetector1/phantoms/waterbox/phantomID 0
+/MultiDetector1/phantoms/waterbox/translateTo 0 0 -10 cm # SSD = 100 cm
+/MultiDetector1/detectors/cylinder/detectorID 0
+/MultiDetector1/detectors/cylinder/translateTo 0 0 0 cm
+/MultiDetector1/detectors/cylinder/rotateX 0 deg
+
+# ================== Scoring settings =================
+
+# Primitive scorers
+/score/create/boxMesh atIsocenter
+/score/mesh/boxSize 0.25 0.25 0.25 cm
+/score/mesh/translate/xyz 0 0 0 cm
+/score/mesh/nBin 1 1 1 // x y z
+/score/quantity/doseDeposit dose
+/score/close
+
+/score/create/boxMesh atDepth1.4cm
+/score/mesh/boxSize 0.25 0.25 0.25 cm
+/score/mesh/translate/xyz 0 0 -1.4 cm # depth 10 cm
+/score/mesh/nBin 1 1 1 // x y z
+/score/quantity/doseDeposit dose
+/score/close
+
+/score/create/boxMesh atDepth10cm
+/score/mesh/boxSize 0.25 0.25 0.25 cm
+/score/mesh/translate/xyz 0 0 -10 cm # depth 10 cm
+/score/mesh/nBin 1 1 1 // x y z
+/score/quantity/doseDeposit dose
+/score/close

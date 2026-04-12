@@ -23,8 +23,11 @@
 #include "G4RotationMatrix.hh"
 #include "G4UserLimits.hh"
 
+#include <map>
+
 // MultiDetector Headers
 #include "geometry/base/GenericGeometry.hh"
+#include "geometry/detectors/BB7/calibration/BB7DoseCalibrator.hh"
 #include "geometry/detectors/BB7/geometry/DetectorSingleBB7.hh"
 #include "geometry/detectors/BB7/messenger/DetectorDualBB7Messenger.hh"
 
@@ -78,11 +81,15 @@ public:
      */
     void AddGeometry(G4LogicalVolume* motherVolume, G4Transform3D* transformation, G4int copyNo) override;
 
+    void SetCalibrationFactor(G4int detectorID, G4double calibrationFactor);
+    void SetCalibrationFactorError(G4int detectorID, G4double calibrationFactorError);
+    BB7CalibrationParameters GetCalibrationParameters(G4int detectorID) const;
+
 private:
     G4UserLimits* fStepLimit;  ///< Pointer to user step limits
     DetectorSingleBB7* fDetectorSingleBB7; ///< Pointer to a single BB7 detector
     G4UImessenger* fDetectorDualBB7Messenger; ///< Messenger for UI commands
-
+    std::map<G4int, BB7CalibrationParameters> fCalibrationParametersByDetector;
 };
 
 #endif // DETECTOR_DUAL_BB7_H

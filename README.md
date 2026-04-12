@@ -38,7 +38,7 @@ Estos jobs escriben:
 
 - una carpeta por réplica con `output.log`, `macro.in` y los archivos de `analysis/`
 - `calculated_total_collected_charge_summary.csv` con una fila por réplica
-- `calculated_total_collected_charge_average.txt` con media, desviación estándar entre réplicas, `err = stddev / sqrt(n)` y error relativo para `(7) Calculated total collected charge`, incluyendo material y configuración de envolvente
+- `calculated_total_collected_charge_average.txt` con media, desviación estándar entre réplicas, `err = stddev / sqrt(n)` y error relativo para `(7) Scaled collected charge`, incluyendo material y configuración de envolvente
 
 Tambien existen barridos `pdd_interface` para `cube`, usando [CubeCalibration.intmp](/Users/acsevillam/workspace/Geant4/MDSIM1/input/detectors/cube/templates/CubeCalibration.intmp), `setEOFPolicy synthetic` y `200000000` eventos por punto:
 
@@ -52,13 +52,24 @@ Estos jobs:
 - barren `cube/translateTo 0 0 z cm` desde `11.0 cm` hasta `8.5 cm`
 - usan paso de `0.10 cm` en todo el barrido
 - ejecutan `5` réplicas por punto
-- extraen `(8) Estimated total absorbed dose in water (...UM)` del resumen global
+- extraen `(8) Estimated absorbed dose in water (...UM)` del bloque de resultados del detector
 
 La salida incluye:
 
 - `pdd_by_replica.csv`: una fila por réplica y posición
 - `pdd_summary.csv`: resumen por posición con media, desviación estándar entre réplicas, `err = stddev / sqrt(n)` y error relativo
 - `pdd_summary.txt`: resumen legible del barrido bajo el mismo estándar textual de los demás jobs de `cube`
+
+Los detectores `cylinder` y `sphere` replican el mismo flujo operativo de `cube`:
+
+- calibración de carga en `jobs/detectors/cylinder/` y `jobs/detectors/sphere/`
+- barridos `pdd_interface` con las mismas cuatro variantes material/envolvente
+- salidas `calculated_total_collected_charge_summary.csv`, `calculated_total_collected_charge_average.txt`, `pdd_by_replica.csv`, `pdd_summary.csv` y `pdd_summary.txt`
+
+Configuraciones nominales embebidas en los launchers:
+
+- `cylinder`: radio `2.5 mm`, altura `5.0 mm`
+- `sphere`: radio `2.5 mm`
 
 ## Manejo de errores
 
@@ -70,7 +81,7 @@ MDSIM1 usa el siguiente patrón de etiquetas para incertidumbres:
 
 - `mc_err`: incertidumbre estadística Monte Carlo del estimador, obtenida como `rms / sqrt(N)` sobre la magnitud por evento.
 - `mu_err`: incertidumbre propagada del factor de escala por monitor units, a partir de `fScaleFactorMUError`.
-- `det_err`: incertidumbre propia del detector o de su calibración. Actualmente se usa para `Estimated total absorbed dose in water`, a partir del error del factor de calibración del detector en `cGy/nC`.
+- `det_err`: incertidumbre propia del detector o de su calibración. Actualmente se usa para `Estimated absorbed dose in water`, a partir del error del factor de calibración aplicado fuera del readout en `cGy/nC`.
 - `total_err`: combinación en cuadratura de las contribuciones independientes que aplican a la magnitud reportada.
 
 ### Regla base
@@ -129,7 +140,7 @@ total_err = sqrt(mc_err_scaled^2 + mu_err^2)
 
 Para la magnitud:
 
-- `(7) Calculated total collected charge (...UM)`
+- `(7) Scaled collected charge (...UM)`
 
 la salida combina:
 
@@ -148,7 +159,7 @@ total_err = sqrt(mc_err_scaled^2 + mu_err^2)
 
 Para la magnitud:
 
-- `(8) Estimated total absorbed dose in water (...UM)`
+- `(8) Estimated absorbed dose in water (...UM)`
 
 la salida combina:
 
@@ -167,9 +178,9 @@ det_err = |D_water,per_event| * relative_calibration_error * fScaleFactorMU * si
 total_err = sqrt(mc_err_scaled^2 + mu_err^2 + det_err^2)
 ```
 
-En el resumen por detector, `det_err` se obtiene a partir de la incertidumbre relativa de calibración de ese detector. En el resumen global, `det_err` se construye sumando en cuadratura los aportes absolutos de calibración de todos los detectores activos antes de combinarlos con `mc_err` y `mu_err`.
+En el bloque de resultados por detector, `det_err` se obtiene a partir de la incertidumbre relativa de calibración de ese detector.
 
-Cuando un módulo tiene varias copias geométricas activas, el bloque `Detector Summary` se emite por copia usando el formato `<detector>[copyNo]`, por ejemplo `cube[0]`, `cube[1]` o `BB7[3]`.
+Cuando un módulo tiene varias copias geométricas activas, el bloque de resultados se emite por copia usando el formato `---------------- <Detector> Results: <detector>[copyNo] ----------------`, por ejemplo `cube[0]`, `cube[1]` o `BB7[3]`.
 
 ### Lectura práctica
 
@@ -189,8 +200,11 @@ Para evitar resultados silenciosamente inconsistentes, MDSIM1 ahora aborta la co
 - `/MultiDetector1/run/SetScaleFactorMUError` exige una incertidumbre no negativa.
 - Si no se define un override explícito para `fScaleFactorMUError`, el valor por defecto se mantiene como `1 %` del `fScaleFactorMU` vigente. Si luego se cambia `fScaleFactorMU` sin override explícito, el error por defecto se actualiza automáticamente para seguir siendo `1 %`.
 - Si un detector activo no encuentra su volumen sensible, digitizer, colección de dígitos o ntuple de análisis, la corrida aborta con `FatalException` en lugar de devolver `0` silenciosamente.
-- La tabla [CubeCalibrationTable.dat](/Users/acsevillam/workspace/Geant4/MDSIM1/src/geometry/detectors/cube/geometry/CubeCalibrationTable.dat) rechaza entradas con lado no positivo, factor no positivo, incertidumbre negativa, unidades inválidas o entradas duplicadas para el mismo material y lado.
+- La tabla [CubeCalibrationTable.dat](/Users/acsevillam/workspace/Geant4/MDSIM1/src/geometry/detectors/basic/cube/geometry/CubeCalibrationTable.dat) rechaza entradas con lado no positivo, factor no positivo, incertidumbre negativa, unidades inválidas o entradas duplicadas para el mismo material y lado.
+- La tabla [CylinderCalibrationTable.dat](/Users/acsevillam/workspace/Geant4/MDSIM1/src/geometry/detectors/basic/cylinder/geometry/CylinderCalibrationTable.dat) rechaza entradas con radio/altura no positivos, factor no positivo, incertidumbre negativa, unidades inválidas o entradas duplicadas.
+- La tabla [SphereCalibrationTable.dat](/Users/acsevillam/workspace/Geant4/MDSIM1/src/geometry/detectors/basic/sphere/geometry/SphereCalibrationTable.dat) rechaza entradas con radio no positivo, factor no positivo, incertidumbre negativa, unidades inválidas o entradas duplicadas.
 - La tabla de calibración del `cube` se parsea una sola vez por proceso con inicialización thread-safe y luego queda de solo lectura.
+- Las tablas locales de `cylinder` y `sphere` también se parsean una sola vez por proceso con inicialización thread-safe y luego quedan de solo lectura.
 - La ejecución de macros desde línea de comandos aborta si `/control/execute` devuelve error, en vez de continuar con una configuración parcial.
 
 ## Arquitectura de detectores
@@ -199,6 +213,8 @@ El proyecto quedó reorganizado para soportar múltiples detectores de radiació
 
 - `include/geometry/base/` y `src/geometry/base/`: contratos comunes, registry y utilidades base.
 - `include/geometry/detectors/<detector>/` y `src/geometry/detectors/<detector>/`: implementación por detector.
+- `include/geometry/detectors/basic/core/` y `src/geometry/detectors/basic/core/`: núcleo compartido de los detectores dosimétricos básicos.
+- `include/geometry/detectors/basic/cube|cylinder|sphere/` y `src/geometry/detectors/basic/cube|cylinder|sphere/`: adapters públicos y geometrías específicas para `cube`, `cylinder` y `sphere`.
 - `include/geometry/beamline/` y `src/geometry/beamline/`: acelerador y componentes del haz.
 - `include/geometry/phantoms/` y `src/geometry/phantoms/`: fantomas y geometrías auxiliares.
 
@@ -210,12 +226,17 @@ Cada detector vive como un módulo con:
 - hit
 - digit
 - digitizer
+- calibration
 
 El ensamblado ya no está hardcodeado en `MD1DetectorConstruction` ni en `MD1EventAction`. Ahora se realiza mediante `DetectorRegistry`, que conoce los detectores disponibles y cuáles están habilitados para la corrida actual.
 
 ### Detectores disponibles
 
 - `cube`
+- `cylinder`
+- `sphere`
+- `scintCube`
+- `model11`
 - `BB7`
 
 ### Namespaces por detector
@@ -223,7 +244,51 @@ El ensamblado ya no está hardcodeado en `MD1DetectorConstruction` ni en `MD1Eve
 Los comandos específicos de cada detector ahora viven bajo:
 
 - `/MultiDetector1/detectors/cube/*`
+- `/MultiDetector1/detectors/cylinder/*`
+- `/MultiDetector1/detectors/sphere/*`
+- `/MultiDetector1/detectors/scintCube/*`
+- `/MultiDetector1/detectors/model11/*`
 - `/MultiDetector1/detectors/BB7/*`
+
+`scintCube` usa un pipeline distinto al de los detectores dosimétricos de ionización:
+
+- el digitizer reporta sólo señal física del centellador
+- la calibración a dosis se aplica en una clase separada
+- el fotosensor se selecciona por detector como `PMT` o `SiPM`
+- el bloque de resultados incluye energía visible, fotones producidos, fotoelectrones detectados, tiempo medio de señal y dosis calibrada
+
+`model11` expone un detector centellador cilíndrico independiente para representar el Blue Physics Model 11:
+
+- la geometría completa se importa desde GDML
+- `PMT` como fotosensor nominal por defecto
+- calibración a dosis separada del readout, igual que en `scintCube`
+- el material y el tamaño del volumen sensible ya no se configuran por messenger
+- uno o varios volúmenes del GDML pueden marcarse como sensibles por nombre desde el messenger
+
+Para la geometría importada de `model11`:
+
+- el runtime no lee `.FCStd` ni `.brep` directamente
+- el runtime usa `G4GDMLParser` para leer un archivo GDML completo exportado desde FreeCAD
+- el GDML importado contiene tanto el ensamble pasivo como los volúmenes potencialmente sensibles
+- el comando de configuración es `/MultiDetector1/detectors/model11/setImportedGeometryGDML`
+- opcionalmente puedes fijar un root explícito del GDML con `/MultiDetector1/detectors/model11/setImportedGeometryRoot`
+- la selección de volúmenes sensibles se hace con `/MultiDetector1/detectors/model11/addSensitiveVolume`
+- si no seleccionas ningún volumen sensible, `model11` se comporta como una geometría pasiva para inspección
+- el GDML integrado del detector está en `models/detectors/model11/gdml/model11.gdml`
+- los fixtures GDML de CI viven bajo `cmake/tests/data/model11/`
+
+En `cube`, `cylinder`, `sphere` y `BB7` también se separó la calibración del readout:
+
+- el `digitizer` conserva sólo la salida física (`edep`, carga recogida y `Dose[Gy]`)
+- la conversión a `EstimatedDoseToWater` se aplica en una clase de calibración separada
+- cada módulo detector escribe un ntuple físico y un ntuple de calibración por separado
+
+Además, `cube`, `cylinder` y `sphere` ya no viven como implementaciones duplicadas completas. Internamente comparten el núcleo `basic/core` para el cálculo de carga recogida, masa sensible y calibración dosimétrica, mientras conservan:
+
+- el mismo nombre público de detector
+- los mismos comandos `/MultiDetector1/detectors/<shape>/*`
+- las mismas tablas de calibración específicas por forma
+- el mismo formato de salida por detector
 
 Regla práctica:
 
@@ -246,6 +311,8 @@ En la práctica:
 3. Añadir su geometría, messenger y pipeline de readout dentro del mismo módulo.
 4. Registrar el módulo en `DetectorRegistry::RegisterDefaults()`.
 5. Definir sus ntuples/histogramas en `CreateAnalysis()` y su lectura de evento en `ProcessEvent()`.
+
+Si el detector nuevo pertenece a la familia de dosímetros geométricos simples, conviene reutilizar `geometry/detectors/basic/core/` en vez de duplicar otra vez el pipeline de `cube`, `cylinder` o `sphere`.
 
 ## Requisitos
 
@@ -370,7 +437,7 @@ Los dos smoke tests de señal usan GPS con electrones monoenergéticos y verific
 - geometría activa del detector
 - `SensitiveDetector`
 - digitizer
-- resumen global y `Detector Summary`
+- bloque de resultados específico del detector
 
 Estas pruebas no requieren phase spaces binarios reales.
 
@@ -455,6 +522,10 @@ La carpeta `input/` contiene dos tipos de macros:
 - `input/detectors/BB7/BB7Calibration.in`: configuración de calibración BB7 con fuente Co-60 (GPS) y malla 2D para mapa de dosis.
 - `input/detectors/cube/Cube.in`: configuración base del detector `cube` con PHSP, jaws y geometría simple dentro del `WaterBox`.
 - `input/detectors/cube/CubeCalibration.in`: configuración de calibración del detector `cube` con fuente Co-60 (GPS) y malla 2D para mapa de dosis.
+- `input/detectors/cylinder/Cylinder.in`: configuración base del detector `cylinder` con PHSP, jaws y geometría cilíndrica dentro del `WaterBox`.
+- `input/detectors/cylinder/CylinderCalibration.in`: configuración de calibración del detector `cylinder`.
+- `input/detectors/sphere/Sphere.in`: configuración base del detector `sphere` con PHSP, jaws y geometría esférica dentro del `WaterBox`.
+- `input/detectors/sphere/SphereCalibration.in`: configuración de calibración del detector `sphere`.
 
 ### Plantillas parametrizables (`.intmp`)
 
@@ -464,6 +535,10 @@ La carpeta `input/` contiene dos tipos de macros:
 - `input/detectors/BB7/templates/BB7Calibration.intmp`: plantilla de calibración BB7/Co-60 con parámetros geométricos del haz (`**BeamCentre**`, `**BeamRot1**`, `**BeamRot2**`, `**BeamDirection**`) y ángulos de sistema.
 - `input/detectors/cube/templates/Cube.intmp`: plantilla del detector `cube` para barridos PHSP con `**PhspPrefix**`, jaws, material, lado del cubo y posición/rotación básicas.
 - `input/detectors/cube/templates/CubeCalibration.intmp`: plantilla de calibración dosimétrica del `cube` con PHSP, jaws, ángulos del linac y scorers puntuales en profundidad.
+- `input/detectors/cylinder/templates/Cylinder.intmp`: plantilla del detector `cylinder` con placeholders nativos `**CylinderRadius**`, `**CylinderHeight**`, material y posición.
+- `input/detectors/cylinder/templates/CylinderCalibration.intmp`: plantilla de calibración dosimétrica del `cylinder`.
+- `input/detectors/sphere/templates/Sphere.intmp`: plantilla del detector `sphere` con placeholder nativo `**SphereRadius**`, material y posición.
+- `input/detectors/sphere/templates/SphereCalibration.intmp`: plantilla de calibración dosimétrica del `sphere`.
 
 ### Macros de benchmark
 
@@ -615,8 +690,8 @@ Cada reader consume una partición disjunta del archivo usando `parallelRun = wo
 - `/MultiDetector1/detectors/cube/setEnvelopeThickness <valor> <unidad>` (`PreInit`, `0` desactiva la envolvente)
 - `/MultiDetector1/detectors/cube/setEnvelopeMaterial <NISTMaterial>` (`PreInit`)
 - `/MultiDetector1/detectors/cube/setSplitAtInterface <bool>` (`PreInit`)
-- `/MultiDetector1/detectors/cube/setCalibrationFactor <valor_en_cGy_por_nC>` (`PreInit`, override opcional de la tabla local)
-- `/MultiDetector1/detectors/cube/setCalibrationFactorError <valor_en_cGy_por_nC>` (`PreInit`, override opcional del error de la tabla local)
+- `/MultiDetector1/detectors/cube/setCalibrationFactor <valor_en_cGy_por_nC>` (`PreInit`, override opcional de la tabla local del calibrador)
+- `/MultiDetector1/detectors/cube/setCalibrationFactorError <valor_en_cGy_por_nC>` (`PreInit`, override opcional del error de la tabla local del calibrador)
 - `/MultiDetector1/detectors/cube/detectorID <int>`
 - `/MultiDetector1/detectors/cube/translate <dx> <dy> <dz> <unidad>` (`Idle`)
 - `/MultiDetector1/detectors/cube/translateTo <x> <y> <z> <unidad>` (`Idle`)
@@ -627,7 +702,7 @@ Cada reader consume una partición disjunta del archivo usando `parallelRun = wo
 - `/MultiDetector1/detectors/cube/addGeometryTo <logicalVolumeName> <copyNo>` (`PreInit` o `Idle`, recomendado `PreInit` para activar el detector en la corrida)
 - `/MultiDetector1/detectors/cube/removeGeometry <detectorID>` (`PreInit` o `Idle`)
 
-La tabla externa por defecto del cubo se lee desde [CubeCalibrationTable.dat](/Users/acsevillam/workspace/Geant4/MDSIM1/src/geometry/detectors/cube/geometry/CubeCalibrationTable.dat).
+La tabla externa por defecto del cubo se lee desde [CubeCalibrationTable.dat](/Users/acsevillam/workspace/Geant4/MDSIM1/src/geometry/detectors/basic/cube/geometry/CubeCalibrationTable.dat).
 Formato por linea:
 `<material> <lado> <unidad> <calibrationFactor_en_cGy_por_nC> <calibrationFactorError_en_cGy_por_nC>`
 
@@ -644,9 +719,64 @@ El `cube` tambien soporta `split at interface` automatico contra la cara superio
 - en esta v1 solo se soporta el caso sin rotacion del detector y cruce por la cara superior en `Z`
 - si el detector sobresale por otra cara, queda totalmente por fuera o esta rotado, la corrida aborta con un error explicito
 
+### Detector Cylinder (`cylinder`)
+
+- `/MultiDetector1/detectors/cylinder/setRadius <valor> <unidad>` (`PreInit`)
+- `/MultiDetector1/detectors/cylinder/setHeight <valor> <unidad>` (`PreInit`)
+- `/MultiDetector1/detectors/cylinder/setMaterial <NISTMaterial>` (`PreInit`)
+- `/MultiDetector1/detectors/cylinder/setEnvelopeThickness <valor> <unidad>` (`PreInit`, `0` desactiva la envolvente)
+- `/MultiDetector1/detectors/cylinder/setEnvelopeMaterial <NISTMaterial>` (`PreInit`)
+- `/MultiDetector1/detectors/cylinder/setSplitAtInterface <bool>` (`PreInit`)
+- `/MultiDetector1/detectors/cylinder/setCalibrationFactor <valor_en_cGy_por_nC>` (`PreInit`, override opcional del calibrador)
+- `/MultiDetector1/detectors/cylinder/setCalibrationFactorError <valor_en_cGy_por_nC>` (`PreInit`, override opcional del calibrador)
+- `/MultiDetector1/detectors/cylinder/detectorID <int>`
+- `/MultiDetector1/detectors/cylinder/translate <dx> <dy> <dz> <unidad>` (`Idle`)
+- `/MultiDetector1/detectors/cylinder/translateTo <x> <y> <z> <unidad>` (`Idle`)
+- `/MultiDetector1/detectors/cylinder/rotateX <valor> <unidad>` (`Idle`)
+- `/MultiDetector1/detectors/cylinder/rotateY <valor> <unidad>` (`Idle`)
+- `/MultiDetector1/detectors/cylinder/rotateZ <valor> <unidad>` (`Idle`)
+- `/MultiDetector1/detectors/cylinder/rotateTo <theta> <phi> <psi> <unidad>` (`Idle`)
+- `/MultiDetector1/detectors/cylinder/addGeometryTo <logicalVolumeName> <copyNo>` (`PreInit` o `Idle`)
+- `/MultiDetector1/detectors/cylinder/removeGeometry <detectorID>` (`PreInit` o `Idle`)
+
+La tabla externa por defecto del cilindro se lee desde [CylinderCalibrationTable.dat](/Users/acsevillam/workspace/Geant4/MDSIM1/src/geometry/detectors/basic/cylinder/geometry/CylinderCalibrationTable.dat).
+
+- cubre la geometría nominal `radius = 2.5 mm`, `height = 5.0 mm`
+- los factores actuales son provisionales y se derivan de `cube` escalando por volumen sensible relativo, conservando el error relativo por escenario material/envolvente
+- si configuras otro radio o altura, debes usar `setCalibrationFactor` y `setCalibrationFactorError`
+- `split at interface` sigue las mismas restricciones del cubo: solo `WaterBox`, cruce por la cara superior en `Z` y sin rotación
+
+### Detector Sphere (`sphere`)
+
+- `/MultiDetector1/detectors/sphere/setRadius <valor> <unidad>` (`PreInit`)
+- `/MultiDetector1/detectors/sphere/setMaterial <NISTMaterial>` (`PreInit`)
+- `/MultiDetector1/detectors/sphere/setEnvelopeThickness <valor> <unidad>` (`PreInit`, `0` desactiva la envolvente)
+- `/MultiDetector1/detectors/sphere/setEnvelopeMaterial <NISTMaterial>` (`PreInit`)
+- `/MultiDetector1/detectors/sphere/setSplitAtInterface <bool>` (`PreInit`)
+- `/MultiDetector1/detectors/sphere/setCalibrationFactor <valor_en_cGy_por_nC>` (`PreInit`, override opcional del calibrador)
+- `/MultiDetector1/detectors/sphere/setCalibrationFactorError <valor_en_cGy_por_nC>` (`PreInit`, override opcional del calibrador)
+- `/MultiDetector1/detectors/sphere/detectorID <int>`
+- `/MultiDetector1/detectors/sphere/translate <dx> <dy> <dz> <unidad>` (`Idle`)
+- `/MultiDetector1/detectors/sphere/translateTo <x> <y> <z> <unidad>` (`Idle`)
+- `/MultiDetector1/detectors/sphere/rotateX <valor> <unidad>` (`Idle`)
+- `/MultiDetector1/detectors/sphere/rotateY <valor> <unidad>` (`Idle`)
+- `/MultiDetector1/detectors/sphere/rotateZ <valor> <unidad>` (`Idle`)
+- `/MultiDetector1/detectors/sphere/rotateTo <theta> <phi> <psi> <unidad>` (`Idle`)
+- `/MultiDetector1/detectors/sphere/addGeometryTo <logicalVolumeName> <copyNo>` (`PreInit` o `Idle`)
+- `/MultiDetector1/detectors/sphere/removeGeometry <detectorID>` (`PreInit` o `Idle`)
+
+La tabla externa por defecto de la esfera se lee desde [SphereCalibrationTable.dat](/Users/acsevillam/workspace/Geant4/MDSIM1/src/geometry/detectors/basic/sphere/geometry/SphereCalibrationTable.dat).
+
+- cubre la geometría nominal `radius = 2.5 mm`
+- los factores actuales son provisionales y se derivan de `cube` escalando por volumen sensible relativo, conservando el error relativo por escenario material/envolvente
+- si configuras otro radio, debes usar `setCalibrationFactor` y `setCalibrationFactorError`
+- `split at interface` sigue las mismas restricciones del cubo: solo `WaterBox`, cruce por la cara superior en `Z` y sin rotación
+
 ### Detector BB7 (`BB7`)
 
 - `/MultiDetector1/detectors/BB7/detectorID <int>`
+- `/MultiDetector1/detectors/BB7/setCalibrationFactor <valor_en_cGy_por_nC>` (`PreInit`, override opcional del calibrador para el `detectorID` seleccionado)
+- `/MultiDetector1/detectors/BB7/setCalibrationFactorError <valor_en_cGy_por_nC>` (`PreInit`, override opcional del error del calibrador para el `detectorID` seleccionado)
 - `/MultiDetector1/detectors/BB7/translate <dx> <dy> <dz> <unidad>` (`Idle`)
 - `/MultiDetector1/detectors/BB7/translateTo <x> <y> <z> <unidad>` (`Idle`)
 - `/MultiDetector1/detectors/BB7/rotateX <valor> <unidad>` (`Idle`)

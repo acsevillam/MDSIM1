@@ -21,7 +21,6 @@
 
 #include "MD1EventAction.hh"
 #include "MD1RunAction.hh"
-#include "geometry/base/DetectorEventData.hh"
 
 namespace MD1 {
 
@@ -51,33 +50,11 @@ void MD1EventAction::EndOfEventAction(const G4Event* event) {
     auto* analysisManager = G4AnalysisManager::Instance();
     auto* digiManager = G4DigiManager::GetDMpointer();
 
-    DetectorEventData totalData;
     for (const auto& activeDetector : fRunAction->GetActiveDetectors()) {
-        const auto detectorData =
-            activeDetector.detector->ProcessEvent(event,
-                                                  analysisManager,
-                                                  digiManager,
-                                                  *activeDetector.runtimeState);
-        totalData.totalEdep += detectorData.totalEdep;
-        totalData.totalCollectedCharge += detectorData.totalCollectedCharge;
-        totalData.totalDose += detectorData.totalDose;
-        totalData.totalEstimatedDoseToWater += detectorData.totalEstimatedDoseToWater;
-        totalData.hasSignal = totalData.hasSignal || detectorData.hasSignal;
-        for (const auto& instanceData : detectorData.instanceData) {
-            fRunAction->AddDetectorTotals(instanceData.summaryLabel,
-                                          instanceData.totalEdep,
-                                          instanceData.totalCollectedCharge,
-                                          instanceData.totalDose,
-                                          instanceData.estimatedDoseToWater);
-        }
-    }
-
-    if (totalData.hasSignal) {
-        fRunAction->AddTotalEdep(totalData.totalEdep);
-        fRunAction->AddTotalCollectedCharge(totalData.totalCollectedCharge);
-        fRunAction->AddTotalDose(totalData.totalDose);
-        fRunAction->AddTotalEstimatedDoseToWater(totalData.totalEstimatedDoseToWater);
-        fRunAction->CountEdepEvent();
+        activeDetector.detector->ProcessEvent(event,
+                                              analysisManager,
+                                              digiManager,
+                                              *activeDetector.runtimeState);
     }
 }
 

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gdml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="http://cern.ch/service-spi/app/releases/GDML/schema/gdml.xsd">
+  <materials>
+    <material name="PassiveReloadAir">
+      <D value="1.290" unit="mg/cm3"/>
+      <fraction n="1.0" ref="G4_AIR"/>
+    </material>
+    <material name="PassiveReloadAl">
+      <D value="2.700" unit="g/cm3"/>
+      <fraction n="1.0" ref="G4_Al"/>
+    </material>
+  </materials>
+
+  <solids>
+    <box name="PassiveReloadWorld" x="20.0" y="20.0" z="20.0" lunit="mm"/>
+    <tube name="PassiveReloadShell" rmin="0.55" rmax="1.25" z="4.5" deltaphi="360.0" aunit="deg" lunit="mm"/>
+  </solids>
+
+  <structure>
+    <volume name="PassiveReloadedLV">
+      <materialref ref="PassiveReloadAl"/>
+      <solidref ref="PassiveReloadShell"/>
+    </volume>
+    <volume name="PassiveReloadWorldLV">
+      <materialref ref="PassiveReloadAir"/>
+      <solidref ref="PassiveReloadWorld"/>
+      <physvol name="PassiveReloadedPV">
+        <volumeref ref="PassiveReloadedLV"/>
+      </physvol>
+    </volume>
+  </structure>
+
+  <setup name="Default" version="1.0">
+    <world ref="PassiveReloadWorldLV"/>
+  </setup>
+</gdml>

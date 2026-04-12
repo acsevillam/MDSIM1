@@ -2,6 +2,9 @@
 /run/verbose 0
 
 /MultiDetector1/control/SetPrimaryGeneratorType 2
+/MultiDetector1/detectors/BB7/detectorID 0
+/MultiDetector1/detectors/BB7/setCalibrationFactor 100
+/MultiDetector1/detectors/BB7/setCalibrationFactorError 2
 /MultiDetector1/detectors/BB7/addGeometryTo world_log 0
 
 /run/initialize
@@ -13,7 +16,6 @@
 /gps/pos/centre 0 0 20 cm
 /gps/direction 0 0 -1
 
-/MultiDetector1/detectors/BB7/detectorID 0
 /MultiDetector1/detectors/BB7/translateTo 0 0 0 cm
 /MultiDetector1/detectors/BB7/rotateX 0 deg
 

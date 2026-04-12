@@ -1,0 +1,23 @@
+/control/verbose 0
+/run/verbose 0
+
+/MultiDetector1/control/SetPrimaryGeneratorType 2
+/MultiDetector1/detectors/sphere/addGeometryTo world_log 0
+/MultiDetector1/detectors/sphere/setRadius 2.5 mm
+/MultiDetector1/detectors/sphere/setMaterial G4_WATER
+/MultiDetector1/detectors/sphere/setEnvelopeThickness 0.0 mm
+/MultiDetector1/detectors/sphere/setEnvelopeMaterial G4_PLEXIGLASS
+
+/run/initialize
+
+/gps/particle e-
+/gps/ene/type Mono
+/gps/energy 10 MeV
+/gps/pos/type Point
+/gps/pos/centre 0 0 20 cm
+/gps/direction 0 0 -1
+
+/MultiDetector1/detectors/sphere/detectorID 0
+/MultiDetector1/detectors/sphere/translateTo 0 0 0 cm
+
+/run/beamOn 100

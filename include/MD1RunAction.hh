@@ -27,8 +27,6 @@
 #include "globals.hh"
 
 // MultiDetector Headers
-#include "analysis/DetectorAccumulablesStore.hh"
-#include "analysis/MD1StatAccumulable.hh"
 #include "geometry/base/DetectorModule.hh"
 
 class G4DigiManager;
@@ -64,25 +62,6 @@ class MD1RunAction : public G4UserRunAction {
     // Method to create N-Tuples
     void CreateNTuples();
 
-    // Method to count energy deposition events
-    void CountEdepEvent() { fEDepEvents += 1; }
-
-    // Method to add total energy deposition
-    void AddTotalEdep(G4double Edep) { fTotalEdep.Fill(Edep); }
-
-    // Method to add total collected charge
-    void AddTotalCollectedCharge(G4double CollectedCharge) { fCollectedCharge.Fill(CollectedCharge); }
-
-    // Method to add total dose
-    void AddTotalDose(G4double dose) { fDose.Fill(dose); }
-    void AddTotalEstimatedDoseToWater(G4double dose) { fEstimatedDoseToWater.Fill(dose); }
-
-    void AddDetectorTotals(const G4String& detectorSummaryLabel,
-                           G4double edep,
-                           G4double collectedCharge,
-                           G4double dose,
-                           const CalibratedDoseToWaterData& estimatedDoseToWater);
-
     // Method to set monitor units
     void SetMU(G4int MU);
     void SetScaleFactorMU(G4double scaleFactorMU);
@@ -93,16 +72,6 @@ class MD1RunAction : public G4UserRunAction {
 
   private:
     void BuildActiveDetectors();
-    std::vector<G4String> GetActiveSummaryLabels() const;
-
-    // Accumulable for counting energy deposition events
-    G4Accumulable<G4int> fEDepEvents;
-
-    // Statistical accumulables for energy deposition, collected charge and dose
-    MD1StatAccumulable fTotalEdep;
-    MD1StatAccumulable fCollectedCharge;
-    MD1StatAccumulable fDose;
-    MD1StatAccumulable fEstimatedDoseToWater;
 
     // Accumulables for total energy deposition and its square
     G4int fSimulatedMU = 1;
@@ -113,7 +82,6 @@ class MD1RunAction : public G4UserRunAction {
     std::unique_ptr<MD1RunActionMessenger> fRunActionMessenger;
     std::vector<DetectorRuntimeEntry> fDetectorRuntimeEntries;
     std::vector<ActiveDetectorRuntime> fActiveDetectors;
-    DetectorAccumulablesStore fDetectorAccumulables;
 };
 
 } // namespace MD1

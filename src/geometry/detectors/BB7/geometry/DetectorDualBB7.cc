@@ -41,6 +41,22 @@ DetectorDualBB7::DetectorDualBB7()
     det_origin = G4ThreeVector(0., 0., 10*cm);
 }
 
+void DetectorDualBB7::SetCalibrationFactor(G4int detectorID, G4double calibrationFactor) {
+    fCalibrationParametersByDetector[detectorID].calibrationFactor = calibrationFactor;
+}
+
+void DetectorDualBB7::SetCalibrationFactorError(G4int detectorID, G4double calibrationFactorError) {
+    fCalibrationParametersByDetector[detectorID].calibrationFactorError = calibrationFactorError;
+}
+
+BB7CalibrationParameters DetectorDualBB7::GetCalibrationParameters(G4int detectorID) const {
+    const auto it = fCalibrationParametersByDetector.find(detectorID);
+    if (it != fCalibrationParametersByDetector.end()) {
+        return it->second;
+    }
+    return {};
+}
+
 void DetectorDualBB7::DefineMaterials() {
     if (fAreVolumensDefined) return;
     // Get NIST material manager

@@ -21,8 +21,6 @@ namespace {
 
 constexpr G4double kStaticMeanEnergyPerIon = 3.62 * eV;
 constexpr G4double kStaticElementaryCharge = 1.60217663e-19 * coulomb;
-constexpr G4double kStaticCalibrationFactor = 1.0 * gray / coulomb;
-constexpr G4double kStaticCalibrationFactorError = 0.01 * kStaticCalibrationFactor;
 
 } // namespace
 
@@ -30,8 +28,6 @@ BB7ReadoutParameters BB7ReadoutModel::Build() {
     BB7ReadoutParameters parameters;
     parameters.meanEnergyPerIon = kStaticMeanEnergyPerIon;
     parameters.elementaryCharge = kStaticElementaryCharge;
-    parameters.calibrationFactor = kStaticCalibrationFactor;
-    parameters.calibrationFactorError = kStaticCalibrationFactorError;
 
     if (parameters.meanEnergyPerIon <= 0.) {
         G4Exception("BB7ReadoutModel::Build",
@@ -46,22 +42,6 @@ BB7ReadoutParameters BB7ReadoutModel::Build() {
                     "BB7ReadoutInvalidElementaryCharge",
                     FatalException,
                     "BB7 elementary charge must be strictly positive.");
-        return parameters;
-    }
-
-    if (parameters.calibrationFactor <= 0.) {
-        G4Exception("BB7ReadoutModel::Build",
-                    "BB7ReadoutInvalidCalibrationFactor",
-                    FatalException,
-                    "BB7 calibration factor must be strictly positive.");
-        return parameters;
-    }
-
-    if (parameters.calibrationFactorError < 0.) {
-        G4Exception("BB7ReadoutModel::Build",
-                    "BB7ReadoutInvalidCalibrationFactorError",
-                    FatalException,
-                    "BB7 calibration factor uncertainty must be non-negative.");
         return parameters;
     }
 

@@ -1,0 +1,56 @@
+# Macro file for the initialization of example B1
+# in interactive session
+#
+# Set some default verbose
+/control/verbose 2
+/run/verbose 2
+
+##################### G4State_PreInit ###################
+
+/MultiDetector1/detectors/cylinder/addGeometryTo WaterBox 0
+
+# ================= Cylinder settings ===============
+
+/MultiDetector1/detectors/cylinder/setRadius **CylinderRadius** mm
+/MultiDetector1/detectors/cylinder/setHeight **CylinderHeight** mm
+/MultiDetector1/detectors/cylinder/setMaterial **CylinderMaterial**
+/MultiDetector1/detectors/cylinder/setEnvelopeThickness 0.0 mm
+/MultiDetector1/detectors/cylinder/setEnvelopeMaterial G4_PLEXIGLASS
+/MultiDetector1/detectors/cylinder/setSplitAtInterface true
+#/MultiDetector1/detectors/cylinder/setCalibrationFactor **CalibrationFactor**
+
+# ================= Phase Space settings ===============
+
+/MultiDetector1/beamline/clinac/phsp/clearFiles
+/MultiDetector1/beamline/clinac/phsp/setPrefix **PhspPrefix**
+/MultiDetector1/beamline/clinac/setJaw1X **Jaw1X** cm
+/MultiDetector1/beamline/clinac/setJaw2X **Jaw2X** cm
+/MultiDetector1/beamline/clinac/setJaw1Y **Jaw1Y** cm
+/MultiDetector1/beamline/clinac/setJaw2Y **Jaw2Y** cm
+/MultiDetector1/beamline/clinac/rotateGantry **GantryAngle** deg
+/MultiDetector1/beamline/clinac/rotateCollimator **CollimatorAngle** deg
+
+##################### Initialization ###################
+#
+# Initialize kernel
+/run/initialize
+/run/printProgress 10000
+#
+
+##################### G4State_Idle ###################
+
+# ==================== Beam settings ==================
+
+/MultiDetector1/run/SetMU **MU**
+
+# ================== Geometry settings ================
+
+/MultiDetector1/phantoms/waterbox/phantomID 0
+/MultiDetector1/phantoms/waterbox/translateTo 0 0 **WaterBoxZ** cm
+/MultiDetector1/detectors/cylinder/detectorID 0
+/MultiDetector1/detectors/cylinder/translateTo 0 0 **CylinderZ** cm
+/MultiDetector1/detectors/cylinder/rotateX **CylinderAngle** deg
+
+# ================== Scoring settings =================
+# Primitive scorers
+/control/execute mac/scorers1.mac

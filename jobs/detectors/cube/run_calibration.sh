@@ -63,12 +63,14 @@ for ((replica=1; replica<=n_replicas; replica++)); do
 
     md1_move_analysis_contents "${analysis_dir}" "${result_dir}"
 
-    charge_line=$(awk '
-        /^\(7\)  Calculated total collected charge / {print; exit}
-    ' "${result_dir}/output.log")
+    charge_line=$(md1_extract_detector_results_line \
+        "${result_dir}/output.log" \
+        "Cube" \
+        "cube[0]" \
+        "(7)  Scaled collected charge ")
 
     if [ -z "${charge_line}" ]; then
-        echo "Could not find global summary line (7) in ${result_dir}/output.log" >&2
+        echo "Could not find cube results line (7) in ${result_dir}/output.log" >&2
         exit 1
     fi
 
@@ -78,7 +80,7 @@ for ((replica=1; replica<=n_replicas; replica++)); do
         mc_err_nC="${BASH_REMATCH[2]}"
         rms_nC="${BASH_REMATCH[3]}"
     else
-        echo "Could not parse calculated total collected charge line: ${charge_line}" >&2
+        echo "Could not parse scaled collected charge line: ${charge_line}" >&2
         exit 1
     fi
 

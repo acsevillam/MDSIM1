@@ -19,6 +19,7 @@
 // Geant4 Headers
 #include "G4UImessenger.hh"
 #include "G4UIcommand.hh"
+#include "G4UIcmdWithADouble.hh"
 #include "G4UIcmdWithAString.hh"
 #include "G4UIcmdWithADoubleAndUnit.hh"
 #include "G4UIcmdWithAnInteger.hh"
@@ -73,6 +74,8 @@ private:
     G4UIcmdWithADoubleAndUnit* fRotateYCmd; ///< Command to rotate the detector around Y-axis
     G4UIcmdWithADoubleAndUnit* fRotateZCmd; ///< Command to rotate the detector around Z-axis
     G4UIcommand* fRotateToCmd; ///< Command to set the rotation angles of the detector
+    G4UIcmdWithADouble* fSetCalibrationFactorCmd; ///< Command to set calibration factor
+    G4UIcmdWithADouble* fSetCalibrationFactorErrorCmd; ///< Command to set calibration factor error
     G4UIcommand* fAddGeometryToCmd; ///< Command to add geometry to the detector
 	G4UIcmdWithAnInteger* fRemoveGeometryCmd; ///< Command to remove geometry from the detector.
 };

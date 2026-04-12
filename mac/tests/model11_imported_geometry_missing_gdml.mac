@@ -1,0 +1,9 @@
+/control/verbose 0
+/run/verbose 0
+
+/MultiDetector1/control/SetPrimaryGeneratorType 2
+/MultiDetector1/detectors/model11/addGeometryTo world_log 0
+/MultiDetector1/detectors/model11/detectorID 0
+/MultiDetector1/detectors/model11/setImportedGeometryGDML input/detectors/model11/gdml/does_not_exist.gdml
+
+/run/initialize

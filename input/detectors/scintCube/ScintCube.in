@@ -1,0 +1,57 @@
+# Macro file for a reference scintCube setup
+/control/verbose 0
+/run/verbose 0
+
+##################### G4State_PreInit ###################
+
+/MultiDetector1/detectors/scintCube/addGeometryTo WaterBox 0
+/MultiDetector1/detectors/scintCube/detectorID 0
+
+# ================= ScintCube settings ===============
+
+/MultiDetector1/detectors/scintCube/setSide 5.0 mm
+/MultiDetector1/detectors/scintCube/setMaterial G4_WATER
+/MultiDetector1/detectors/scintCube/setEnvelopeThickness 0.0 mm
+/MultiDetector1/detectors/scintCube/setEnvelopeMaterial G4_AIR
+/MultiDetector1/detectors/scintCube/setSplitAtInterface true
+/MultiDetector1/detectors/scintCube/setScintillationYield 10000
+/MultiDetector1/detectors/scintCube/setBirksConstant 0.126
+/MultiDetector1/detectors/scintCube/setLightCollectionEfficiency 0.25
+/MultiDetector1/detectors/scintCube/setDecayTime 2.1 ns
+/MultiDetector1/detectors/scintCube/setTransportDelay 0.5 ns
+/MultiDetector1/detectors/scintCube/setTimeJitter 0.1 ns
+/MultiDetector1/detectors/scintCube/setResolutionScale 1.0
+/MultiDetector1/detectors/scintCube/setPhotosensorType PMT
+/MultiDetector1/detectors/scintCube/setPMTQuantumEfficiency 0.25
+/MultiDetector1/detectors/scintCube/setPMTDynodeCollectionEfficiency 0.90
+/MultiDetector1/detectors/scintCube/setPMTTransitTime 5.0 ns
+/MultiDetector1/detectors/scintCube/setPMTTransitTimeSpread 0.3 ns
+/MultiDetector1/detectors/scintCube/setDoseCalibrationFactor 1.0e-12
+/MultiDetector1/detectors/scintCube/setDoseCalibrationFactorError 5.0e-14
+
+# ================= Phase Space settings ===============
+
+/MultiDetector1/beamline/clinac/phsp/clearFiles
+/MultiDetector1/beamline/clinac/phsp/setPrefix beam/Varian_TrueBeam6MV_
+/MultiDetector1/beamline/clinac/setJaw1X 5 cm
+/MultiDetector1/beamline/clinac/setJaw2X 5 cm
+/MultiDetector1/beamline/clinac/setJaw1Y 5 cm
+/MultiDetector1/beamline/clinac/setJaw2Y 5 cm
+/MultiDetector1/beamline/clinac/rotateGantry 0 deg
+/MultiDetector1/beamline/clinac/rotateCollimator 0 deg
+
+##################### Initialization ###################
+
+/run/initialize
+/run/printProgress 10000
+
+##################### G4State_Idle ###################
+
+/MultiDetector1/run/SetMU 1
+/MultiDetector1/phantoms/waterbox/phantomID 0
+/MultiDetector1/phantoms/waterbox/translateTo 0 0 -10 cm
+/MultiDetector1/detectors/scintCube/detectorID 0
+/MultiDetector1/detectors/scintCube/translateTo 0 0 0 cm
+/MultiDetector1/detectors/scintCube/rotateX 0 deg
+
+/control/execute mac/scorers1.mac

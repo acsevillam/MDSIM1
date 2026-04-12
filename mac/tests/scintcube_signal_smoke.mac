@@ -1,0 +1,40 @@
+/control/verbose 0
+/run/verbose 0
+
+/MultiDetector1/control/SetPrimaryGeneratorType 2
+/MultiDetector1/detectors/scintCube/addGeometryTo world_log 0
+/MultiDetector1/detectors/scintCube/detectorID 0
+/MultiDetector1/detectors/scintCube/setSide 5.0 mm
+/MultiDetector1/detectors/scintCube/setMaterial G4_WATER
+/MultiDetector1/detectors/scintCube/setEnvelopeThickness 0.0 mm
+/MultiDetector1/detectors/scintCube/setEnvelopeMaterial G4_AIR
+/MultiDetector1/detectors/scintCube/setSplitAtInterface false
+/MultiDetector1/detectors/scintCube/setScintillationYield 10000
+/MultiDetector1/detectors/scintCube/setBirksConstant 0.126
+/MultiDetector1/detectors/scintCube/setLightCollectionEfficiency 0.25
+/MultiDetector1/detectors/scintCube/setDecayTime 2.1 ns
+/MultiDetector1/detectors/scintCube/setTransportDelay 0.5 ns
+/MultiDetector1/detectors/scintCube/setTimeJitter 0.1 ns
+/MultiDetector1/detectors/scintCube/setResolutionScale 1.0
+/MultiDetector1/detectors/scintCube/setPhotosensorType SiPM
+/MultiDetector1/detectors/scintCube/setSiPMPDE 0.45
+/MultiDetector1/detectors/scintCube/setSiPMMicrocellCount 20000
+/MultiDetector1/detectors/scintCube/setSiPMExcessNoiseFactor 1.10
+/MultiDetector1/detectors/scintCube/setSiPMAvalancheTime 2.0 ns
+/MultiDetector1/detectors/scintCube/setSiPMAvalancheTimeSpread 0.15 ns
+/MultiDetector1/detectors/scintCube/setDoseCalibrationFactor 1.0e-12
+/MultiDetector1/detectors/scintCube/setDoseCalibrationFactorError 5.0e-14
+
+/run/initialize
+
+/gps/particle e-
+/gps/ene/type Mono
+/gps/energy 10 MeV
+/gps/pos/type Point
+/gps/pos/centre 0 0 20 cm
+/gps/direction 0 0 -1
+
+/MultiDetector1/detectors/scintCube/detectorID 0
+/MultiDetector1/detectors/scintCube/translateTo 0 0 0 cm
+
+/run/beamOn 100

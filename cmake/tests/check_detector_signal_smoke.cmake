@@ -18,6 +18,10 @@ if(NOT DEFINED DETECTOR_NAME)
   message(FATAL_ERROR "DETECTOR_NAME must be defined")
 endif()
 
+if(NOT DEFINED DETECTOR_RESULTS_TITLE)
+  message(FATAL_ERROR "DETECTOR_RESULTS_TITLE must be defined")
+endif()
+
 execute_process(
   COMMAND "${EXECUTABLE}" -m "${MACRO_PATH}" -v off -b off -n 0
   WORKING_DIRECTORY "${WORKING_DIRECTORY}"
@@ -33,9 +37,9 @@ if(NOT run_result EQUAL 0)
   message(FATAL_ERROR "${DETECTOR_NAME} signal smoke test failed to run.\n${run_output}")
 endif()
 
-if(NOT run_output MATCHES "Detector Summary: ${DETECTOR_SUMMARY_LABEL}")
+if(NOT run_output MATCHES "${DETECTOR_RESULTS_TITLE} Results: ${DETECTOR_SUMMARY_LABEL}")
   message(FATAL_ERROR
-    "Expected detector summary for ${DETECTOR_NAME}.\n${run_output}")
+    "Expected detector-specific results block for ${DETECTOR_NAME}.\n${run_output}")
 endif()
 
 if(NOT run_output MATCHES "Events with signal: [1-9][0-9]*")
@@ -43,14 +47,19 @@ if(NOT run_output MATCHES "Events with signal: [1-9][0-9]*")
     "Expected non-zero detector signal for ${DETECTOR_NAME}.\n${run_output}")
 endif()
 
-if(NOT run_output MATCHES "Calculated total collected charge")
+if(NOT run_output MATCHES "Scaled collected charge")
   message(FATAL_ERROR
     "Expected collected charge summary for ${DETECTOR_NAME}.\n${run_output}")
 endif()
 
-if(NOT run_output MATCHES "Estimated total absorbed dose in water")
+if(NOT run_output MATCHES "Estimated absorbed dose in water")
   message(FATAL_ERROR
     "Expected estimated dose-to-water summary for ${DETECTOR_NAME}.\n${run_output}")
+endif()
+
+if(run_output MATCHES "End of Global Run")
+  message(FATAL_ERROR
+    "Signal smoke test for ${DETECTOR_NAME} should not emit a global detector summary anymore.\n${run_output}")
 endif()
 
 if(run_output MATCHES "DetectorDigitizerNotFound|DetectorAnalysisNotInitialized|segmentation fault|Segmentation fault|AddressSanitizer")

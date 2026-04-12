@@ -25,12 +25,17 @@ if(NOT run_result EQUAL 0)
   message(FATAL_ERROR "Idle detector refresh test failed to run.\n${run_output}")
 endif()
 
-string(REGEX MATCHALL "Detector Summary: BB7\\[0\\]" bb7_summary_matches "${run_output}")
+string(REGEX MATCHALL "BB7 Results: BB7\\[0\\]" bb7_summary_matches "${run_output}")
 list(LENGTH bb7_summary_matches bb7_summary_count)
 
 if(NOT bb7_summary_count EQUAL 1)
   message(FATAL_ERROR
-    "Expected exactly one BB7 detector summary after activating the detector in Idle.\n${run_output}")
+    "Expected exactly one BB7 results block after activating the detector in Idle.\n${run_output}")
+endif()
+
+if(run_output MATCHES "End of Global Run")
+  message(FATAL_ERROR
+    "Idle detector refresh should not emit the legacy global detector summary.\n${run_output}")
 endif()
 
 if(run_output MATCHES "DetectorDigitizerNotFound|DetectorAnalysisNotInitialized")

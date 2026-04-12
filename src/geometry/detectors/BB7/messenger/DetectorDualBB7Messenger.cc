@@ -77,6 +77,21 @@ DetectorDualBB7Messenger::DetectorDualBB7Messenger(DetectorDualBB7* detector)
     fRotateToCmd->SetParameter(unitParam);
     fRotateToCmd->AvailableForStates(G4State_Idle);
 
+    fSetCalibrationFactorCmd =
+        new G4UIcmdWithADouble("/MultiDetector1/detectors/BB7/setCalibrationFactor", this);
+    fSetCalibrationFactorCmd->SetGuidance("Set the experimental BB7 calibration factor in cGy/nC.");
+    fSetCalibrationFactorCmd->SetParameterName("CalibrationFactor", false);
+    fSetCalibrationFactorCmd->SetRange("CalibrationFactor>0.");
+    fSetCalibrationFactorCmd->AvailableForStates(G4State_PreInit);
+
+    fSetCalibrationFactorErrorCmd =
+        new G4UIcmdWithADouble("/MultiDetector1/detectors/BB7/setCalibrationFactorError", this);
+    fSetCalibrationFactorErrorCmd->SetGuidance(
+        "Set the experimental BB7 calibration factor uncertainty in cGy/nC.");
+    fSetCalibrationFactorErrorCmd->SetParameterName("CalibrationFactorError", false);
+    fSetCalibrationFactorErrorCmd->SetRange("CalibrationFactorError>=0.");
+    fSetCalibrationFactorErrorCmd->AvailableForStates(G4State_PreInit);
+
     fAddGeometryToCmd = new G4UIcommand("/MultiDetector1/detectors/BB7/addGeometryTo", this);
     fAddGeometryToCmd->SetGuidance("Add geometry to the detector.");
     auto volumeNameParam = new G4UIparameter("logicalVolumeName", 's', false);
@@ -99,6 +114,8 @@ DetectorDualBB7Messenger::~DetectorDualBB7Messenger() {
     delete fRotateYCmd;
     delete fRotateZCmd;
     delete fRotateToCmd;
+    delete fSetCalibrationFactorCmd;
+    delete fSetCalibrationFactorErrorCmd;
     delete fAddGeometryToCmd;
     delete fRemoveGeometryCmd;
 }
@@ -123,6 +140,16 @@ void DetectorDualBB7Messenger::SetNewValue(G4UIcommand* command, G4String newVal
         G4double theta, phi, psi;
         ConvertToDoubleTrio(newValue, theta, phi, psi);
         fDetector->RotateTo(fCurrentDetectorID, theta, phi, psi);
+    } else if (command == fSetCalibrationFactorCmd) {
+        fDetector->SetCalibrationFactor(
+            fCurrentDetectorID,
+            fSetCalibrationFactorCmd->GetNewDoubleValue(newValue) * (1e-2 * gray) /
+                (1e-9 * coulomb));
+    } else if (command == fSetCalibrationFactorErrorCmd) {
+        fDetector->SetCalibrationFactorError(
+            fCurrentDetectorID,
+            fSetCalibrationFactorErrorCmd->GetNewDoubleValue(newValue) * (1e-2 * gray) /
+                (1e-9 * coulomb));
     } else if (command == fDetectorIDCmd) {
         fCurrentDetectorID = fDetectorIDCmd->GetNewIntValue(newValue);
     } else if (command == fAddGeometryToCmd) {

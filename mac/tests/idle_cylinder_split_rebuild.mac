@@ -1,0 +1,34 @@
+/control/verbose 0
+/run/verbose 0
+
+/MultiDetector1/control/SetPrimaryGeneratorType 2
+
+/MultiDetector1/detectors/cylinder/addGeometryTo WaterBox 0
+/MultiDetector1/detectors/cylinder/setRadius 2.5 mm
+/MultiDetector1/detectors/cylinder/setHeight 5.0 mm
+/MultiDetector1/detectors/cylinder/setMaterial G4_WATER
+/MultiDetector1/detectors/cylinder/setEnvelopeThickness 0.0 mm
+/MultiDetector1/detectors/cylinder/setEnvelopeMaterial G4_PLEXIGLASS
+/MultiDetector1/detectors/cylinder/setSplitAtInterface true
+
+/run/initialize
+
+/gps/particle gamma
+/gps/ene/type Mono
+/gps/energy 1 MeV
+/gps/pos/type Point
+/gps/pos/centre 0 0 0 cm
+/gps/direction 0 0 -1
+
+/MultiDetector1/phantoms/waterbox/phantomID 0
+/MultiDetector1/phantoms/waterbox/translateTo 0 0 -10 cm
+/MultiDetector1/detectors/cylinder/detectorID 0
+
+/MultiDetector1/detectors/cylinder/translateTo 0 0 10 cm
+/run/beamOn 1
+
+/MultiDetector1/detectors/cylinder/translateTo 0 0 12 cm
+/run/beamOn 1
+
+/MultiDetector1/detectors/cylinder/translateTo 0 0 0 cm
+/run/beamOn 1

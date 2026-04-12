@@ -6,8 +6,6 @@
 #include "G4StatDouble.hh"
 #include "globals.hh"
 
-#include "analysis/DetectorAccumulablesStore.hh"
-
 namespace MD1::RunSummary {
 
 struct StatDisplayValues {
@@ -39,17 +37,6 @@ ScaledStatDisplayValues BuildScaledStatDisplayValues(const StatDisplayValues& va
                                                      G4double scaleFactorError,
                                                      G4double simulatedMU,
                                                      G4double detectorErrorPerEvent = 0.);
-
-G4double BuildCombinedCalibrationErrorPerEvent(
-    const std::vector<DetectorRunAccumulables>& detectorAccumulables,
-    const std::vector<G4String>& activeSummaryLabels,
-    G4int nofEvents);
-
-void PrintDetectorSummary(const DetectorRunAccumulables& detectorAccumulables,
-                          G4int nofEvents,
-                          G4int simulatedMU,
-                          G4double scaleFactorMU,
-                          G4double scaleFactorMUError);
 
 } // namespace MD1::RunSummary
 

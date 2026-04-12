@@ -1,0 +1,53 @@
+# Template macro for scintCube studies
+/control/verbose 0
+/run/verbose 0
+
+##################### G4State_PreInit ###################
+
+/MultiDetector1/detectors/scintCube/addGeometryTo WaterBox 0
+/MultiDetector1/detectors/scintCube/detectorID 0
+
+# ================= ScintCube settings ===============
+
+/MultiDetector1/detectors/scintCube/setSide **CubeSide** mm
+/MultiDetector1/detectors/scintCube/setMaterial **CubeMaterial**
+/MultiDetector1/detectors/scintCube/setEnvelopeThickness 0.0 mm
+/MultiDetector1/detectors/scintCube/setEnvelopeMaterial G4_AIR
+/MultiDetector1/detectors/scintCube/setSplitAtInterface true
+/MultiDetector1/detectors/scintCube/setScintillationYield **ScintillationYield**
+/MultiDetector1/detectors/scintCube/setBirksConstant **BirksConstant**
+/MultiDetector1/detectors/scintCube/setLightCollectionEfficiency **LightCollectionEfficiency**
+/MultiDetector1/detectors/scintCube/setDecayTime **DecayTime** ns
+/MultiDetector1/detectors/scintCube/setTransportDelay **TransportDelay** ns
+/MultiDetector1/detectors/scintCube/setTimeJitter **TimeJitter** ns
+/MultiDetector1/detectors/scintCube/setResolutionScale **ResolutionScale**
+/MultiDetector1/detectors/scintCube/setPhotosensorType **PhotosensorType**
+/MultiDetector1/detectors/scintCube/setDoseCalibrationFactor **DoseCalibrationFactor**
+/MultiDetector1/detectors/scintCube/setDoseCalibrationFactorError **DoseCalibrationFactorError**
+
+# ================= Phase Space settings ===============
+
+/MultiDetector1/beamline/clinac/phsp/clearFiles
+/MultiDetector1/beamline/clinac/phsp/setPrefix **PhspPrefix**
+/MultiDetector1/beamline/clinac/setJaw1X **Jaw1X** cm
+/MultiDetector1/beamline/clinac/setJaw2X **Jaw2X** cm
+/MultiDetector1/beamline/clinac/setJaw1Y **Jaw1Y** cm
+/MultiDetector1/beamline/clinac/setJaw2Y **Jaw2Y** cm
+/MultiDetector1/beamline/clinac/rotateGantry **GantryAngle** deg
+/MultiDetector1/beamline/clinac/rotateCollimator **CollimatorAngle** deg
+
+##################### Initialization ###################
+
+/run/initialize
+/run/printProgress 10000
+
+##################### G4State_Idle ###################
+
+/MultiDetector1/run/SetMU **MU**
+/MultiDetector1/phantoms/waterbox/phantomID 0
+/MultiDetector1/phantoms/waterbox/translateTo 0 0 **WaterBoxZ** cm
+/MultiDetector1/detectors/scintCube/detectorID 0
+/MultiDetector1/detectors/scintCube/translateTo 0 0 **CubeZ** cm
+/MultiDetector1/detectors/scintCube/rotateX **CubeAngle** deg
+
+/control/execute mac/scorers1.mac

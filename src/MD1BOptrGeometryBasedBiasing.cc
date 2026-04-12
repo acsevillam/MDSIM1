@@ -24,7 +24,7 @@ namespace MD1
 
 MD1BOptrGeometryBasedBiasing::MD1BOptrGeometryBasedBiasing()
 : G4VBiasingOperator("MD1BOptrGeometryBasedBiasing"),
-  fSplittingFactor(2),
+  fSplittingFactor(4),
   fApplyProbability(1.0)
 {
   fSplitAndKillOperation = new MD1BOptnSplitOrKillOnBoundary("splitAndkill");
