@@ -5,19 +5,19 @@ Copyright (c) 2024 Andrés Camilo Sevilla
 acsevillam@eafit.edu.co - acsevillam@gmail.com
 All Rights Reserved.
 
-`MultiDetector1` (MDSIM1) es una simulación Monte Carlo basada en Geant4 orientada a la evaluación y caracterización de múltiples detectores de radiación usados en radioterapia. MDSIM1 permite construir distintas configuraciones geométricas (linac, fantoma de agua, detectores), definir fuentes a partir de phase space o GPS, y calcular distribuciones de dosis mediante scorers de Geant4.
+`MultiDetector1` (MDSIM1) es una simulación Monte Carlo basada en Geant4 orientada a la evaluación y caracterización de múltiples detectores de radiación usados en radioterapia. MDSIM1 permite construir distintas configuraciones geométricas (linac, fantoma de agua, detectores), definir fuentes a partir de phase space o GPS, y calcular distribuciones de dosis mediante scorers de Geant4 y readout propio de cada detector.
 
 El flujo de trabajo del proyecto está enfocado a:
 
 - Ejecutar casos de referencia con macros fijas (`input/*.in`);
-- Correr barridos parametrizados con plantillas (`input/<dominio>/templates/*.intmp`) y scripts (`jobs/<dominio>/*.sh`);
+- Correr series (barridos de una o más variables) parametrizados con plantillas (`input/<dominio>/templates/*.intmp`) y scripts de jobs (`jobs/<dominio>/*.sh`);
 - Guardar resultados para análisis posterior en `analysis/`.
 
 ## Jobs
 
-La carpeta `jobs/` contiene lanzadores reproducibles para campañas batch.
+La carpeta `jobs/` contiene lanzadores reproducibles para ejecuciones en modo batch (Sin interfaz gráfica).
 
-En dosimetría, además del barrido de validación, existe:
+En dosimetry, existe:
 
 - [launch_calibration_dmax.sh](/Users/acsevillam/workspace/Geant4/MDSIM1/jobs/dosimetry/launch_calibration_dmax.sh): ejecuta 10 réplicas de `input/dosimetry/Calibration.in` con `-b on -v off -n 200000000` y resume `Dose atDepth1.4cm` (`dmax` en este caso) y `Dose atDepth10cm`.
 
@@ -27,7 +27,7 @@ Este job escribe:
 - `dose_depth_summary.csv` con una fila por réplica
 - `dose_depth_average.txt` con media, desviación estándar entre réplicas, `err = stddev / sqrt(n)` y error relativo para `Dose atDepth1.4cm` y `Dose atDepth10cm`
 
-Para el detector `cube`, existen jobs de calibración de carga para cuatro escenarios:
+Para el detector `cube`, existen jobs de calibración para cuatro escenarios:
 
 - [launch_calibration_water.sh](/Users/acsevillam/workspace/Geant4/MDSIM1/jobs/detectors/cube/launch_calibration_water.sh): cubo de `G4_WATER`, lado `5.0 mm`, sin envolvente.
 - [launch_calibration_air.sh](/Users/acsevillam/workspace/Geant4/MDSIM1/jobs/detectors/cube/launch_calibration_air.sh): cubo de `G4_AIR`, lado `5.0 mm`, sin envolvente.
@@ -80,7 +80,7 @@ En los resúmenes de corrida y por detector, MDSIM1 distingue entre incertidumbr
 MDSIM1 usa el siguiente patrón de etiquetas para incertidumbres:
 
 - `mc_err`: incertidumbre estadística Monte Carlo del estimador, obtenida como `rms / sqrt(N)` sobre la magnitud por evento.
-- `mu_err`: incertidumbre propagada del factor de escala por monitor units, a partir de `fScaleFactorMUError`.
+- `mu_err`: incertidumbre propagada del factor de escala a unidades monitor (MU) resultado del proceso de calibración del Linac, a partir de `fScaleFactorMUError`.
 - `det_err`: incertidumbre propia del detector o de su calibración. Actualmente se usa para `Estimated absorbed dose in water`, a partir del error del factor de calibración aplicado fuera del readout en `cGy/nC`.
 - `total_err`: combinación en cuadratura de las contribuciones independientes que aplican a la magnitud reportada.
 
@@ -119,67 +119,6 @@ Cuando aplican varias contribuciones independientes, `total_err` se calcula en c
 
 ### Magnitudes reportadas
 
-Para la magnitud:
-
-- `(6) Calculated total dose in detector sensitive volume (...UM)`
-
-la salida combina:
-
-- `mc_err`
-- `mu_err`
-- `total_err`
-
-con:
-
-```text
-D_total = D_per_event * fScaleFactorMU * simulatedMU
-mc_err_scaled = mc_err(D_per_event) * fScaleFactorMU * simulatedMU
-mu_err = |D_per_event| * simulatedMU * fScaleFactorMUError
-total_err = sqrt(mc_err_scaled^2 + mu_err^2)
-```
-
-Para la magnitud:
-
-- `(7) Scaled collected charge (...UM)`
-
-la salida combina:
-
-- `mc_err`
-- `mu_err`
-- `total_err`
-
-con:
-
-```text
-Q_total = Q_per_event * fScaleFactorMU * simulatedMU
-mc_err_scaled = mc_err(Q_per_event) * fScaleFactorMU * simulatedMU
-mu_err = |Q_per_event| * simulatedMU * fScaleFactorMUError
-total_err = sqrt(mc_err_scaled^2 + mu_err^2)
-```
-
-Para la magnitud:
-
-- `(8) Estimated absorbed dose in water (...UM)`
-
-la salida combina:
-
-- `mc_err`
-- `mu_err`
-- `det_err`
-- `total_err`
-
-con:
-
-```text
-D_water = D_water,per_event * fScaleFactorMU * simulatedMU
-mc_err_scaled = mc_err(D_water,per_event) * fScaleFactorMU * simulatedMU
-mu_err = |D_water,per_event| * simulatedMU * fScaleFactorMUError
-det_err = |D_water,per_event| * relative_calibration_error * fScaleFactorMU * simulatedMU
-total_err = sqrt(mc_err_scaled^2 + mu_err^2 + det_err^2)
-```
-
-En el bloque de resultados por detector, `det_err` se obtiene a partir de la incertidumbre relativa de calibración de ese detector.
-
 Cuando un módulo tiene varias copias geométricas activas, el bloque de resultados se emite por copia usando el formato `---------------- <Detector> Results: <detector>[copyNo] ----------------`, por ejemplo `cube[0]`, `cube[1]` o `BB7[3]`.
 
 ### Lectura práctica
@@ -193,7 +132,7 @@ Cuando un módulo tiene varias copias geométricas activas, el bloque de resulta
 
 ### Validaciones y fallos explícitos
 
-Para evitar resultados silenciosamente inconsistentes, MDSIM1 ahora aborta la corrida o la inicialización cuando detecta condiciones inválidas en el pipeline de incertidumbres y lectura:
+Para evitar resultados silenciosamente inconsistentes, MDSIM1 aborta la corrida o la inicialización cuando detecta condiciones inválidas en el pipeline de incertidumbres y lectura:
 
 - `/MultiDetector1/run/SetMU` exige `MU > 0`.
 - `/MultiDetector1/run/SetScaleFactorMU` exige un factor estrictamente positivo.
@@ -209,11 +148,11 @@ Para evitar resultados silenciosamente inconsistentes, MDSIM1 ahora aborta la co
 
 ## Arquitectura de detectores
 
-El proyecto quedó reorganizado para soportar múltiples detectores de radiación como módulos autocontenidos.
+El proyecto está reorganizado para soportar múltiples detectores de radiación como módulos autocontenidos.
 
 - `include/geometry/base/` y `src/geometry/base/`: contratos comunes, registry y utilidades base.
 - `include/geometry/detectors/<detector>/` y `src/geometry/detectors/<detector>/`: implementación por detector.
-- `include/geometry/detectors/basic/core/` y `src/geometry/detectors/basic/core/`: núcleo compartido de los detectores dosimétricos básicos.
+- `include/geometry/detectors/basic/core/` y `src/geometry/detectors/basic/core/`: núcleo compartido de los detectores geométricos básicos.
 - `include/geometry/detectors/basic/cube|cylinder|sphere/` y `src/geometry/detectors/basic/cube|cylinder|sphere/`: adapters públicos y geometrías específicas para `cube`, `cylinder` y `sphere`.
 - `include/geometry/beamline/` y `src/geometry/beamline/`: acelerador y componentes del haz.
 - `include/geometry/phantoms/` y `src/geometry/phantoms/`: fantomas y geometrías auxiliares.
@@ -228,7 +167,7 @@ Cada detector vive como un módulo con:
 - digitizer
 - calibration
 
-El ensamblado ya no está hardcodeado en `MD1DetectorConstruction` ni en `MD1EventAction`. Ahora se realiza mediante `DetectorRegistry`, que conoce los detectores disponibles y cuáles están habilitados para la corrida actual.
+El montaje se realiza mediante `DetectorRegistry`, que conoce los detectores disponibles y cuáles están habilitados para la corrida actual.
 
 ### Detectores disponibles
 
@@ -241,7 +180,7 @@ El ensamblado ya no está hardcodeado en `MD1DetectorConstruction` ni en `MD1Eve
 
 ### Namespaces por detector
 
-Los comandos específicos de cada detector ahora viven bajo:
+Los comandos específicos de cada detector viven bajo:
 
 - `/MultiDetector1/detectors/cube/*`
 - `/MultiDetector1/detectors/cylinder/*`
@@ -250,12 +189,26 @@ Los comandos específicos de cada detector ahora viven bajo:
 - `/MultiDetector1/detectors/model11/*`
 - `/MultiDetector1/detectors/BB7/*`
 
+`cube`, `cylinder` y `sphere` forman la familia de dosímetros geométricos básicos:
+
+- comparten el núcleo `basic/core` para el cálculo de carga recogida, masa sensible y calibración dosimétrica
+- cada detector conserva su nombre público, su namespace `/MultiDetector1/detectors/<shape>/*`, su tabla de calibración específica por forma y su formato de salida
+- el `digitizer` conserva sólo la salida física (`edep`, carga recogida y `Dose[Gy]`)
+- la conversión a `EstimatedDoseToWater` se aplica en una clase de calibración separada
+- cada módulo detector escribe un ntuple físico y un ntuple de calibración por separado
+
 `scintCube` usa un pipeline distinto al de los detectores dosimétricos de ionización:
 
 - el digitizer reporta sólo señal física del centellador
 - la calibración a dosis se aplica en una clase separada
 - el fotosensor se selecciona por detector como `PMT` o `SiPM`
 - el bloque de resultados incluye energía visible, fotones producidos, fotoelectrones detectados, tiempo medio de señal y dosis calibrada
+
+`BB7` usa una separación explícita entre readout físico y calibración dosimétrica:
+
+- el `digitizer` conserva sólo la salida física (`edep`, carga recogida y `Dose[Gy]`)
+- la conversión a `EstimatedDoseToWater` se aplica en una clase de calibración separada
+- cada módulo detector escribe un ntuple físico y un ntuple de calibración por separado
 
 `model11` expone un detector centellador cilíndrico independiente para representar el Blue Physics Model 11:
 
@@ -276,19 +229,6 @@ Para la geometría importada de `model11`:
 - si no seleccionas ningún volumen sensible, `model11` se comporta como una geometría pasiva para inspección
 - el GDML integrado del detector está en `models/detectors/model11/gdml/model11.gdml`
 - los fixtures GDML de CI viven bajo `cmake/tests/data/model11/`
-
-En `cube`, `cylinder`, `sphere` y `BB7` también se separó la calibración del readout:
-
-- el `digitizer` conserva sólo la salida física (`edep`, carga recogida y `Dose[Gy]`)
-- la conversión a `EstimatedDoseToWater` se aplica en una clase de calibración separada
-- cada módulo detector escribe un ntuple físico y un ntuple de calibración por separado
-
-Además, `cube`, `cylinder` y `sphere` ya no viven como implementaciones duplicadas completas. Internamente comparten el núcleo `basic/core` para el cálculo de carga recogida, masa sensible y calibración dosimétrica, mientras conservan:
-
-- el mismo nombre público de detector
-- los mismos comandos `/MultiDetector1/detectors/<shape>/*`
-- las mismas tablas de calibración específicas por forma
-- el mismo formato de salida por detector
 
 Regla práctica:
 
@@ -324,20 +264,28 @@ Si el detector nuevo pertenece a la familia de dosímetros geométricos simples,
 
 ## Compilación
 
-Desde la carpeta raíz del proyecto:
+La recomendación es mantener el árbol de compilación en la misma jerarquía del repositorio del proyecto con el fin de evitar mezclar código fuente con arbol de compilación, por ejemplo:
+
+```text
+Geant4/
+├── MDSIM1/
+└── MDSIM1-build/
+```
+
+Desde el directorio padre que contiene ambas carpetas:
 
 ```bash
-cmake -S . -B MDSIM-build
-cmake --build MDSIM-build -jN
+cmake -S MDSIM1 -B MDSIM1-build
+cmake --build MDSIM1-build -jN
 ```
 
 N corresponde con el número de núcleos disponibles en el equipo.
 
 Esto genera el ejecutable:
 
-- `MDSIM-build/MultiDetector1`
+- `MDSIM1-build/MultiDetector1`
 
-Durante la configuración se copian macros, archivos `.in`, scripts y recursos ligeros al directorio de compilación (`MDSIM-build/`).
+Durante la configuración se copian macros, archivos `.in`, scripts y recursos ligeros al directorio de compilación (`MDSIM1-build/`).
 Los datasets pesados (`.IAEAphsp`, `.IAEAheader` y referencias grandes) ya no se copian por defecto.
 
 Por defecto, el ejecutable busca phase spaces en este orden:
@@ -346,18 +294,18 @@ Por defecto, el ejecutable busca phase spaces en este orden:
 - el directorio definido por la variable de entorno `MDSIM1_DATA_DIR`
 - el directorio configurado en CMake mediante `MDSIM1_DATA_DIR` (por defecto, la raíz del proyecto)
 
-Si quieres fijar explícitamente un directorio externo de datos al compilar:
+Si se desea fijar explícitamente un directorio externo de datos al compilar:
 
 ```bash
-cmake -S . -B MDSIM-build -DMDSIM1_DATA_DIR=/ruta/a/mdsim-data
-cmake --build MDSIM-build -jN
+cmake -S MDSIM1 -B MDSIM1-build -DMDSIM1_DATA_DIR=/ruta/a/mdsim-data
+cmake --build MDSIM1-build -jN
 ```
 
-Si prefieres un build autocontenido que también copie los phase spaces al árbol de compilación:
+Si se prefiere un build autocontenido que también copie los phase spaces al árbol de compilación:
 
 ```bash
-cmake -S . -B MDSIM-build -DMDSIM1_COPY_RUNTIME_DATA=ON
-cmake --build MDSIM-build -jN
+cmake -S MDSIM1 -B MDSIM1-build -DMDSIM1_COPY_RUNTIME_DATA=ON
+cmake --build MDSIM1-build -jN
 ```
 
 ## Pruebas rápidas
@@ -374,49 +322,49 @@ El proyecto incluye pruebas CTest para regresiones del flujo PHSP y del ciclo de
 Se ejecutan así:
 
 ```bash
-ctest --test-dir MDSIM-build --output-on-failure
+ctest --test-dir MDSIM1-build --output-on-failure
 ```
 
 Para correr solo la batería rápida de detectores, ahora puedes usar cualquiera de estos dos flujos:
 
 ```bash
-ctest --test-dir MDSIM-build -L detectors_quick --output-on-failure
+ctest --test-dir MDSIM1-build -L detectors_quick --output-on-failure
 ```
 
 o, desde el árbol de build:
 
 ```bash
-cmake --build MDSIM-build --target detector-tests
+cmake --build MDSIM1-build --target detector-tests
 ```
 
 Si quieres separarlas por tipo, también quedan disponibles estos filtros:
 
 ```bash
-ctest --test-dir MDSIM-build -L phsp_quick --output-on-failure
-ctest --test-dir MDSIM-build -L geometry_quick --output-on-failure
-ctest --test-dir MDSIM-build -L signal_quick --output-on-failure
+ctest --test-dir MDSIM1-build -L phsp_quick --output-on-failure
+ctest --test-dir MDSIM1-build -L geometry_quick --output-on-failure
+ctest --test-dir MDSIM1-build -L signal_quick --output-on-failure
 ```
 
 o como targets:
 
 ```bash
-cmake --build MDSIM-build --target phsp-tests
-cmake --build MDSIM-build --target geometry-tests
-cmake --build MDSIM-build --target signal-tests
+cmake --build MDSIM1-build --target phsp-tests
+cmake --build MDSIM1-build --target geometry-tests
+cmake --build MDSIM1-build --target signal-tests
 ```
 
 Y para correr toda la batería rápida del proyecto en una sola pasada:
 
 ```bash
-ctest --test-dir MDSIM-build -L quick --output-on-failure
-cmake --build MDSIM-build --target quick-tests
+ctest --test-dir MDSIM1-build -L quick --output-on-failure
+cmake --build MDSIM1-build --target quick-tests
 ```
 
 También queda reservado un carril para pruebas futuras más lentas o de tipo nightly:
 
 ```bash
-ctest --test-dir MDSIM-build -L nightly --output-on-failure
-cmake --build MDSIM-build --target nightly-tests
+ctest --test-dir MDSIM1-build -L nightly --output-on-failure
+cmake --build MDSIM1-build --target nightly-tests
 ```
 
 Por ahora no hay pruebas marcadas con `nightly`, así que el target `nightly-tests`
@@ -452,7 +400,7 @@ git lfs pull
 Entrar al directorio de compilación:
 
 ```bash
-cd MDSIM-build
+cd ../MDSIM1-build
 ```
 
 Si los phase spaces viven fuera del árbol fuente, exporta antes:
