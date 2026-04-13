@@ -1,0 +1,5 @@
+# material  side  unit  envelope_material  envelope_thickness  unit  calibration_factor_(cGy/nC)  calibration_factor_error_(cGy/nC)
+G4_WATER 5.0 mm G4_PLEXIGLASS 0.0 mm 0.02039266 0.00015019 # rel_err = 0.736504%
+G4_WATER 5.0 mm G4_PLEXIGLASS 2.5 mm 0.02075858 0.00014485 # rel_err = 0.697772%
+G4_AIR 5.0 mm G4_PLEXIGLASS 0.0 mm 31.85200 0.44133 # rel_err = 1.2729%
+G4_AIR 5.0 mm G4_PLEXIGLASS 2.5 mm 31.59181 0.39940 # rel_err = 1.26429%

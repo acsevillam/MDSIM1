@@ -1,0 +1,5 @@
+# material  radius  unit  height  unit  envelope_material  envelope_thickness  unit  calibration_factor_(cGy/nC)  calibration_factor_error_(cGy/nC)
+G4_WATER 2.5 mm 5.0 mm G4_PLEXIGLASS 0.0 mm 0.02596474 0.00019123 # derived from cube calibration scaled by sensitive volume ratio
+G4_WATER 2.5 mm 5.0 mm G4_PLEXIGLASS 2.5 mm 0.02643064 0.00018443 # derived from cube calibration scaled by sensitive volume ratio
+G4_AIR 2.5 mm 5.0 mm G4_PLEXIGLASS 0.0 mm 40.55523 0.56192 # derived from cube calibration scaled by sensitive volume ratio
+G4_AIR 2.5 mm 5.0 mm G4_PLEXIGLASS 2.5 mm 40.22394 0.50853 # derived from cube calibration scaled by sensitive volume ratio
