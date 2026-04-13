@@ -33,6 +33,7 @@
 #include "FTFP_BERT.hh"
 
 #ifdef G4UI_USE_QT
+#include "G4Qt.hh"
 #include <QApplication>
 #include <QFont>
 #include <QLoggingCategory>
@@ -177,6 +178,25 @@ void ConfigureQtLoggingRules() {
   setenv("QT_LOGGING_RULES", combinedRules.c_str(), 1);
 }
 
+// Geant4's Qt session exits the event loop but does not destroy the
+// QApplication it created, which leaves Qt thread-local storage to be
+// torn down at process exit and emits QThreadStorage warnings on macOS.
+void ShutdownOwnedQtRuntime() {
+  auto* app = QApplication::instance();
+  if (app == nullptr) {
+    return;
+  }
+
+  auto* qtManager = G4Qt::getInstance();
+  if (qtManager == nullptr || qtManager->IsExternalApp()) {
+    return;
+  }
+
+  qtManager->SetMainInteractor(nullptr);
+  delete qtManager;
+  delete app;
+}
+
 #endif
 
 }  // namespace
@@ -286,6 +306,11 @@ int main(int argc,char** argv)
     ui.reset();
     visManager.reset();
     runManager.reset();
+#ifdef G4UI_USE_QT
+    if (options.interactive) {
+      ShutdownOwnedQtRuntime();
+    }
+#endif
     MD1GeometryExport::Kill();
     DetectorRegistry::Kill();
     MD1PhspSourceConfig::Kill();
