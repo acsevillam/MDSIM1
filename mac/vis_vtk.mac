@@ -20,6 +20,7 @@
 /vis/viewer/set/hiddenMarker true
 /vis/viewer/set/background white
 /vis/viewer/set/projection perspective 30
+/vis/viewer/set/lineSegmentsPerCircle 100
 
 # For black primary edges, use the separate per-polyhedron pipeline.
 /vis/vtk/set/polyhedronPipeline separate

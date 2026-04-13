@@ -42,7 +42,7 @@
 # Specify style (surface, wireframe, auxiliary edges,...)
 /vis/viewer/set/style surface
 /vis/viewer/set/edge true
-#/vis/viewer/set/lineSegmentsPerCircle 100
+/vis/viewer/set/lineSegmentsPerCircle 100
 #/vis/viewer/set/hiddenEdge true
 /vis/viewer/set/hiddenMarker true
 /vis/viewer/set/auxiliaryEdge false

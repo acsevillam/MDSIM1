@@ -23,6 +23,7 @@ install_manifest.txt
 *.exe
 *.out
 *.app
+*.FCBak
 
 # Runtime/log outputs
 *.log
