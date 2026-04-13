@@ -87,6 +87,7 @@ public:
     void AttachSensitiveDetector(G4VSensitiveDetector* sensitiveDetector);
 
 protected:
+    G4bool RequiresPlacementRebuild(const G4int& copyNo) const override;
     void OnAfterPlacementRemoval(const G4int& copyNo) override;
 
 private:
@@ -107,7 +108,6 @@ private:
                                           const MD1::GDMLImportedAssembly& importedAssembly,
                                           const std::set<G4String>& sensitiveVolumeNames,
                                           G4int copyNo,
-                                          std::size_t& cloneSequence,
                                           PlacementOwnedResources& resources);
     G4bool IsSensitiveVolumeSelected(const std::set<G4String>& sensitiveVolumeNames,
                                      const G4String& logicalVolumeName,

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<gdml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://cern.ch/service-spi/app/releases/GDML/schema/gdml.xsd">
+
+  <define/>
+
+  <materials>
+    <isotope N="12" Z="6" name="C120x989075180">
+      <atom unit="g/mole" value="12"/>
+    </isotope>
+    <isotope N="13" Z="6" name="C130x989075240">
+      <atom unit="g/mole" value="13.0034"/>
+    </isotope>
+    <element name="C0x988c5c300">
+      <fraction n="0.9893" ref="C120x989075180"/>
+      <fraction n="0.0107" ref="C130x989075240"/>
+    </element>
+    <isotope N="1" Z="1" name="H10x989075280">
+      <atom unit="g/mole" value="1.00782503081372"/>
+    </isotope>
+    <isotope N="2" Z="1" name="H20x9890752c0">
+      <atom unit="g/mole" value="2.01410199966617"/>
+    </isotope>
+    <element name="H0x988c5c3c0">
+      <fraction n="0.999885" ref="H10x989075280"/>
+      <fraction n="0.000115" ref="H20x9890752c0"/>
+    </element>
+    <material name="G4_POLYSTYRENE0x98927be80" state="solid">
+      <T unit="K" value="293.15"/>
+      <MEE unit="eV" value="68.7"/>
+      <D unit="g/cm3" value="1.06"/>
+      <fraction n="0.922577329294378" ref="C0x988c5c300"/>
+      <fraction n="0.0774226707056217" ref="H0x988c5c3c0"/>
+    </material>
+    <material name="G4_Galactic0x98de2e440" state="gas">
+      <T unit="K" value="2.73"/>
+      <P unit="pascal" value="3e-18"/>
+      <MEE unit="eV" value="21.8"/>
+      <D unit="g/cm3" value="1e-25"/>
+      <fraction n="1" ref="H0x988c5c3c0"/>
+    </material>
+  </materials>
+
+  <solids>
+    <eltube dx="0.5" dy="0.5" dz="0.5" lunit="mm" name="Sensor0x988d8e880"/>
+    <box lunit="mm" name="MD1ExportWorldSolid0x987309d50" x="3" y="3" z="3"/>
+  </solids>
+
+  <structure>
+    <volume name="LV_Sensor0x98653b340">
+      <materialref ref="G4_POLYSTYRENE0x98927be80"/>
+      <solidref ref="Sensor0x988d8e880"/>
+      <auxiliary auxtype="Color" auxvalue="#ff260000"/>
+      <auxiliary auxtype="SensDet" auxvalue="Model11SD"/>
+      <auxiliary auxtype="SensDet" auxvalue="Model11SD"/>
+    </volume>
+    <volume name="MD1ExportWorldLogical0x98640e800">
+      <materialref ref="G4_Galactic0x98de2e440"/>
+      <solidref ref="MD1ExportWorldSolid0x987309d50"/>
+      <physvol name="PV_LV_Sensor0x9862acc30">
+        <volumeref ref="LV_Sensor0x98653b340"/>
+      </physvol>
+    </volume>
+  </structure>
+
+  <setup name="Default" version="1.0">
+    <world ref="MD1ExportWorldLogical0x98640e800"/>
+  </setup>
+
+</gdml>

@@ -18,6 +18,7 @@
 #include <ctime>
 #include <cstdlib>
 #include <memory>
+#include <string>
 
 #include "G4RunManagerFactory.hh"
 #include "G4SteppingVerbose.hh"
@@ -30,6 +31,14 @@
 #include "G4SystemOfUnits.hh"
 #include "G4GenericBiasingPhysics.hh"
 #include "FTFP_BERT.hh"
+
+#ifdef G4UI_USE_QT
+#include <QApplication>
+#include <QFont>
+#include <QLoggingCategory>
+#include <QStringList>
+#include <QThread>
+#endif
 
 // MultiDetector Headers
 #include "MD1DetectorConstruction.hh"
@@ -45,7 +54,7 @@ namespace {
 
 struct ProgramOptions {
   G4String macro = "mac/init.mac";
-  G4String visMacro = "mac/vis.mac";
+  G4String visMacro = "mac/vis_vtk.mac";
   G4String biasing = "off";
   G4String visualization = "off";
   G4int numberOfEvents = 0;
@@ -134,6 +143,42 @@ bool ApplyCommandOrReportFailure(G4UImanager* uiManager,
   return false;
 }
 
+#ifdef G4UI_USE_QT
+void ConfigureQtFontSubstitutions() {
+#ifdef __APPLE__
+  const QStringList monospaceFallbacks{"Menlo", "Monaco", "SF Mono", "Monospace"};
+  const QStringList sansFallbacks{"Helvetica Neue", "Helvetica", "Arial"};
+#else
+  const QStringList monospaceFallbacks{"DejaVu Sans Mono", "Liberation Mono", "Monospace"};
+  const QStringList sansFallbacks{"DejaVu Sans", "Liberation Sans", "Arial"};
+#endif
+
+  QFont::insertSubstitutions("Courier", monospaceFallbacks);
+  QFont::insertSubstitutions("courier", monospaceFallbacks);
+  QFont::insertSubstitutions("Sans Serif", sansFallbacks);
+  QFont::insertSubstitutions("sans-serif", sansFallbacks);
+}
+
+void ConfigureQtLoggingRules() {
+  QLoggingCategory::setFilterRules(QStringLiteral("qt.qpa.fonts.warning=false"));
+
+  const char* existingRules = std::getenv("QT_LOGGING_RULES");
+  if (existingRules == nullptr || *existingRules == '\0') {
+    setenv("QT_LOGGING_RULES", "qt.qpa.fonts.warning=false", 0);
+    return;
+  }
+
+  const std::string currentRules(existingRules);
+  if (currentRules.find("qt.qpa.fonts") != std::string::npos) {
+    return;
+  }
+
+  const std::string combinedRules = currentRules + ";qt.qpa.fonts.warning=false";
+  setenv("QT_LOGGING_RULES", combinedRules.c_str(), 1);
+}
+
+#endif
+
 }  // namespace
 
 void PrintUsage() {
@@ -157,6 +202,10 @@ int main(int argc,char** argv)
 
   std::unique_ptr<G4UIExecutive> ui;
   if (options.interactive) {
+#ifdef G4UI_USE_QT
+    ConfigureQtLoggingRules();
+    ConfigureQtFontSubstitutions();
+#endif
     ui = std::make_unique<G4UIExecutive>(argc, argv);
   }
 
@@ -233,17 +282,32 @@ int main(int argc,char** argv)
   // Get the pointer to the User Interface manager
   G4UImanager* UImanager = G4UImanager::GetUIpointer();
 
+  auto shutdown = [&]() {
+    ui.reset();
+    visManager.reset();
+    runManager.reset();
+    MD1GeometryExport::Kill();
+    DetectorRegistry::Kill();
+    MD1PhspSourceConfig::Kill();
+    MD1Control::Kill();
+  };
+
+  if (options.interactive && ui && ui->IsGUI()) {
+    if (!ApplyCommandOrReportFailure(UImanager,
+                                     "/control/execute mac/qt_ui.mac",
+                                     "Qt UI macro")) {
+      shutdown();
+      return 1;
+    }
+  }
+
 	// Process macro or start UI session
 	//
 	if (!options.macro.empty())
 	{
 		G4String command = "/control/execute ";
 		if (!ApplyCommandOrReportFailure(UImanager, command + options.macro, "input macro")) {
-      runManager.reset();
-      MD1GeometryExport::Kill();
-      DetectorRegistry::Kill();
-      MD1PhspSourceConfig::Kill();
-      MD1Control::Kill();
+      shutdown();
       return 1;
     }
 	}
@@ -252,11 +316,7 @@ int main(int argc,char** argv)
 		// interactive mode
 		G4String command = "/control/execute ";
 		if (!ApplyCommandOrReportFailure(UImanager, command + options.visMacro, "visualization macro")) {
-      runManager.reset();
-      MD1GeometryExport::Kill();
-      DetectorRegistry::Kill();
-      MD1PhspSourceConfig::Kill();
-      MD1Control::Kill();
+      shutdown();
       return 1;
     }
 		ui->SessionStart();
@@ -269,9 +329,5 @@ int main(int argc,char** argv)
   // owned and deleted by the run manager, so they should not be deleted
   // in the main() program !
 
-  runManager.reset();
-  MD1GeometryExport::Kill();
-  DetectorRegistry::Kill();
-  MD1PhspSourceConfig::Kill();
-  MD1Control::Kill();
+  shutdown();
 }

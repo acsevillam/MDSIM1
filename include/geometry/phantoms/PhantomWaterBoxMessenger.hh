@@ -67,6 +67,8 @@ private:
     G4int fCurrentPhantomID; ///< Current phantom ID
 
     G4UIcmdWithAnInteger* fPhantomIDCmd; ///< Command to set the current phantom ID
+    G4UIcmdWithADoubleAndUnit* fSetSideCmd; ///< Command to set a cubic waterbox side
+    G4UIcmdWith3VectorAndUnit* fSetSizeCmd; ///< Command to set the waterbox size along X/Y/Z
     G4UIcmdWith3VectorAndUnit* fTranslateCmd; ///< Command to translate the phantom
     G4UIcmdWith3VectorAndUnit* fTranslateToCmd; ///< Command to translate the phantom to a position
     G4UIcmdWithADoubleAndUnit* fRotateXCmd; ///< Command to rotate the phantom around X-axis

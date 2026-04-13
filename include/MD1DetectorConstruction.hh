@@ -24,9 +24,18 @@
 
 class G4LogicalVolume;
 class ClinacTrueBeam;
+class GenericGeometry;
 class PhantomWaterBox;
+class PhantomWaterTube;
 
 namespace MD1 {
+
+class MD1DetectorConstructionMessenger;
+
+enum class WaterPhantomType {
+    WaterBox,
+    WaterTube
+};
 
 class MD1DetectorConstruction : public G4VUserDetectorConstruction {
 public:
@@ -35,13 +44,21 @@ public:
 
     G4VPhysicalVolume* Construct() override;
     void ConstructSDandField() override;
+    void SetDefaultWaterPhantomType(const G4String& phantomType);
+    G4String GetDefaultWaterPhantomTypeName() const;
 
 private:
     void SetupGeometry(G4LogicalVolume* motherVolume);
+    GenericGeometry* GetActiveWaterPhantom() const;
+    G4String GetActiveWaterPhantomLogicalVolumeName() const;
+    G4double GetActiveWaterPhantomHeight() const;
 
     G4LogicalVolume* fBiasingVolume = nullptr;
     std::unique_ptr<ClinacTrueBeam> fClinacTrueBeam;
+    WaterPhantomType fDefaultWaterPhantomType = WaterPhantomType::WaterBox;
     std::unique_ptr<PhantomWaterBox> fPhantomWaterBox;
+    std::unique_ptr<PhantomWaterTube> fPhantomWaterTube;
+    std::unique_ptr<MD1DetectorConstructionMessenger> fMessenger;
 };
 
 } // namespace MD1

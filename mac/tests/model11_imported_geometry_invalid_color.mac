@@ -1,0 +1,11 @@
+/control/verbose 0
+/run/verbose 0
+
+/MultiDetector1/control/SetPrimaryGeneratorType 2
+/MultiDetector1/detectors/model11/addGeometryTo world_log 0
+/MultiDetector1/detectors/model11/detectorID 0
+/MultiDetector1/detectors/model11/setSplitAtInterface false
+/MultiDetector1/detectors/model11/setImportedGeometryGDML cmake/tests/data/model11/imported_geometry_invalid_color.gdml
+/MultiDetector1/detectors/model11/setImportedGeometryRootLogical InvalidColorLV
+
+/run/initialize

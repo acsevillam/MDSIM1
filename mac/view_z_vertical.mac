@@ -1,0 +1,7 @@
+# Reorient the current viewer so that the global +Z axis is vertical on screen.
+# This keeps the current target point and viewing direction, but removes camera roll.
+
+/vis/viewer/set/rotationStyle constrainUpDirection
+/vis/viewer/set/upThetaPhi 0 0 deg
+/vis/viewer/refresh
+/vis/viewer/update

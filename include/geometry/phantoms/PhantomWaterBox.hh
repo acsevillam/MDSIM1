@@ -42,7 +42,7 @@ public:
     /**
      * @brief Default destructor for PhantomWaterBox.
      */
-    ~PhantomWaterBox() override = default;
+    ~PhantomWaterBox() override;
 
     /**
      * @brief Define the materials used in the phantom water box.
@@ -78,9 +78,20 @@ public:
      */
     void AddGeometry(G4LogicalVolume* motherVolume, G4Transform3D* transformation, G4int copyNo) override;
 
+    void SetWaterBoxSide(G4double waterBoxSide);
+    void SetWaterBoxSize(const G4ThreeVector& waterBoxSize);
+    G4double GetWaterBoxDx() const { return fWaterBoxDx; }
+    G4double GetWaterBoxDy() const { return fWaterBoxDy; }
+    G4double GetWaterBoxDz() const { return fWaterBoxDz; }
+    G4ThreeVector GetWaterBoxSize() const { return G4ThreeVector(fWaterBoxDx, fWaterBoxDy, fWaterBoxDz); }
+
 private:
+    void InvalidateGeometryDefinition();
+
     G4UserLimits* fStepLimit; ///< Pointer to user step limits
-    G4double fWaterBoxDx; ///< Dimension of the water box
+    G4double fWaterBoxDx; ///< Water box size along X
+    G4double fWaterBoxDy; ///< Water box size along Y
+    G4double fWaterBoxDz; ///< Water box size along Z
     G4UImessenger* fPhantomWaterBoxMessenger;  ///< Water box messenger
 };
 

@@ -15,6 +15,7 @@
 
 #include "G4Box.hh"
 #include "G4Colour.hh"
+#include "G4Exception.hh"
 #include "G4LogicalVolume.hh"
 #include "G4NistManager.hh"
 #include "G4PVPlacement.hh"
@@ -23,22 +24,77 @@
 #include "G4VisAttributes.hh"
 
 #include "MD1DetectorConstruction.hh"
+#include "MD1DetectorConstructionMessenger.hh"
 #include "geometry/base/DetectorRegistry.hh"
+#include "geometry/base/GenericGeometry.hh"
 #include "geometry/beamline/ClinacTrueBeam.hh"
 #include "geometry/phantoms/PhantomWaterBox.hh"
+#include "geometry/phantoms/PhantomWaterTube.hh"
 #include "MD1BOptrGeometryBasedBiasing.hh"
 
 namespace MD1 {
+
+namespace {
+
+constexpr G4double kDefaultWaterPhantomExtent = 40.0 * cm;
+constexpr G4double kDefaultWaterTubeRadius = kDefaultWaterPhantomExtent / 2.;
+constexpr G4double kDefaultWaterTubeHeight = kDefaultWaterPhantomExtent;
+
+} // namespace
 
 MD1DetectorConstruction::MD1DetectorConstruction()
     : G4VUserDetectorConstruction(),
       fBiasingVolume(nullptr),
       fClinacTrueBeam(std::make_unique<ClinacTrueBeam>()),
-      fPhantomWaterBox(std::make_unique<PhantomWaterBox>(40.0 * cm)) {
+      fDefaultWaterPhantomType(WaterPhantomType::WaterBox),
+      fPhantomWaterBox(std::make_unique<PhantomWaterBox>(kDefaultWaterPhantomExtent)),
+      fPhantomWaterTube(
+          std::make_unique<PhantomWaterTube>(kDefaultWaterTubeRadius, kDefaultWaterTubeHeight)),
+      fMessenger(std::make_unique<MD1DetectorConstructionMessenger>(this)) {
     DetectorRegistry::GetInstance();
 }
 
 MD1DetectorConstruction::~MD1DetectorConstruction() = default;
+
+void MD1DetectorConstruction::SetDefaultWaterPhantomType(const G4String& phantomType) {
+    if (phantomType == "waterBox" || phantomType == "WaterBox" || phantomType == "box") {
+        fDefaultWaterPhantomType = WaterPhantomType::WaterBox;
+        return;
+    }
+
+    if (phantomType == "waterTube" || phantomType == "WaterTube" || phantomType == "tube") {
+        fDefaultWaterPhantomType = WaterPhantomType::WaterTube;
+        return;
+    }
+
+    G4Exception("MD1DetectorConstruction::SetDefaultWaterPhantomType",
+                "InvalidWaterPhantomType",
+                FatalException,
+                ("Unknown water phantom type: " + phantomType +
+                 ". Supported values are waterBox and waterTube.")
+                    .c_str());
+}
+
+G4String MD1DetectorConstruction::GetDefaultWaterPhantomTypeName() const {
+    return (fDefaultWaterPhantomType == WaterPhantomType::WaterBox) ? "waterBox" : "waterTube";
+}
+
+GenericGeometry* MD1DetectorConstruction::GetActiveWaterPhantom() const {
+    if (fDefaultWaterPhantomType == WaterPhantomType::WaterTube) {
+        return fPhantomWaterTube.get();
+    }
+    return fPhantomWaterBox.get();
+}
+
+G4String MD1DetectorConstruction::GetActiveWaterPhantomLogicalVolumeName() const {
+    return (fDefaultWaterPhantomType == WaterPhantomType::WaterTube) ? "WaterTube" : "WaterBox";
+}
+
+G4double MD1DetectorConstruction::GetActiveWaterPhantomHeight() const {
+    return (fDefaultWaterPhantomType == WaterPhantomType::WaterTube)
+               ? fPhantomWaterTube->GetWaterTubeHeight()
+               : fPhantomWaterBox->GetWaterBoxDz();
+}
 
 G4VPhysicalVolume* MD1DetectorConstruction::Construct() {
     auto* nistManager = G4NistManager::Instance();
@@ -49,9 +105,9 @@ G4VPhysicalVolume* MD1DetectorConstruction::Construct() {
     auto* geoWorld = new G4Box("world_geo", worldSize / 2, worldSize / 2, worldSize / 2);
     auto* logWorld = new G4LogicalVolume(geoWorld, materialAir, "world_log");
 
-    auto* visWorld = new G4VisAttributes(G4Colour(0., 0.5, 0.5, 0.1));
+    auto* visWorld = new G4VisAttributes(G4Colour(0., 0.0, 0.1, 0.05));
     visWorld->SetVisibility(true);
-    visWorld->SetForceWireframe(true);
+    visWorld->SetForceSolid(true);
     logWorld->SetVisAttributes(visWorld);
 
     auto* physWorld = new G4PVPlacement(nullptr,
@@ -72,15 +128,17 @@ void MD1DetectorConstruction::SetupGeometry(G4LogicalVolume* motherVolume) {
     fClinacTrueBeam->AddGeometry(motherVolume, G4ThreeVector(0, 0, 0 * cm), nullptr, 0);
     fBiasingVolume = fClinacTrueBeam->GetLogVolume("biasTubs");
 
-    const G4double waterBoxDx = 40.0 * cm;
-    fPhantomWaterBox->AddGeometry(motherVolume,
-                                  G4ThreeVector(0, 0, -(waterBoxDx / 2. - 10.0 * cm)),
-                                  nullptr,
-                                  0);
-    auto* logWaterBox = fPhantomWaterBox->GetLogVolume("WaterBox");
+    auto* activeWaterPhantom = GetActiveWaterPhantom();
+    const G4double waterPhantomHeight = GetActiveWaterPhantomHeight();
+    activeWaterPhantom->AddGeometry(motherVolume,
+                                    G4ThreeVector(0, 0, -(waterPhantomHeight / 2. - 10.0 * cm)),
+                                    nullptr,
+                                    0);
+    auto* logWaterPhantom =
+        activeWaterPhantom->GetLogVolume(GetActiveWaterPhantomLogicalVolumeName());
 
     for (auto* detector : DetectorRegistry::GetInstance()->GetActiveDetectors()) {
-        detector->ConstructGeometry(logWaterBox);
+        detector->ConstructGeometry(logWaterPhantom);
     }
 }
 

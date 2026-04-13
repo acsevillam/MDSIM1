@@ -2,6 +2,7 @@
 #define MDSIM1_GDML_ASSEMBLY_READER_HH
 
 #include <memory>
+#include <map>
 #include <set>
 #include <vector>
 
@@ -17,6 +18,13 @@ class G4VPhysicalVolume;
 class G4GDMLParser;
 
 namespace MD1 {
+
+struct GDMLDetachedParserScaffold {
+    std::vector<G4VPhysicalVolume*> physicalVolumes;
+    std::vector<G4LogicalVolume*> logicalVolumes;
+
+    ~GDMLDetachedParserScaffold();
+};
 
 class MD1GDMLReadStructure;
 
@@ -40,6 +48,7 @@ struct GDMLReadOptions {
 
 struct GDMLAssemblyPart {
     G4String name;
+    G4String runtimePhysicalName;
     G4LogicalVolume* logicalVolume = nullptr;
     const G4VPhysicalVolume* physicalVolume = nullptr;
     G4ThreeVector translation;
@@ -83,6 +92,8 @@ private:
     std::vector<G4String> fAvailableLogicalVolumeNames;
     std::vector<G4String> fAvailablePhysicalVolumeNames;
     std::vector<G4String> fAvailableAssemblyNames;
+    std::map<const G4LogicalVolume*, G4GDMLAuxListType> fAuxiliaryInfoByLogicalVolume;
+    std::shared_ptr<GDMLDetachedParserScaffold> fDetachedParserScaffold;
 };
 
 class GDMLAssemblyReader {

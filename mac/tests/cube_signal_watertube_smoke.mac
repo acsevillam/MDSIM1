@@ -1,0 +1,24 @@
+/control/verbose 0
+/run/verbose 0
+
+/MultiDetector1/control/SetPrimaryGeneratorType 2
+/MultiDetector1/phantoms/setDefault waterTube
+/MultiDetector1/detectors/cube/addGeometryTo WaterBox 0
+/MultiDetector1/detectors/cube/setSide 5.0 mm
+/MultiDetector1/detectors/cube/setMaterial G4_WATER
+/MultiDetector1/detectors/cube/setEnvelopeThickness 0.0 mm
+/MultiDetector1/detectors/cube/setEnvelopeMaterial G4_PLEXIGLASS
+
+/run/initialize
+
+/gps/particle e-
+/gps/ene/type Mono
+/gps/energy 10 MeV
+/gps/pos/type Point
+/gps/pos/centre 0 0 20 cm
+/gps/direction 0 0 -1
+
+/MultiDetector1/detectors/cube/detectorID 0
+/MultiDetector1/detectors/cube/translateTo 0 0 9 cm
+
+/run/beamOn 100

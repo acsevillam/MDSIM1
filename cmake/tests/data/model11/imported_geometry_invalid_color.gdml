@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gdml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="http://cern.ch/service-spi/app/releases/GDML/schema/gdml.xsd">
+  <materials>
+    <material name="InvalidColorAir">
+      <D value="1.290" unit="mg/cm3"/>
+      <fraction n="1.0" ref="G4_AIR"/>
+    </material>
+  </materials>
+
+  <solids>
+    <box name="InvalidColorWorld" x="20.0" y="20.0" z="20.0" lunit="mm"/>
+    <box name="InvalidColorBox" x="4.0" y="4.0" z="8.0" lunit="mm"/>
+  </solids>
+
+  <structure>
+    <volume name="InvalidColorLV">
+      <materialref ref="InvalidColorAir"/>
+      <solidref ref="InvalidColorBox"/>
+      <auxiliary auxtype="Color" auxvalue="#1234567g"/>
+    </volume>
+    <volume name="InvalidColorWorldLV">
+      <materialref ref="InvalidColorAir"/>
+      <solidref ref="InvalidColorWorld"/>
+      <physvol name="InvalidColorPV">
+        <volumeref ref="InvalidColorLV"/>
+      </physvol>
+    </volume>
+  </structure>
+
+  <setup name="Default" version="1.0">
+    <world ref="InvalidColorWorldLV"/>
+  </setup>
+</gdml>

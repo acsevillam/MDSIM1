@@ -1,0 +1,20 @@
+/control/verbose 0
+/run/verbose 0
+
+/MultiDetector1/control/SetPrimaryGeneratorType 2
+/MultiDetector1/detectors/model11/addGeometryTo WaterBox 0
+/MultiDetector1/detectors/model11/detectorID 0
+/MultiDetector1/detectors/model11/setSplitAtInterface false
+/MultiDetector1/detectors/model11/setImportedGeometryGDML models/detectors/model11/gdml/model11.gdml
+/MultiDetector1/detectors/model11/addSensitiveVolume LV_Sensor
+
+/run/initialize
+
+/MultiDetector1/detectors/model11/translateTo 0 0 0 cm
+/MultiDetector1/detectors/model11/rotateX 90 deg
+
+/MultiDetector1/geometry/listPhysicalVolumes LV_
+/MultiDetector1/geometry/listLogicalVolumes LV_
+/MultiDetector1/geometry/writePhysicalGDML WaterBox 0 cmake/tests/output/exported_model11_waterbox.gdml
+/MultiDetector1/geometry/writePhysicalGDML PV_LV_Sensor 0 cmake/tests/output/exported_model11_sensor.gdml
+/MultiDetector1/geometry/writePhysicalGDML PV_LV_Coupler 0 cmake/tests/output/exported_model11_coupler.gdml

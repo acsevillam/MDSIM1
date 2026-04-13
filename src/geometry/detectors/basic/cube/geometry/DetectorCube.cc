@@ -168,6 +168,14 @@ void DetectorCube::AddGeometry(G4LogicalVolume* motherVolume, G4Transform3D* tra
     }
     detRotMat[copyNo] = NewPtrRotMatrix(rotation);
 
+    if (fSplitAtInterface && motherVolume != nullptr && motherVolume->GetName() == "WaterTube") {
+        G4Exception("DetectorCube::AddGeometry",
+                    "DetectorCubeSplitWaterTubeUnsupported",
+                    FatalException,
+                    "split at interface is not supported when the cube is added to WaterTube.");
+        return;
+    }
+
     if (fSplitAtInterface && motherVolume != nullptr && motherVolume->GetName() == "WaterBox") {
         ValidateSplitPlacementSupport(motherVolume, centerRelativeToMother, outerHalfSize, copyNo);
 

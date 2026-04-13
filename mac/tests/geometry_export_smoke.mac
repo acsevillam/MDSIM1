@@ -14,4 +14,4 @@
 /MultiDetector1/geometry/listLogicalVolumes WaterBox
 /MultiDetector1/geometry/writePhysicalGDML WaterBox 0 cmake/tests/output/exported_waterbox.gdml
 /MultiDetector1/geometry/writeLogicalGDML WaterBox cmake/tests/output/exported_waterbox_logical.gdml
-/MultiDetector1/geometry/writePhysicalGDML ImportedModel11Phys_PassiveAssemblyLV_0_0 0 cmake/tests/output/exported_model11_root.gdml
+/MultiDetector1/geometry/writePhysicalGDML PassiveAssemblyLV 0 cmake/tests/output/exported_model11_root.gdml

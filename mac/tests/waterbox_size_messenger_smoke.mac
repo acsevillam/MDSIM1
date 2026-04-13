@@ -1,0 +1,8 @@
+/control/verbose 0
+/run/verbose 0
+
+/MultiDetector1/phantoms/waterbox/setSize 30 40 50 cm
+
+/run/initialize
+
+/MultiDetector1/geometry/writePhysicalGDML WaterBox 0 cmake/tests/output/waterbox_size_messenger_smoke.gdml

@@ -617,6 +617,9 @@ Cada reader consume una partición disjunta del archivo usando `parallelRun = wo
 
 ### Fantoma de agua (`waterbox`)
 
+- `/MultiDetector1/phantoms/setDefault <waterBox|waterTube>` (`PreInit`)
+- `/MultiDetector1/phantoms/waterbox/setSide <valor> <unidad>` (`PreInit`)
+- `/MultiDetector1/phantoms/waterbox/setSize <sizeX> <sizeY> <sizeZ> <unidad>` (`PreInit`)
 - `/MultiDetector1/phantoms/waterbox/phantomID <int>`
 - `/MultiDetector1/phantoms/waterbox/translate <dx> <dy> <dz> <unidad>`
 - `/MultiDetector1/phantoms/waterbox/translateTo <x> <y> <z> <unidad>`
@@ -626,6 +629,22 @@ Cada reader consume una partición disjunta del archivo usando `parallelRun = wo
 - `/MultiDetector1/phantoms/waterbox/rotateTo <theta> <phi> <psi> <unidad>`
 - `/MultiDetector1/phantoms/waterbox/addGeometryTo <logicalVolumeName> <copyNo>`
 - `/MultiDetector1/phantoms/waterbox/removeGeometry <phantomID>`
+
+### Fantoma de agua cilíndrico (`watertube`)
+
+- `/MultiDetector1/phantoms/watertube/setRadius <valor> <unidad>` (`PreInit`)
+- `/MultiDetector1/phantoms/watertube/setHeight <valor> <unidad>` (`PreInit`)
+- `/MultiDetector1/phantoms/watertube/phantomID <int>`
+- `/MultiDetector1/phantoms/watertube/translate <dx> <dy> <dz> <unidad>`
+- `/MultiDetector1/phantoms/watertube/translateTo <x> <y> <z> <unidad>`
+- `/MultiDetector1/phantoms/watertube/rotateX <valor> <unidad>`
+- `/MultiDetector1/phantoms/watertube/rotateY <valor> <unidad>`
+- `/MultiDetector1/phantoms/watertube/rotateZ <valor> <unidad>`
+- `/MultiDetector1/phantoms/watertube/rotateTo <theta> <phi> <psi> <unidad>`
+- `/MultiDetector1/phantoms/watertube/addGeometryTo <logicalVolumeName> <copyNo>`
+- `/MultiDetector1/phantoms/watertube/removeGeometry <phantomID>`
+
+Cuando se selecciona `waterTube` como phantom por defecto en `PreInit`, las geometrías de detectores que apunten a `WaterBox` o `WaterTube` se resuelven automáticamente contra el phantom activo. El modo `splitAtInterface` sigue soportado solo sobre `WaterBox`.
 
 ### Registry de detectores
 
@@ -751,6 +770,7 @@ Configuración PHSP + geometría base:
 /MultiDetector1/beamline/clinac/setJaw2X 5 cm
 /MultiDetector1/beamline/clinac/setJaw1Y 5 cm
 /MultiDetector1/beamline/clinac/setJaw2Y 5 cm
+/MultiDetector1/phantoms/setDefault waterBox
 /MultiDetector1/phantoms/waterbox/addGeometryTo world_log 0
 /MultiDetector1/phantoms/waterbox/translateTo 0 0 -10 cm
 ```

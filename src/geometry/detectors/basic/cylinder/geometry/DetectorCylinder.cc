@@ -179,6 +179,14 @@ void DetectorCylinder::AddGeometry(G4LogicalVolume* motherVolume,
     }
     detRotMat[copyNo] = NewPtrRotMatrix(rotation);
 
+    if (fSplitAtInterface && motherVolume != nullptr && motherVolume->GetName() == "WaterTube") {
+        G4Exception("DetectorCylinder::AddGeometry",
+                    "DetectorCylinderSplitWaterTubeUnsupported",
+                    FatalException,
+                    "split at interface is not supported when the cylinder is added to WaterTube.");
+        return;
+    }
+
     if (fSplitAtInterface && motherVolume != nullptr && motherVolume->GetName() == "WaterBox") {
         ValidateSplitPlacementSupport(
             motherVolume, centerRelativeToMother, outerRadius, outerHalfHeight, copyNo);

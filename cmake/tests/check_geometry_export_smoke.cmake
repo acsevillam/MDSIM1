@@ -82,7 +82,45 @@ endfunction()
 probe_export("${exported_waterbox}" "daughter=WaterBox copyNo=0 logical=WaterBox" "aux.color=1 aux.sensdet=0")
 probe_export("${exported_waterbox_logical}" "daughter=WaterBox copyNo=0 logical=WaterBox" "aux.color=1 aux.sensdet=0")
 probe_export("${exported_model11_root}"
-             "daughter=ImportedModel11Phys_PassiveAssemblyLV_0_0 copyNo=0"
+             "daughter=PassiveAssemblyLV copyNo=0 logical=PassiveAssemblyLV"
              "aux.color=[1-9][0-9]* aux.sensdet=[1-9][0-9]*")
+
+execute_process(
+  COMMAND "${PROBE_EXECUTABLE}" "${exported_waterbox}"
+  WORKING_DIRECTORY "${WORKING_DIRECTORY}"
+  RESULT_VARIABLE waterbox_probe_result
+  OUTPUT_VARIABLE waterbox_probe_stdout
+  ERROR_VARIABLE waterbox_probe_stderr
+  TIMEOUT 180
+)
+
+if(NOT waterbox_probe_result EQUAL 0)
+  message(FATAL_ERROR "Failed to probe exported WaterBox GDML.\n${waterbox_probe_stdout}\n${waterbox_probe_stderr}")
+endif()
+
+if(NOT waterbox_probe_stdout MATCHES "aux.color.value=WaterBox=#00ffffcc")
+  message(FATAL_ERROR "Expected WaterBox export color in FreeCAD #RRGGBBTT format.\n${waterbox_probe_stdout}")
+endif()
+
+execute_process(
+  COMMAND "${PROBE_EXECUTABLE}" "${exported_model11_root}"
+  WORKING_DIRECTORY "${WORKING_DIRECTORY}"
+  RESULT_VARIABLE model11_probe_result
+  OUTPUT_VARIABLE model11_probe_stdout
+  ERROR_VARIABLE model11_probe_stderr
+  TIMEOUT 180
+)
+
+if(NOT model11_probe_result EQUAL 0)
+  message(FATAL_ERROR "Failed to probe exported model11 GDML colors.\n${model11_probe_stdout}\n${model11_probe_stderr}")
+endif()
+
+if(NOT model11_probe_stdout MATCHES "aux.color.value=PassiveAssemblyBodyLV=#cccccc80")
+  message(FATAL_ERROR "Expected PassiveAssemblyBodyLV color to round-trip as FreeCAD #RRGGBBTT.\n${model11_probe_stdout}")
+endif()
+
+if(NOT model11_probe_stdout MATCHES "aux.color.value=PassiveAssemblyCapLV=#cccccc40")
+  message(FATAL_ERROR "Expected PassiveAssemblyCapLV color to round-trip as FreeCAD #RRGGBBTT.\n${model11_probe_stdout}")
+endif()
 
 message(STATUS "Geometry export smoke test passed")

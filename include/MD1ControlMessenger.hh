@@ -17,8 +17,10 @@
 #define MD1ControlMessenger_h 1
 
 // Geant4 Headers
+#include "G4UIdirectory.hh"
 #include "G4UImessenger.hh"
 #include "G4UIcmdWithAnInteger.hh"
+#include "G4UIcmdWithoutParameter.hh"
 
 namespace MD1 {
 
@@ -36,8 +38,10 @@ public:
 private:
 
 	MD1Control*								fMD1Control ;
+    G4UIdirectory* fControlDirectory = nullptr;
 	G4UIcmdWithAnInteger* fSetPrimaryGeneratorTypeCmd; ///< Command to select the primary generator backend.
-
+    G4UIcmdWithoutParameter* fCenterViewOnZAxisCmd = nullptr; ///< Command to center the active view on the global Z axis.
+    G4UIcmdWithoutParameter* fToggleFocusAxesCmd = nullptr; ///< Command to show/hide axes at the current focus point.
 
 };
 

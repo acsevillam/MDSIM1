@@ -144,8 +144,8 @@ void ClinacTrueBeam::ConstructAccelerator(G4LogicalVolume* motherVolume, G4int c
     detFrame[copyNo] = new G4PVPlacement(transform, accWorldLV, "acceleratorTubs", motherVolume, false, 0, checkOverlap);
 
     G4VisAttributes* simpleAlSVisAtt = new G4VisAttributes(G4Colour::Gray());
-    simpleAlSVisAtt->SetForceWireframe(true);
-    simpleAlSVisAtt->SetVisibility(true);
+    simpleAlSVisAtt->SetForceSolid(true);
+    simpleAlSVisAtt->SetVisibility(false);
     accWorldLV->SetVisAttributes(simpleAlSVisAtt);
 
     ConstructJawsX(accWorldLV, copyNo);
@@ -456,8 +456,8 @@ void ClinacTrueBeam::ConstructBiasVolume(G4LogicalVolume* motherVolume, G4int co
     G4LogicalVolume* logBiasTubs = new G4LogicalVolume(geoBiasTubs, detMat["air"], "biasTubs", 0, 0, 0);
     detLog["biasTubs"] = logBiasTubs;
 
-    G4VisAttributes* simpleAlSVisAtt = new G4VisAttributes(G4Colour::Gray());
-    simpleAlSVisAtt->SetForceWireframe(true);
+    G4VisAttributes* simpleAlSVisAtt = new G4VisAttributes(G4Colour(0., 0.0, 0.1, 0.05));
+    simpleAlSVisAtt->SetForceSolid(true);
     simpleAlSVisAtt->SetVisibility(true);
     logBiasTubs->SetVisAttributes(simpleAlSVisAtt);
 

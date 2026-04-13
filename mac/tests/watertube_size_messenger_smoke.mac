@@ -1,0 +1,10 @@
+/control/verbose 0
+/run/verbose 0
+
+/MultiDetector1/phantoms/setDefault waterTube
+/MultiDetector1/phantoms/watertube/setRadius 17 cm
+/MultiDetector1/phantoms/watertube/setHeight 46 cm
+
+/run/initialize
+
+/MultiDetector1/geometry/writePhysicalGDML WaterTube 0 cmake/tests/output/watertube_size_messenger_smoke.gdml

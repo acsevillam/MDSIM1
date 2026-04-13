@@ -411,6 +411,14 @@ void DetectorScintCube::AddGeometry(G4LogicalVolume* motherVolume,
     }
     detRotMat[copyNo] = NewPtrRotMatrix(rotation);
 
+    if (config.splitAtInterface && motherVolume != nullptr && motherVolume->GetName() == "WaterTube") {
+        G4Exception("DetectorScintCube::AddGeometry",
+                    "DetectorScintCubeSplitWaterTubeUnsupported",
+                    FatalException,
+                    "split at interface is not supported when scintCube is added to WaterTube.");
+        return;
+    }
+
     if (config.splitAtInterface && motherVolume != nullptr && motherVolume->GetName() == "WaterBox") {
         ValidateSplitPlacementSupport(config, motherVolume, centerRelativeToMother, outerHalfSize, copyNo);
 

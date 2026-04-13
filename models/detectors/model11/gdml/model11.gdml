@@ -4,165 +4,77 @@
     <constant name="HALFPI" value="pi/2"/>
     <constant name="PI" value="1*pi"/>
     <constant name="TWOPI" value="2*pi"/>
-    <rotation name="identity" x="0" y="0" z="0"/>
     <position name="center" x="0" y="0" z="0" unit="mm"/>
+    <rotation name="identity" x="0" y="0" z="0"/>
   </define>
   <materials/>
   <solids>
-    <box name="WorldBox" x="100.0" y="100.0" z="100.0" lunit="mm"/>
-    <tube name="bodymain" rmax="3.17" deltaphi="360.0" aunit="deg" z="29.2" lunit="mm"/>
-    <cone name="bodycone" rmax1="2.25" rmax2="3.17" deltaphi="360.0" aunit="deg" z="10.0" lunit="mm"/>
-    <multiUnion name="MultiFusesemiflexbodyconesolid">
-      <multiUnionNode name="node-1">
-        <solid ref="bodymain"/>
-        <position name="P-bodymain1" unit="mm" z="-14.6"/>
-        <rotationref ref="identity"/>
-      </multiUnionNode>
-      <multiUnionNode name="node-2">
-        <solid ref="bodycone"/>
-        <position name="P-bodycone2" unit="mm" z="-34.2"/>
-        <rotationref ref="identity"/>
-      </multiUnionNode>
-    </multiUnion>
-    <tube name="couplerbed" rmax="2.2" deltaphi="360.0" aunit="deg" z="29.2" lunit="mm"/>
-    <tube name="fiber" rmax="1.12" deltaphi="360.0" aunit="deg" z="20.0" lunit="mm"/>
-    <tube name="needleholetop118G" rmax="0.63" deltaphi="360.0" aunit="deg" z="10.0" lunit="mm"/>
-    <tube name="needleholebottom18G" rmax="0.63" deltaphi="360.0" aunit="deg" z="10.0" lunit="mm"/>
-    <multiUnion name="MultiFusesemiflexbodydrills">
-      <multiUnionNode name="node-1">
-        <solid ref="couplerbed"/>
-        <position name="P-couplerbed3" unit="mm" z="-14.6"/>
-        <rotationref ref="identity"/>
-      </multiUnionNode>
-      <multiUnionNode name="node-2">
-        <solid ref="fiber"/>
-        <position name="P-fiber4" unit="mm" z="-37.0"/>
-        <rotationref ref="identity"/>
-      </multiUnionNode>
-      <multiUnionNode name="node-3">
-        <solid ref="needleholetop118G"/>
-        <position name="P-needleholetop118G5" unit="mm" x="-5.0" z="-3.999999999999999"/>
-        <rotation name="R-needleholetop118G1" unit="deg" y="-90.0"/>
-      </multiUnionNode>
-      <multiUnionNode name="node-4">
-        <solid ref="needleholebottom18G"/>
-        <position name="P-needleholebottom18G6" unit="mm" x="5.0" z="-28.0"/>
-        <rotation name="R-needleholebottom18G2" unit="deg" y="-90.0"/>
-      </multiUnionNode>
-    </multiUnion>
-    <subtraction name="A1SLbodyforcnc2">
-      <first ref="MultiFusesemiflexbodyconesolid"/>
-      <second ref="MultiFusesemiflexbodydrills"/>
-      <positionref ref="center"/>
+    <box name="Model11World" x="100.0" y="100.0" z="100.0" lunit="mm"/>
+    <eltube name="Sensor" dx="0.5" dy="0.5" dz="0.5" lunit="mm"/>
+    <eltube name="GDMLElTube005" dx="0.505" dy="0.505" dz="1.0" lunit="mm"/>
+    <eltube name="GDMLElTube004" dx="0.16" dy="0.16" dz="6.62" lunit="mm"/>
+    <eltube name="GDMLElTube003" dx="0.16" dy="0.16" dz="13.0" lunit="mm"/>
+    <eltube name="GDMLElTube001" dx="2.2" dy="2.2" dz="6.5" lunit="mm"/>
+    <eltube name="GDMLElTube002" dx="2.59" dy="2.59" dz="0.75" lunit="mm"/>
+    <union name="Fuse001">
+      <first ref="GDMLElTube001"/>
+      <second ref="GDMLElTube002"/>
+      <position name="P-GDMLElTube0021" unit="mm" z="-2.75"/>
+      <rotationref ref="identity"/>
+    </union>
+    <subtraction name="Cut001">
+      <first ref="Fuse001"/>
+      <second ref="GDMLElTube003"/>
+      <position name="P-GDMLElTube0032" unit="mm" z="-0.5"/>
       <rotationref ref="identity"/>
     </subtraction>
-    <tube name="couplersolidlongcylinder" rmax="2.2" deltaphi="360.0" aunit="deg" z="10.0" lunit="mm"/>
-    <tube name="couplersolidshortcylinder" rmax="2.6" deltaphi="360.0" aunit="deg" z="1.5" lunit="mm"/>
-    <multiUnion name="MultiFusesemiflexcapinterior">
-      <multiUnionNode name="node-1">
-        <solid ref="couplersolidlongcylinder"/>
-        <position name="P-couplersolidlongcylinder7" unit="mm" z="5.0"/>
-        <rotationref ref="identity"/>
-      </multiUnionNode>
-      <multiUnionNode name="node-2">
-        <solid ref="couplersolidshortcylinder"/>
-        <position name="P-couplersolidshortcylinder8" unit="mm" z="0.75"/>
-        <rotationref ref="identity"/>
-      </multiUnionNode>
-    </multiUnion>
-    <tube name="semiflexmainbody" rmax="3.17" deltaphi="360.0" aunit="deg" z="10.6" lunit="mm"/>
-    <sphere name="semiflextip" rmax="3.17" starttheta="0.0" deltatheta="180.0" deltaphi="360.0" aunit="deg" lunit="mm"/>
-    <multiUnion name="MultiFusesemiflexccvernodrills">
-      <multiUnionNode name="node-1">
-        <solid ref="semiflexmainbody"/>
-        <position name="P-semiflexmainbody9" unit="mm" z="5.3"/>
-        <rotationref ref="identity"/>
-      </multiUnionNode>
-      <multiUnionNode name="node-2">
-        <solid ref="semiflextip"/>
-        <position name="P-semiflextip10" unit="mm" z="10.6"/>
-        <rotationref ref="identity"/>
-      </multiUnionNode>
-    </multiUnion>
-    <tube name="markercerenkovsemiflex" rmax="0.5" deltaphi="360.0" aunit="deg" z="1.0" lunit="mm"/>
-    <tube name="marker006semiflex" rmax="0.5" deltaphi="360.0" aunit="deg" z="1.0" lunit="mm"/>
-    <tube name="marker006" rmax="0.5" deltaphi="360.0" aunit="deg" z="1.0" lunit="mm"/>
-    <tube name="marker007" rmax="0.5" deltaphi="360.0" aunit="deg" z="1.0" lunit="mm"/>
-    <tube name="marker008" rmax="0.5" deltaphi="360.0" aunit="deg" z="1.0" lunit="mm"/>
-    <multiUnion name="MultiFusesemiflexdrills">
-      <multiUnionNode name="node-1">
-        <solid ref="markercerenkovsemiflex"/>
-        <position name="P-markercerenkovsemiflex11" unit="mm" x="3.5" z="9.45"/>
-        <rotation name="R-markercerenkovsemiflex3" unit="deg" y="-90.0"/>
-      </multiUnionNode>
-      <multiUnionNode name="node-2">
-        <solid ref="marker006semiflex"/>
-        <position name="P-marker006semiflex12" unit="mm" x="-3.5" z="9.45"/>
-        <rotation name="R-marker006semiflex4" unit="deg" y="-90.0"/>
-      </multiUnionNode>
-      <multiUnionNode name="node-3">
-        <solid ref="marker006"/>
-        <position name="P-marker00613" unit="mm" x="3.5" z="7.45"/>
-        <rotation name="R-marker0065" unit="deg" y="-90.0"/>
-      </multiUnionNode>
-      <multiUnionNode name="node-4">
-        <solid ref="marker007"/>
-        <position name="P-marker00714" unit="mm" y="-3.5" z="9.45"/>
-        <rotation name="R-marker0076" unit="deg" x="-89.99999999999999"/>
-      </multiUnionNode>
-      <multiUnionNode name="node-5">
-        <solid ref="marker008"/>
-        <position name="P-marker00815" unit="mm" y="3.5" z="9.45"/>
-        <rotation name="R-marker0087" unit="deg" x="-89.99999999999999"/>
-      </multiUnionNode>
-    </multiUnion>
-    <subtraction name="semiflexwithdrills">
-      <first ref="MultiFusesemiflexccvernodrills"/>
-      <second ref="MultiFusesemiflexdrills"/>
-      <positionref ref="center"/>
+    <subtraction name="Cut002">
+      <first ref="Cut001"/>
+      <second ref="GDMLElTube004"/>
+      <position name="P-GDMLElTube0043" unit="mm" x="-1.0" z="-2.119999999999999"/>
       <rotationref ref="identity"/>
     </subtraction>
-    <subtraction name="A1SLcapforcnc2">
-      <first ref="semiflexwithdrills"/>
-      <second ref="MultiFusesemiflexcapinterior"/>
-      <positionref ref="center"/>
+    <subtraction name="Cut003">
+      <first ref="Cut002"/>
+      <second ref="GDMLElTube005"/>
+      <position name="P-GDMLElTube0054" unit="mm" z="6.495"/>
       <rotationref ref="identity"/>
     </subtraction>
   </solids>
   <structure>
-    <volume name="LV_A1SLbodyforcnc2">
-      <materialref ref="G4_STAINLESS-STEEL"/>
-      <solidref ref="A1SLbodyforcnc2"/>
-      <auxiliary auxtype="Color" auxvalue="#cccccc80"/>
+    <volume name="LV_Sensor">
+      <materialref ref="G4_POLYSTYRENE"/>
+      <solidref ref="Sensor"/>
+      <auxiliary auxtype="Color" auxvalue="#ff260000"/>
     </volume>
-    <volume name="LV_A1SLcapforcnc2">
-      <materialref ref="G4_STAINLESS-STEEL"/>
-      <solidref ref="A1SLcapforcnc2"/>
-      <auxiliary auxtype="Color" auxvalue="#cccccc40"/>
+    <volume name="LV_Coupler">
+      <materialref ref="G4_PLEXIGLASS"/>
+      <solidref ref="Cut003"/>
+      <auxiliary auxtype="Color" auxvalue="#0433ff00"/>
     </volume>
-    <assembly name="Detector">
-      <physvol name="av_1_impr_1_LV_A1SLbodyforcnc2_pv_0">
-        <volumeref ref="LV_A1SLbodyforcnc2"/>
+    <assembly name="Assembly_Model11">
+      <physvol name="av_1_impr_1_LV_Sensor_pv_0">
+        <volumeref ref="LV_Sensor"/>
         <positionref ref="center"/>
         <rotationref ref="identity"/>
       </physvol>
-      <physvol name="av_1_impr_1_LV_A1SLcapforcnc2_pv_1">
-        <volumeref ref="LV_A1SLcapforcnc2"/>
-        <positionref ref="center"/>
+      <physvol name="av_1_impr_1_LV_Coupler_pv_1">
+        <volumeref ref="LV_Coupler"/>
+        <position name="P-LV_Coupler5" unit="mm" z="-6.0"/>
         <rotationref ref="identity"/>
       </physvol>
     </assembly>
-    <volume name="worldVOL">
+    <volume name="LV_Model11World">
       <materialref ref="G4_AIR"/>
-      <solidref ref="WorldBox"/>
-      <physvol name="PV_Detector">
-        <volumeref ref="Detector"/>
+      <solidref ref="Model11World"/>
+      <physvol name="PV_Assembly_Model11">
+        <volumeref ref="Assembly_Model11"/>
         <positionref ref="center"/>
         <rotationref ref="identity"/>
       </physvol>
     </volume>
   </structure>
   <setup name="Default" version="1.0">
-    <world ref="worldVOL"/>
+    <world ref="LV_Model11World"/>
   </setup>
 </gdml>

@@ -63,11 +63,24 @@ add_executable(
 target_include_directories(md1_gdml_export_probe PRIVATE ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(md1_gdml_export_probe PRIVATE ${Geant4_LIBRARIES})
 
+add_executable(
+  md1_gdml_color_codec_probe
+  cmake/tests/GDMLColorCodecProbe.cc
+  src/geometry/gdml/GDMLColorCodec.cc
+)
+target_include_directories(md1_gdml_color_codec_probe PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_link_libraries(md1_gdml_color_codec_probe PRIVATE ${Geant4_LIBRARIES})
+
 #----------------------------------------------------------------------------
 # Copy all scripts to the build directory
 #
 set(MDSIM1_RUNTIME_FILES
   mac/vis.mac
+  mac/vis_vtk.mac
+  mac/vis_vtk_fast.mac
+  mac/vis_vtk_offscreen.mac
+  mac/qt_ui.mac
+  mac/view_z_vertical.mac
   mac/init.mac
   mac/scorers1.mac
   mac/tests/invalid_eof_policy.mac
@@ -78,6 +91,9 @@ set(MDSIM1_RUNTIME_FILES
   mac/tests/idle_cylinder_split_rebuild.mac
   mac/tests/idle_sphere_split_rebuild.mac
   mac/tests/cube_signal_smoke.mac
+  mac/tests/cube_signal_watertube_smoke.mac
+  mac/tests/waterbox_size_messenger_smoke.mac
+  mac/tests/watertube_size_messenger_smoke.mac
   mac/tests/cylinder_signal_smoke.mac
   mac/tests/sphere_signal_smoke.mac
   mac/tests/scintcube_signal_smoke.mac
@@ -85,8 +101,11 @@ set(MDSIM1_RUNTIME_FILES
   mac/tests/model11_imported_geometry_smoke.mac
   mac/tests/model11_imported_geometry_passive_only_smoke.mac
   mac/tests/model11_imported_geometry_aux_sensdet.mac
+  mac/tests/model11_imported_geometry_assembly_runtime.mac
+  mac/tests/model11_imported_geometry_assembly_auto.mac
   mac/tests/model11_imported_geometry_validate_smoke.mac
   mac/tests/model11_imported_geometry_validate_invalid.mac
+  mac/tests/model11_imported_geometry_invalid_color.mac
   mac/tests/model11_imported_geometry_missing_gdml.mac
   mac/tests/model11_imported_geometry_split_unsupported.mac
   mac/tests/geometry_export_smoke.mac
@@ -118,10 +137,12 @@ set(MDSIM1_RUNTIME_FILES
   input/detectors/scintCube/ScintCube.in
   input/detectors/scintCube/templates/ScintCube.intmp
   input/detectors/model11/Model11.in
+  input/detectors/model11/MultipleModel11.in
   input/detectors/model11/templates/Model11.intmp
   models/detectors/model11/gdml/model11.gdml
   cmake/tests/data/model11/imported_geometry.gdml
   cmake/tests/data/model11/imported_geometry_aux.gdml
+  cmake/tests/data/model11/imported_geometry_invalid_color.gdml
   cmake/tests/data/model11/imported_geometry_validate.gdml
   cmake/tests/data/model11/imported_geometry_invalid_schema.gdml
   cmake/tests/data/model11/imported_geometry_reloaded.gdml
@@ -326,6 +347,39 @@ add_test(
 )
 
 add_test(
+  NAME mdsim1_watertube_geometry_smoke
+  COMMAND ${CMAKE_COMMAND}
+          -DEXECUTABLE=$<TARGET_FILE:MultiDetector1>
+          -DWORKING_DIRECTORY=${PROJECT_BINARY_DIR}
+          -DMACRO_PATH=mac/tests/cube_signal_watertube_smoke.mac
+          -P ${PROJECT_SOURCE_DIR}/cmake/tests/check_watertube_geometry_smoke.cmake
+)
+
+add_test(
+  NAME mdsim1_waterbox_size_messenger_smoke
+  COMMAND ${CMAKE_COMMAND}
+          -DEXECUTABLE=$<TARGET_FILE:MultiDetector1>
+          -DWORKING_DIRECTORY=${PROJECT_BINARY_DIR}
+          -DMACRO_PATH=mac/tests/waterbox_size_messenger_smoke.mac
+          -DOUTPUT_GDML=cmake/tests/output/waterbox_size_messenger_smoke.gdml
+          -DEXPECTED_OUTPUT_REGEX=Checking overlaps for volume WaterBox:0
+          -DEXPECTED_GDML_REGEX=<box[^>]*name=\"WaterBox[^\"]*\"[^>]*x=\"300\"[^>]*y=\"400\"[^>]*z=\"500\"
+          -P ${PROJECT_SOURCE_DIR}/cmake/tests/check_phantom_size_messenger_smoke.cmake
+)
+
+add_test(
+  NAME mdsim1_watertube_size_messenger_smoke
+  COMMAND ${CMAKE_COMMAND}
+          -DEXECUTABLE=$<TARGET_FILE:MultiDetector1>
+          -DWORKING_DIRECTORY=${PROJECT_BINARY_DIR}
+          -DMACRO_PATH=mac/tests/watertube_size_messenger_smoke.mac
+          -DOUTPUT_GDML=cmake/tests/output/watertube_size_messenger_smoke.gdml
+          -DEXPECTED_OUTPUT_REGEX=Checking overlaps for volume WaterTube:0
+          -DEXPECTED_GDML_REGEX=<tube[^>]*name=\"WaterTube[^\"]*\"[^>]*rmax=\"170\"[^>]*z=\"460\"
+          -P ${PROJECT_SOURCE_DIR}/cmake/tests/check_phantom_size_messenger_smoke.cmake
+)
+
+add_test(
   NAME mdsim1_cylinder_signal_smoke
   COMMAND ${CMAKE_COMMAND}
           -DEXECUTABLE=$<TARGET_FILE:MultiDetector1>
@@ -395,6 +449,26 @@ add_test(
 )
 
 add_test(
+  NAME mdsim1_model11_imported_geometry_assembly_runtime
+  COMMAND ${CMAKE_COMMAND}
+          -DEXECUTABLE=$<TARGET_FILE:MultiDetector1>
+          -DPROBE_EXECUTABLE=$<TARGET_FILE:md1_gdml_export_probe>
+          -DWORKING_DIRECTORY=${PROJECT_BINARY_DIR}
+          -DMACRO_PATH=mac/tests/model11_imported_geometry_assembly_runtime.mac
+          -P ${PROJECT_SOURCE_DIR}/cmake/tests/check_model11_imported_geometry_assembly_runtime.cmake
+)
+
+add_test(
+  NAME mdsim1_model11_imported_geometry_assembly_auto
+  COMMAND ${CMAKE_COMMAND}
+          -DEXECUTABLE=$<TARGET_FILE:MultiDetector1>
+          -DPROBE_EXECUTABLE=$<TARGET_FILE:md1_gdml_export_probe>
+          -DWORKING_DIRECTORY=${PROJECT_BINARY_DIR}
+          -DMACRO_PATH=mac/tests/model11_imported_geometry_assembly_auto.mac
+          -P ${PROJECT_SOURCE_DIR}/cmake/tests/check_model11_imported_geometry_assembly_runtime.cmake
+)
+
+add_test(
   NAME mdsim1_model11_imported_geometry_validate_smoke
   COMMAND ${CMAKE_COMMAND}
           -DEXECUTABLE=$<TARGET_FILE:MultiDetector1>
@@ -454,10 +528,28 @@ add_test(
 )
 
 add_test(
+  NAME mdsim1_model11_imported_geometry_invalid_color
+  COMMAND ${CMAKE_COMMAND}
+          -DEXECUTABLE=$<TARGET_FILE:MultiDetector1>
+          -DWORKING_DIRECTORY=${PROJECT_BINARY_DIR}
+          -DMACRO_PATH=mac/tests/model11_imported_geometry_invalid_color.mac
+          -DEXPECTED_REGEX=DetectorModel11UnsupportedGDMLColor
+          -DFAILURE_LABEL=model11_invalid_color
+          -P ${PROJECT_SOURCE_DIR}/cmake/tests/check_expected_failure.cmake
+)
+
+add_test(
   NAME mdsim1_gdml_import_cleanup
   COMMAND ${CMAKE_COMMAND}
           -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
           -P ${PROJECT_SOURCE_DIR}/cmake/tests/check_gdml_import_cleanup.cmake
+)
+
+add_test(
+  NAME mdsim1_gdml_color_codec
+  COMMAND ${CMAKE_COMMAND}
+          -DPROBE_EXECUTABLE=$<TARGET_FILE:md1_gdml_color_codec_probe>
+          -P ${PROJECT_SOURCE_DIR}/cmake/tests/check_gdml_color_codec.cmake
 )
 
 add_test(
@@ -498,15 +590,20 @@ set_tests_properties(
   mdsim1_idle_cylinder_split_rebuild_mt
   mdsim1_idle_sphere_split_rebuild_mt
   mdsim1_cube_signal_smoke
+  mdsim1_watertube_geometry_smoke
   mdsim1_cylinder_signal_smoke
   mdsim1_sphere_signal_smoke
   mdsim1_scintcube_signal_smoke
   mdsim1_model11_signal_smoke
   mdsim1_model11_imported_geometry_smoke
   mdsim1_model11_imported_geometry_passive_only_smoke
+  mdsim1_model11_imported_geometry_assembly_runtime
+  mdsim1_model11_imported_geometry_assembly_auto
+  mdsim1_model11_imported_geometry_invalid_color
   mdsim1_model11_imported_geometry_missing_gdml
   mdsim1_model11_imported_geometry_split_unsupported
   mdsim1_bb7_signal_smoke
+  mdsim1_gdml_color_codec
   mdsim1_gdml_cache_reload
   mdsim1_gdml_import_cleanup
   mdsim1_validation_summary_axes
@@ -530,10 +627,15 @@ set_tests_properties(
   mdsim1_idle_cube_split_rebuild_mt
   mdsim1_idle_cylinder_split_rebuild_mt
   mdsim1_idle_sphere_split_rebuild_mt
+  mdsim1_model11_imported_geometry_invalid_color
   mdsim1_model11_imported_geometry_missing_gdml
   mdsim1_model11_imported_geometry_split_unsupported
+  mdsim1_model11_imported_geometry_assembly_runtime
+  mdsim1_model11_imported_geometry_assembly_auto
+  mdsim1_gdml_color_codec
   mdsim1_gdml_cache_reload
   mdsim1_gdml_import_cleanup
+  mdsim1_watertube_geometry_smoke
   mdsim1_validation_summary_axes
   PROPERTIES
     LABELS "detectors_quick;geometry_quick;quick"

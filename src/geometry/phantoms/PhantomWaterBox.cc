@@ -14,6 +14,7 @@
  */
 
 // Geant4 Headers
+#include "G4Exception.hh"
 #include "G4NistManager.hh"
 #include "G4Box.hh"
 #include "G4LogicalVolume.hh"
@@ -27,12 +28,58 @@
 // MultiDetector Headers
 #include "geometry/phantoms/PhantomWaterBox.hh"
 
+namespace {
+
+void ValidatePositiveLength(const char* methodName, G4double value, const char* parameterName) {
+    if (value <= 0.) {
+        G4Exception(methodName,
+                    "InvalidPhantomDimension",
+                    FatalException,
+                    (G4String(parameterName) + " must be > 0.").c_str());
+    }
+}
+
+} // namespace
+
 PhantomWaterBox::PhantomWaterBox(G4double fWaterBoxDx)
-    : fStepLimit(nullptr), fWaterBoxDx(fWaterBoxDx) {
+    : fStepLimit(nullptr),
+      fWaterBoxDx(fWaterBoxDx),
+      fWaterBoxDy(fWaterBoxDx),
+      fWaterBoxDz(fWaterBoxDx),
+      fPhantomWaterBoxMessenger(nullptr) {
     geometryName = "PhantomWaterBox";
     fPhantomWaterBoxMessenger = new PhantomWaterBoxMessenger(this) ;
     det_origin = G4ThreeVector(0., 0., -10*cm);
-    }
+}
+
+PhantomWaterBox::~PhantomWaterBox() {
+    delete fPhantomWaterBoxMessenger;
+    fPhantomWaterBoxMessenger = nullptr;
+}
+
+void PhantomWaterBox::SetWaterBoxSide(G4double waterBoxSide) {
+    ValidatePositiveLength("PhantomWaterBox::SetWaterBoxSide", waterBoxSide, "waterBox side");
+    fWaterBoxDx = waterBoxSide;
+    fWaterBoxDy = waterBoxSide;
+    fWaterBoxDz = waterBoxSide;
+    InvalidateGeometryDefinition();
+}
+
+void PhantomWaterBox::SetWaterBoxSize(const G4ThreeVector& waterBoxSize) {
+    ValidatePositiveLength("PhantomWaterBox::SetWaterBoxSize", waterBoxSize.x(), "waterBox sizeX");
+    ValidatePositiveLength("PhantomWaterBox::SetWaterBoxSize", waterBoxSize.y(), "waterBox sizeY");
+    ValidatePositiveLength("PhantomWaterBox::SetWaterBoxSize", waterBoxSize.z(), "waterBox sizeZ");
+    fWaterBoxDx = waterBoxSize.x();
+    fWaterBoxDy = waterBoxSize.y();
+    fWaterBoxDz = waterBoxSize.z();
+    InvalidateGeometryDefinition();
+}
+
+void PhantomWaterBox::InvalidateGeometryDefinition() {
+    detGeo.clear();
+    detLog.clear();
+    fAreVolumensDefined = false;
+}
 
 // Method to define the materials used in the phantom water box
 void PhantomWaterBox::DefineMaterials() {
@@ -49,7 +96,8 @@ void PhantomWaterBox::DefineVolumes() {
     DefineMaterials();
 
     // Geometrical volumes
-    G4Box* geoWaterBox = new G4Box("WaterBox", fWaterBoxDx / 2, fWaterBoxDx / 2, fWaterBoxDx / 2);
+    G4Box* geoWaterBox =
+        new G4Box("WaterBox", fWaterBoxDx / 2, fWaterBoxDy / 2, fWaterBoxDz / 2);
 
     // Store geometrical volumes in arrays
     detGeo["WaterBox"] = geoWaterBox;

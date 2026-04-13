@@ -1,0 +1,5 @@
+# Qt-only custom UI entries.
+/gui/addMenu md1view MDSIM1
+/gui/addButton md1view "Z vertical" "/control/execute mac/view_z_vertical.mac"
+/gui/addButton md1view "Center on Z axis" "/MultiDetector1/control/CenterViewOnZAxis"
+/gui/addButton md1view "Show/hide focus axes" "/MultiDetector1/control/ToggleFocusAxes"

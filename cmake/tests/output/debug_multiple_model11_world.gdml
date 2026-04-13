@@ -1,0 +1,1086 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<gdml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://cern.ch/service-spi/app/releases/GDML/schema/gdml.xsd">
+
+  <define/>
+
+  <materials>
+    <isotope N="54" Z="26" name="Fe540x96b310b40">
+      <atom unit="g/mole" value="53.9396"/>
+    </isotope>
+    <isotope N="56" Z="26" name="Fe560x96b310b80">
+      <atom unit="g/mole" value="55.9349"/>
+    </isotope>
+    <isotope N="57" Z="26" name="Fe570x96b310bc0">
+      <atom unit="g/mole" value="56.9354"/>
+    </isotope>
+    <isotope N="58" Z="26" name="Fe580x96b310c00">
+      <atom unit="g/mole" value="57.9333"/>
+    </isotope>
+    <element name="Fe0x96b012940">
+      <fraction n="0.05845" ref="Fe540x96b310b40"/>
+      <fraction n="0.91754" ref="Fe560x96b310b80"/>
+      <fraction n="0.02119" ref="Fe570x96b310bc0"/>
+      <fraction n="0.00282" ref="Fe580x96b310c00"/>
+    </element>
+    <isotope N="55" Z="25" name="Mn550x96b310b00">
+      <atom unit="g/mole" value="54.938"/>
+    </isotope>
+    <element name="Mn0x96b012880">
+      <fraction n="1" ref="Mn550x96b310b00"/>
+    </element>
+    <isotope N="12" Z="6" name="C120x96b07d6c0">
+      <atom unit="g/mole" value="12"/>
+    </isotope>
+    <isotope N="13" Z="6" name="C130x96b07d700">
+      <atom unit="g/mole" value="13.0034"/>
+    </isotope>
+    <element name="C0x96b010840">
+      <fraction n="0.9893" ref="C120x96b07d6c0"/>
+      <fraction n="0.0107" ref="C130x96b07d700"/>
+    </element>
+    <material name="CARBON_STEEL0x96b223700" state="solid">
+      <T unit="K" value="293.15"/>
+      <MEE unit="eV" value="285.529044192952"/>
+      <D unit="g/cm3" value="7.8"/>
+      <fraction n="0.993" ref="Fe0x96b012940"/>
+      <fraction n="0.006" ref="Mn0x96b012880"/>
+      <fraction n="0.001" ref="C0x96b010840"/>
+    </material>
+    <isotope N="204" Z="82" name="Pb2040x96b310f40">
+      <atom unit="g/mole" value="203.973"/>
+    </isotope>
+    <isotope N="206" Z="82" name="Pb2060x96b310f80">
+      <atom unit="g/mole" value="205.974"/>
+    </isotope>
+    <isotope N="207" Z="82" name="Pb2070x96b310fc0">
+      <atom unit="g/mole" value="206.976"/>
+    </isotope>
+    <isotope N="208" Z="82" name="Pb2080x96b311000">
+      <atom unit="g/mole" value="207.977"/>
+    </isotope>
+    <element name="Pb0x96b012c40">
+      <fraction n="0.014" ref="Pb2040x96b310f40"/>
+      <fraction n="0.241" ref="Pb2060x96b310f80"/>
+      <fraction n="0.221" ref="Pb2070x96b310fc0"/>
+      <fraction n="0.524" ref="Pb2080x96b311000"/>
+    </element>
+    <material name="G4_Pb0x96af61900" state="solid">
+      <T unit="K" value="293.15"/>
+      <MEE unit="eV" value="823"/>
+      <D unit="g/cm3" value="11.35"/>
+      <fraction n="1" ref="Pb0x96b012c40"/>
+    </material>
+    <isotope N="180" Z="74" name="W1800x96b310e00">
+      <atom unit="g/mole" value="179.947"/>
+    </isotope>
+    <isotope N="182" Z="74" name="W1820x96b310e40">
+      <atom unit="g/mole" value="181.948"/>
+    </isotope>
+    <isotope N="183" Z="74" name="W1830x96b310e80">
+      <atom unit="g/mole" value="182.95"/>
+    </isotope>
+    <isotope N="184" Z="74" name="W1840x96b310ec0">
+      <atom unit="g/mole" value="183.951"/>
+    </isotope>
+    <isotope N="186" Z="74" name="W1860x96b310f00">
+      <atom unit="g/mole" value="185.954"/>
+    </isotope>
+    <element name="W0x96b012b80">
+      <fraction n="0.0012" ref="W1800x96b310e00"/>
+      <fraction n="0.265" ref="W1820x96b310e40"/>
+      <fraction n="0.1431" ref="W1830x96b310e80"/>
+      <fraction n="0.3064" ref="W1840x96b310ec0"/>
+      <fraction n="0.2843" ref="W1860x96b310f00"/>
+    </element>
+    <isotope N="58" Z="28" name="Ni580x96b310c40">
+      <atom unit="g/mole" value="57.9353"/>
+    </isotope>
+    <isotope N="60" Z="28" name="Ni600x96b310c80">
+      <atom unit="g/mole" value="59.9308"/>
+    </isotope>
+    <isotope N="61" Z="28" name="Ni610x96b310cc0">
+      <atom unit="g/mole" value="60.9311"/>
+    </isotope>
+    <isotope N="62" Z="28" name="Ni620x96b310d00">
+      <atom unit="g/mole" value="61.9283"/>
+    </isotope>
+    <isotope N="64" Z="28" name="Ni640x96b310d40">
+      <atom unit="g/mole" value="63.928"/>
+    </isotope>
+    <element name="Ni0x96b012a00">
+      <fraction n="0.680769" ref="Ni580x96b310c40"/>
+      <fraction n="0.262231" ref="Ni600x96b310c80"/>
+      <fraction n="0.011399" ref="Ni610x96b310cc0"/>
+      <fraction n="0.036345" ref="Ni620x96b310d00"/>
+      <fraction n="0.009256" ref="Ni640x96b310d40"/>
+    </element>
+    <isotope N="63" Z="29" name="Cu630x96b310d80">
+      <atom unit="g/mole" value="62.9296"/>
+    </isotope>
+    <isotope N="65" Z="29" name="Cu650x96b310dc0">
+      <atom unit="g/mole" value="64.9278"/>
+    </isotope>
+    <element name="Cu0x96b012ac0">
+      <fraction n="0.6917" ref="Cu630x96b310d80"/>
+      <fraction n="0.3083" ref="Cu650x96b310dc0"/>
+    </element>
+    <material name="Denal(WNICU)0x96b223840" state="solid">
+      <T unit="K" value="293.15"/>
+      <MEE unit="eV" value="663.081852782153"/>
+      <D unit="g/cm3" value="16.8"/>
+      <fraction n="0.905" ref="W0x96b012b80"/>
+      <fraction n="0.07" ref="Ni0x96b012a00"/>
+      <fraction n="0.025" ref="Cu0x96b012ac0"/>
+    </material>
+    <isotope N="14" Z="7" name="N140x96b07d7c0">
+      <atom unit="g/mole" value="14.0031"/>
+    </isotope>
+    <isotope N="15" Z="7" name="N150x96b07d800">
+      <atom unit="g/mole" value="15.0001"/>
+    </isotope>
+    <element name="N0x96b0109c0">
+      <fraction n="0.99632" ref="N140x96b07d7c0"/>
+      <fraction n="0.00368" ref="N150x96b07d800"/>
+    </element>
+    <isotope N="16" Z="8" name="O160x96b07d840">
+      <atom unit="g/mole" value="15.9949"/>
+    </isotope>
+    <isotope N="17" Z="8" name="O170x96b07d880">
+      <atom unit="g/mole" value="16.9991"/>
+    </isotope>
+    <isotope N="18" Z="8" name="O180x96b07d8c0">
+      <atom unit="g/mole" value="17.9992"/>
+    </isotope>
+    <element name="O0x96b010a80">
+      <fraction n="0.99757" ref="O160x96b07d840"/>
+      <fraction n="0.00038" ref="O170x96b07d880"/>
+      <fraction n="0.00205" ref="O180x96b07d8c0"/>
+    </element>
+    <isotope N="36" Z="18" name="Ar360x96b07d900">
+      <atom unit="g/mole" value="35.9675"/>
+    </isotope>
+    <isotope N="38" Z="18" name="Ar380x96b07d940">
+      <atom unit="g/mole" value="37.9627"/>
+    </isotope>
+    <isotope N="40" Z="18" name="Ar400x96b07d980">
+      <atom unit="g/mole" value="39.9624"/>
+    </isotope>
+    <element name="Ar0x96b010b40">
+      <fraction n="0.003365" ref="Ar360x96b07d900"/>
+      <fraction n="0.000632" ref="Ar380x96b07d940"/>
+      <fraction n="0.996003" ref="Ar400x96b07d980"/>
+    </element>
+    <material name="G4_AIR0x10bfea4e0" state="gas">
+      <T unit="K" value="293.15"/>
+      <MEE unit="eV" value="85.7"/>
+      <D unit="g/cm3" value="0.00120479"/>
+      <fraction n="0.000124000124000124" ref="C0x96b010840"/>
+      <fraction n="0.755267755267755" ref="N0x96b0109c0"/>
+      <fraction n="0.231781231781232" ref="O0x96b010a80"/>
+      <fraction n="0.0128270128270128" ref="Ar0x96b010b40"/>
+    </material>
+    <material name="Tungsten0x96b2dea80" state="solid">
+      <T unit="K" value="293.15"/>
+      <MEE unit="eV" value="727"/>
+      <D unit="g/cm3" value="18"/>
+      <fraction n="1" ref="W0x96b012b80"/>
+    </material>
+    <isotope N="1" Z="1" name="H10x96b07d740">
+      <atom unit="g/mole" value="1.00782503081372"/>
+    </isotope>
+    <isotope N="2" Z="1" name="H20x96b07d780">
+      <atom unit="g/mole" value="2.01410199966617"/>
+    </isotope>
+    <element name="H0x96b010900">
+      <fraction n="0.999885" ref="H10x96b07d740"/>
+      <fraction n="0.000115" ref="H20x96b07d780"/>
+    </element>
+    <material name="G4_WATER0x96af61a40" state="liquid">
+      <T unit="K" value="293.15"/>
+      <MEE unit="eV" value="78"/>
+      <D unit="g/cm3" value="1"/>
+      <fraction n="0.111898477841067" ref="H0x96b010900"/>
+      <fraction n="0.888101522158933" ref="O0x96b010a80"/>
+    </material>
+    <material name="G4_POLYSTYRENE0x96af61b80" state="solid">
+      <T unit="K" value="293.15"/>
+      <MEE unit="eV" value="68.7"/>
+      <D unit="g/cm3" value="1.06"/>
+      <fraction n="0.922577329294378" ref="C0x96b010840"/>
+      <fraction n="0.0774226707056217" ref="H0x96b010900"/>
+    </material>
+    <material name="G4_PLEXIGLASS0x96af61cc0" state="solid">
+      <T unit="K" value="293.15"/>
+      <MEE unit="eV" value="74"/>
+      <D unit="g/cm3" value="1.19"/>
+      <fraction n="0.599841070879962" ref="C0x96b010840"/>
+      <fraction n="0.0805418407442842" ref="H0x96b010900"/>
+      <fraction n="0.319617088375753" ref="O0x96b010a80"/>
+    </material>
+    <material name="G4_Galactic0x96af630c0" state="gas">
+      <T unit="K" value="2.73"/>
+      <P unit="pascal" value="3e-18"/>
+      <MEE unit="eV" value="21.8"/>
+      <D unit="g/cm3" value="1e-25"/>
+      <fraction n="1" ref="H0x96b010900"/>
+    </material>
+  </materials>
+
+  <solids>
+    <box lunit="mm" name="Jaws1XBox10x96b00e290" x="201" y="201" z="3"/>
+    <box lunit="mm" name="Jaws1XBox20x96b00e300" x="201" y="201" z="25"/>
+    <box lunit="mm" name="Jaws1XBox30x96afd0000" x="201" y="201" z="35"/>
+    <box lunit="mm" name="Jaws1XBox40x96afd0070" x="201" y="201" z="27"/>
+    <box lunit="mm" name="Jaw1Xbox0x96b00e220" x="201" y="201" z="100"/>
+    <box lunit="mm" name="Jaw2Xbox0x96b0984d0" x="201" y="201" z="100"/>
+    <box lunit="mm" name="Jaws1YBox20x96b00e3e0" x="201" y="201" z="30"/>
+    <box lunit="mm" name="Jaws1YBox30x96b00e450" x="201" y="201" z="35"/>
+    <box lunit="mm" name="Jaws1YBox40x96afd00e0" x="201" y="201" z="20"/>
+    <box lunit="mm" name="Jaw1Ybox0x96b00e370" x="201" y="201" z="100"/>
+    <box lunit="mm" name="Jaw2Ybox0x96b204930" x="201" y="201" z="100"/>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="basePlate10x10c0023a0" rmax="300" rmin="0" startphi="0" z="20"/>
+    <box lunit="mm" name="Jaws1XBox10x96b00e680" x="210" y="210" z="40"/>
+    <subtraction name="basePlate0x96b1fc500">
+      <first ref="basePlate10x10c0023a0"/>
+      <second ref="Jaws1XBox10x96b00e680"/>
+    </subtraction>
+    <box lunit="mm" name="preLeaf_box0x96b098850" x="5.43" y="129.44132" z="58.6"/>
+    <tube aunit="deg" deltaphi="180" lunit="mm" name="aLeafEnd0x96b0a1f00" rmax="80" rmin="0.01" startphi="0" z="5.43"/>
+    <box lunit="mm" name="gap0x96b00e6f0" x="180" y="148.36" z="6"/>
+    <subtraction name="leafEnd0x96b1fc5a0">
+      <first ref="aLeafEnd0x96b0a1f00"/>
+      <second ref="gap0x96b00e6f0"/>
+    </subtraction>
+    <union name="fullLeaf0x96aea9260">
+      <first ref="preLeaf_box0x96b098850"/>
+      <second ref="leafEnd0x96b1fc5a0"/>
+      <position name="fullLeaf0x96aea9260_pos" unit="mm" x="0" y="-9.4413249" z="-500"/>
+      <rotation name="fullLeaf0x96aea9260_rot" unit="deg" x="0" y="-90" z="0"/>
+      <firstposition name="fullLeaf0x96aea9260_fpos" unit="mm" x="0" y="0" z="-500"/>
+    </union>
+    <box lunit="mm" name="cutA0x96afd0150" x="0.4" y="136" z="31.85"/>
+    <subtraction name="nearlyLeaf0x96ac348c0">
+      <first ref="fullLeaf0x96aea9260"/>
+      <second ref="cutA0x96afd0150"/>
+      <position name="nearlyLeaf0x96ac348c0_pos" unit="mm" x="-2.515" y="3" z="-486.625"/>
+    </subtraction>
+    <box lunit="mm" name="cutB0x96afd01c0" x="0.325" y="136" z="28.83"/>
+    <subtraction name="leaf0x96ac34960">
+      <first ref="nearlyLeaf0x96ac348c0"/>
+      <second ref="cutB0x96afd01c0"/>
+      <position name="leaf0x96ac34960_pos" unit="mm" x="2.5525" y="3" z="-514.885"/>
+    </subtraction>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="biasTubs0x96b0a2000" rmax="300" rmin="0" startphi="0" z="4"/>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="accWorldTubs10x96b0a1e00" rmax="300" rmin="0" startphi="0" z="1200"/>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="accWorldTubs20x10c0022a0" rmax="500" rmin="0" startphi="0" z="1200"/>
+    <subtraction name="accFrameTubs0x96ac34460">
+      <first ref="accWorldTubs10x96b0a1e00"/>
+      <second ref="accWorldTubs20x10c0022a0"/>
+      <position name="accFrameTubs0x96ac34460_pos" unit="mm" x="0" y="0" z="500"/>
+    </subtraction>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="WaterTube0x96aebc600" rmax="200" rmin="0" startphi="0" z="400"/>
+    <eltube dx="0.5" dy="0.5" dz="0.5" lunit="mm" name="Sensor0x96ad08780"/>
+    <eltube dx="2.2" dy="2.2" dz="6.5" lunit="mm" name="GDMLElTube0010x96ad08a80"/>
+    <eltube dx="2.59" dy="2.59" dz="0.75" lunit="mm" name="GDMLElTube0020x96ad08b40"/>
+    <union name="Fuse0010x96afb6ae0">
+      <first ref="GDMLElTube0010x96ad08a80"/>
+      <second ref="GDMLElTube0020x96ad08b40"/>
+      <position name="Fuse0010x96afb6ae0_pos" unit="mm" x="0" y="0" z="-2.75"/>
+    </union>
+    <eltube dx="0.16" dy="0.16" dz="13" lunit="mm" name="GDMLElTube0030x96ad089c0"/>
+    <subtraction name="Cut0010x96aeacd20">
+      <first ref="Fuse0010x96afb6ae0"/>
+      <second ref="GDMLElTube0030x96ad089c0"/>
+      <position name="Cut0010x96aeacd20_pos" unit="mm" x="0" y="0" z="-0.5"/>
+    </subtraction>
+    <eltube dx="0.16" dy="0.16" dz="6.62" lunit="mm" name="GDMLElTube0040x96ad08900"/>
+    <subtraction name="Cut0020x96aeacdc0">
+      <first ref="Cut0010x96aeacd20"/>
+      <second ref="GDMLElTube0040x96ad08900"/>
+      <position name="Cut0020x96aeacdc0_pos" unit="mm" x="-1" y="0" z="-2.12"/>
+    </subtraction>
+    <eltube dx="0.505" dy="0.505" dz="1" lunit="mm" name="GDMLElTube0050x96ad08840"/>
+    <subtraction name="Cut0030x96aeace60">
+      <first ref="Cut0020x96aeacdc0"/>
+      <second ref="GDMLElTube0050x96ad08840"/>
+      <position name="Cut0030x96aeace60_pos" unit="mm" x="0" y="0" z="6.495"/>
+    </subtraction>
+    <box lunit="mm" name="world_geo0x96b204700" x="2500" y="2500" z="2500"/>
+    <box lunit="mm" name="MD1ExportWorldSolid0x96d74c620" x="2750" y="2750" z="3135"/>
+  </solids>
+
+  <structure>
+    <volume name="Jaws1XLV10x96ac345a0">
+      <materialref ref="CARBON_STEEL0x96b223700"/>
+      <solidref ref="Jaws1XBox10x96b00e290"/>
+      <auxiliary auxtype="Color" auxvalue="#00ff0000"/>
+    </volume>
+    <volume name="Jaws1XLV20x96ac34640">
+      <materialref ref="G4_Pb0x96af61900"/>
+      <solidref ref="Jaws1XBox20x96b00e300"/>
+      <auxiliary auxtype="Color" auxvalue="#0000ff00"/>
+    </volume>
+    <volume name="Jaws1XLV30x96afb0140">
+      <materialref ref="Denal(WNICU)0x96b223840"/>
+      <solidref ref="Jaws1XBox30x96afd0000"/>
+      <auxiliary auxtype="Color" auxvalue="#ff000000"/>
+    </volume>
+    <volume name="Jaws1XLV40x96afb01e0">
+      <materialref ref="G4_Pb0x96af61900"/>
+      <solidref ref="Jaws1XBox40x96afd0070"/>
+      <auxiliary auxtype="Color" auxvalue="#0000ff00"/>
+    </volume>
+    <volume name="Jaw1XboxLV0x96afb00a0">
+      <materialref ref="G4_AIR0x10bfea4e0"/>
+      <solidref ref="Jaw1Xbox0x96b00e220"/>
+      <physvol name="Jaws1XPV10x96acf8e60">
+        <volumeref ref="Jaws1XLV10x96ac345a0"/>
+        <position name="Jaws1XPV10x96acf8e60_pos" unit="mm" x="0" y="0" z="-48.5"/>
+      </physvol>
+      <physvol name="Jaws1XPV20x96ac63c00">
+        <volumeref ref="Jaws1XLV20x96ac34640"/>
+        <position name="Jaws1XPV20x96ac63c00_pos" unit="mm" x="0" y="0" z="-34.5"/>
+      </physvol>
+      <physvol name="Jaws1XPV30x96b039270">
+        <volumeref ref="Jaws1XLV30x96afb0140"/>
+        <position name="Jaws1XPV30x96b039270_pos" unit="mm" x="0" y="0" z="-4.5"/>
+      </physvol>
+      <physvol name="Jaws1XPV40x96b208550">
+        <volumeref ref="Jaws1XLV40x96afb01e0"/>
+        <position name="Jaws1XPV40x96b208550_pos" unit="mm" x="0" y="0" z="26.5"/>
+      </physvol>
+      <auxiliary auxtype="Color" auxvalue="#ffff0000"/>
+    </volume>
+    <volume name="Jaws2XLV10x96afb0280">
+      <materialref ref="CARBON_STEEL0x96b223700"/>
+      <solidref ref="Jaws1XBox10x96b00e290"/>
+      <auxiliary auxtype="Color" auxvalue="#00ff0000"/>
+    </volume>
+    <volume name="Jaws2XLV20x96aeac820">
+      <materialref ref="G4_Pb0x96af61900"/>
+      <solidref ref="Jaws1XBox20x96b00e300"/>
+      <auxiliary auxtype="Color" auxvalue="#0000ff00"/>
+    </volume>
+    <volume name="Jaws2XLV30x96aeac8c0">
+      <materialref ref="Denal(WNICU)0x96b223840"/>
+      <solidref ref="Jaws1XBox30x96afd0000"/>
+      <auxiliary auxtype="Color" auxvalue="#ff000000"/>
+    </volume>
+    <volume name="Jaws2XLV40x96aeac960">
+      <materialref ref="G4_Pb0x96af61900"/>
+      <solidref ref="Jaws1XBox40x96afd0070"/>
+      <auxiliary auxtype="Color" auxvalue="#0000ff00"/>
+    </volume>
+    <volume name="Jaw2XboxLV0x96b1fc320">
+      <materialref ref="G4_AIR0x10bfea4e0"/>
+      <solidref ref="Jaw2Xbox0x96b0984d0"/>
+      <physvol name="Jaws2XPV10x96acf8eb0">
+        <volumeref ref="Jaws2XLV10x96afb0280"/>
+        <position name="Jaws2XPV10x96acf8eb0_pos" unit="mm" x="0" y="0" z="-48.5"/>
+      </physvol>
+      <physvol name="Jaws2XPV20x96ac63ca0">
+        <volumeref ref="Jaws2XLV20x96aeac820"/>
+        <position name="Jaws2XPV20x96ac63ca0_pos" unit="mm" x="0" y="0" z="-34.5"/>
+      </physvol>
+      <physvol name="Jaws2XPV30x96b0392c0">
+        <volumeref ref="Jaws2XLV30x96aeac8c0"/>
+        <position name="Jaws2XPV30x96b0392c0_pos" unit="mm" x="0" y="0" z="-4.5"/>
+      </physvol>
+      <physvol name="Jaws2XPV40x96b2085a0">
+        <volumeref ref="Jaws2XLV40x96aeac960"/>
+        <position name="Jaws2XPV40x96b2085a0_pos" unit="mm" x="0" y="0" z="26.5"/>
+      </physvol>
+      <auxiliary auxtype="Color" auxvalue="#ffff0000"/>
+    </volume>
+    <volume name="Jaws1YLV20x96afb03c0">
+      <materialref ref="G4_Pb0x96af61900"/>
+      <solidref ref="Jaws1YBox20x96b00e3e0"/>
+      <auxiliary auxtype="Color" auxvalue="#0000ff00"/>
+    </volume>
+    <volume name="Jaws1YLV30x96afb0460">
+      <materialref ref="Denal(WNICU)0x96b223840"/>
+      <solidref ref="Jaws1YBox30x96b00e450"/>
+      <auxiliary auxtype="Color" auxvalue="#ff000000"/>
+    </volume>
+    <volume name="Jaws1YLV40x96aeacaa0">
+      <materialref ref="G4_Pb0x96af61900"/>
+      <solidref ref="Jaws1YBox40x96afd00e0"/>
+      <auxiliary auxtype="Color" auxvalue="#0000ff00"/>
+    </volume>
+    <volume name="Jaw1YboxLV0x96aeaca00">
+      <materialref ref="G4_AIR0x10bfea4e0"/>
+      <solidref ref="Jaw1Ybox0x96b00e370"/>
+      <physvol name="Jaws1YPV20x96b039360">
+        <volumeref ref="Jaws1YLV20x96afb03c0"/>
+        <position name="Jaws1YPV20x96b039360_pos" unit="mm" x="0" y="0" z="-35"/>
+      </physvol>
+      <physvol name="Jaws1YPV30x96acf8fa0">
+        <volumeref ref="Jaws1YLV30x96afb0460"/>
+        <position name="Jaws1YPV30x96acf8fa0_pos" unit="mm" x="0" y="0" z="-2.5"/>
+      </physvol>
+      <physvol name="Jaws1YPV40x96afd85f0">
+        <volumeref ref="Jaws1YLV40x96aeacaa0"/>
+        <position name="Jaws1YPV40x96afd85f0_pos" unit="mm" x="0" y="0" z="25"/>
+      </physvol>
+      <auxiliary auxtype="Color" auxvalue="#ffff0000"/>
+    </volume>
+    <volume name="Jaws2YLV20x96aeacbe0">
+      <materialref ref="G4_Pb0x96af61900"/>
+      <solidref ref="Jaws1YBox20x96b00e3e0"/>
+      <auxiliary auxtype="Color" auxvalue="#0000ff00"/>
+    </volume>
+    <volume name="Jaws2YLV30x96b1fc3c0">
+      <materialref ref="Denal(WNICU)0x96b223840"/>
+      <solidref ref="Jaws1YBox30x96b00e450"/>
+      <auxiliary auxtype="Color" auxvalue="#ff000000"/>
+    </volume>
+    <volume name="Jaws2YLV40x96b1fc460">
+      <materialref ref="G4_Pb0x96af61900"/>
+      <solidref ref="Jaws1YBox40x96afd00e0"/>
+      <auxiliary auxtype="Color" auxvalue="#0000ff00"/>
+    </volume>
+    <volume name="Jaw2YboxLV0x96ac34780">
+      <materialref ref="G4_AIR0x10bfea4e0"/>
+      <solidref ref="Jaw2Ybox0x96b204930"/>
+      <physvol name="Jaws2YPV20x96b0393b0">
+        <volumeref ref="Jaws2YLV20x96aeacbe0"/>
+        <position name="Jaws2YPV20x96b0393b0_pos" unit="mm" x="0" y="0" z="-35"/>
+      </physvol>
+      <physvol name="Jaws2YPV30x96acf8ff0">
+        <volumeref ref="Jaws2YLV30x96b1fc3c0"/>
+        <position name="Jaws2YPV30x96acf8ff0_pos" unit="mm" x="0" y="0" z="-2.5"/>
+      </physvol>
+      <physvol name="Jaws2YPV40x96afd8690">
+        <volumeref ref="Jaws2YLV40x96b1fc460"/>
+        <position name="Jaws2YPV40x96afd8690_pos" unit="mm" x="0" y="0" z="25"/>
+      </physvol>
+      <auxiliary auxtype="Color" auxvalue="#ffff0000"/>
+    </volume>
+    <volume name="basePlate0x96ac34820">
+      <materialref ref="CARBON_STEEL0x96b223700"/>
+      <solidref ref="basePlate0x96b1fc500"/>
+      <auxiliary auxtype="Color" auxvalue="#ffff0000"/>
+    </volume>
+    <volume name="leafLog0x96b1fc640">
+      <materialref ref="Tungsten0x96b2dea80"/>
+      <solidref ref="leaf0x96ac34960"/>
+      <auxiliary auxtype="Color" auxvalue="#00ffff00"/>
+    </volume>
+    <volume name="biasTubs0x96b1fc6e0">
+      <materialref ref="G4_AIR0x10bfea4e0"/>
+      <solidref ref="biasTubs0x96b0a2000"/>
+      <auxiliary auxtype="Color" auxvalue="#80808000"/>
+    </volume>
+    <volume name="accWorldL0x96ac34500">
+      <materialref ref="G4_AIR0x10bfea4e0"/>
+      <solidref ref="accFrameTubs0x96ac34460"/>
+      <physvol name="Jaw1XPV0x96b0391d0">
+        <volumeref ref="Jaw1XboxLV0x96afb00a0"/>
+        <position name="Jaw1XPV0x96b0391d0_pos" unit="mm" x="-100.5" y="0" z="-285.5"/>
+      </physvol>
+      <physvol name="Jaw2XPV0x96b039220">
+        <volumeref ref="Jaw2XboxLV0x96b1fc320"/>
+        <position name="Jaw2XPV0x96b039220_pos" unit="mm" x="100.5" y="0" z="-285.5"/>
+      </physvol>
+      <physvol name="Jaw1YPV0x96acf8f50">
+        <volumeref ref="Jaw1YboxLV0x96aeaca00"/>
+        <position name="Jaw1YPV0x96acf8f50_pos" unit="mm" x="0" y="-100.5" z="-403"/>
+      </physvol>
+      <physvol name="Jaw2YPV0x96afd8050">
+        <volumeref ref="Jaw2YboxLV0x96ac34780"/>
+        <position name="Jaw2YPV0x96afd8050_pos" unit="mm" x="0" y="100.5" z="-403"/>
+      </physvol>
+      <physvol name="basePlate0x96b2085f0">
+        <volumeref ref="basePlate0x96ac34820"/>
+        <position name="basePlate0x96b2085f0_pos" unit="mm" x="0" y="0" z="-470"/>
+      </physvol>
+      <physvol name="leafA0x96acf9180">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf9180_pos" unit="mm" x="-105.904" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="1" name="leafA0x96acf91d0">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf91d0_pos" unit="mm" x="-100.473" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="2" name="leafA0x96acf9220">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf9220_pos" unit="mm" x="-95.042" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="3" name="leafA0x96acf9270">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf9270_pos" unit="mm" x="-89.611" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="4" name="leafA0x96acf92c0">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf92c0_pos" unit="mm" x="-84.18" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="5" name="leafA0x96acf9310">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf9310_pos" unit="mm" x="-78.749" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="6" name="leafA0x96acf9360">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf9360_pos" unit="mm" x="-73.318" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="7" name="leafA0x96acf93b0">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf93b0_pos" unit="mm" x="-67.887" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="8" name="leafA0x96acf9400">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf9400_pos" unit="mm" x="-62.456" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="9" name="leafA0x96acf9450">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf9450_pos" unit="mm" x="-57.025" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="10" name="leafA0x96acf94a0">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf94a0_pos" unit="mm" x="-51.594" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="11" name="leafA0x96acf94f0">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf94f0_pos" unit="mm" x="-46.163" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="12" name="leafA0x96acf9540">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf9540_pos" unit="mm" x="-40.732" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="13" name="leafA0x96acf9590">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf9590_pos" unit="mm" x="-35.301" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="14" name="leafA0x96acf95e0">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf95e0_pos" unit="mm" x="-29.87" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="15" name="leafA0x96acf9630">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf9630_pos" unit="mm" x="-24.439" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="16" name="leafA0x96acf9680">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf9680_pos" unit="mm" x="-19.008" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="17" name="leafA0x96acf96d0">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf96d0_pos" unit="mm" x="-13.577" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="18" name="leafA0x96acf9720">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf9720_pos" unit="mm" x="-8.14600000000003" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="19" name="leafA0x96acf9770">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf9770_pos" unit="mm" x="-2.71500000000003" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="20" name="leafA0x96acf97c0">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf97c0_pos" unit="mm" x="2.71599999999997" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="21" name="leafA0x96acf9810">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf9810_pos" unit="mm" x="8.14699999999997" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="22" name="leafA0x96acf9860">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf9860_pos" unit="mm" x="13.578" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="23" name="leafA0x96acf98b0">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf98b0_pos" unit="mm" x="19.009" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="24" name="leafA0x96acf9900">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf9900_pos" unit="mm" x="24.44" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="25" name="leafA0x96acf9950">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf9950_pos" unit="mm" x="29.871" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="26" name="leafA0x96acf99a0">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf99a0_pos" unit="mm" x="35.302" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="27" name="leafA0x96acf99f0">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf99f0_pos" unit="mm" x="40.733" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="28" name="leafA0x96acf9a40">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf9a40_pos" unit="mm" x="46.164" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="29" name="leafA0x96acf9a90">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf9a90_pos" unit="mm" x="51.595" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="30" name="leafA0x96acf9ae0">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf9ae0_pos" unit="mm" x="57.026" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="31" name="leafA0x96acf9b30">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf9b30_pos" unit="mm" x="62.457" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="32" name="leafA0x96acf9b80">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf9b80_pos" unit="mm" x="67.888" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="33" name="leafA0x96acf9bd0">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf9bd0_pos" unit="mm" x="73.319" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="34" name="leafA0x96acf9c20">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf9c20_pos" unit="mm" x="78.75" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="35" name="leafA0x96acf9c70">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf9c70_pos" unit="mm" x="84.181" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="36" name="leafA0x96acf9cc0">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf9cc0_pos" unit="mm" x="89.612" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="37" name="leafA0x96acf9d10">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf9d10_pos" unit="mm" x="95.0429999999999" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="38" name="leafA0x96acf9d60">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf9d60_pos" unit="mm" x="100.474" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol copynumber="39" name="leafA0x96acf9db0">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafA0x96acf9db0_pos" unit="mm" x="105.905" y="-176.0587" z="-27.5"/>
+      </physvol>
+      <physvol name="leafB0x96afd8d70">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd8d70_pos" unit="mm" x="-105.904" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd8d70_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="1" name="leafB0x96afd8e10">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd8e10_pos" unit="mm" x="-100.473" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd8e10_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="2" name="leafB0x96afd8e60">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd8e60_pos" unit="mm" x="-95.042" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd8e60_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="3" name="leafB0x96afd8eb0">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd8eb0_pos" unit="mm" x="-89.611" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd8eb0_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="4" name="leafB0x96afd8f00">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd8f00_pos" unit="mm" x="-84.18" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd8f00_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="5" name="leafB0x96afd8f50">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd8f50_pos" unit="mm" x="-78.749" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd8f50_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="6" name="leafB0x96afd8fa0">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd8fa0_pos" unit="mm" x="-73.318" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd8fa0_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="7" name="leafB0x96afd8ff0">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd8ff0_pos" unit="mm" x="-67.887" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd8ff0_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="8" name="leafB0x96afd9040">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd9040_pos" unit="mm" x="-62.456" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd9040_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="9" name="leafB0x96afd9090">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd9090_pos" unit="mm" x="-57.025" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd9090_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="10" name="leafB0x96afd90e0">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd90e0_pos" unit="mm" x="-51.594" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd90e0_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="11" name="leafB0x96afd9130">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd9130_pos" unit="mm" x="-46.163" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd9130_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="12" name="leafB0x96afd9180">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd9180_pos" unit="mm" x="-40.732" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd9180_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="13" name="leafB0x96afd91d0">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd91d0_pos" unit="mm" x="-35.301" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd91d0_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="14" name="leafB0x96afd9220">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd9220_pos" unit="mm" x="-29.87" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd9220_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="15" name="leafB0x96afd9270">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd9270_pos" unit="mm" x="-24.439" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd9270_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="16" name="leafB0x96afd92c0">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd92c0_pos" unit="mm" x="-19.008" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd92c0_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="17" name="leafB0x96afd9310">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd9310_pos" unit="mm" x="-13.577" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd9310_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="18" name="leafB0x96afd9360">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd9360_pos" unit="mm" x="-8.14600000000003" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd9360_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="19" name="leafB0x96afd93b0">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd93b0_pos" unit="mm" x="-2.71500000000003" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd93b0_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="20" name="leafB0x96afd9400">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd9400_pos" unit="mm" x="2.71599999999997" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd9400_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="21" name="leafB0x96afd9450">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd9450_pos" unit="mm" x="8.14699999999997" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd9450_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="22" name="leafB0x96afd94a0">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd94a0_pos" unit="mm" x="13.578" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd94a0_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="23" name="leafB0x96afd94f0">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd94f0_pos" unit="mm" x="19.009" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd94f0_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="24" name="leafB0x96afd9540">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd9540_pos" unit="mm" x="24.44" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd9540_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="25" name="leafB0x96afd9590">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd9590_pos" unit="mm" x="29.871" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd9590_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="26" name="leafB0x96afd95e0">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd95e0_pos" unit="mm" x="35.302" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd95e0_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="27" name="leafB0x96afd9630">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd9630_pos" unit="mm" x="40.733" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd9630_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="28" name="leafB0x96afd9680">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd9680_pos" unit="mm" x="46.164" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd9680_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="29" name="leafB0x96afd96d0">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd96d0_pos" unit="mm" x="51.595" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd96d0_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="30" name="leafB0x96afd9720">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd9720_pos" unit="mm" x="57.026" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd9720_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="31" name="leafB0x96afd9770">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd9770_pos" unit="mm" x="62.457" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd9770_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="32" name="leafB0x96afd97c0">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd97c0_pos" unit="mm" x="67.888" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd97c0_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="33" name="leafB0x96afd9810">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd9810_pos" unit="mm" x="73.319" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd9810_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="34" name="leafB0x96afd9860">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd9860_pos" unit="mm" x="78.75" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd9860_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="35" name="leafB0x96afd98b0">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd98b0_pos" unit="mm" x="84.181" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd98b0_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="36" name="leafB0x96afd9900">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd9900_pos" unit="mm" x="89.612" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd9900_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="37" name="leafB0x96afd9950">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd9950_pos" unit="mm" x="95.0429999999999" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd9950_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="38" name="leafB0x96afd99a0">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd99a0_pos" unit="mm" x="100.474" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd99a0_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="39" name="leafB0x96afd99f0">
+        <volumeref ref="leafLog0x96b1fc640"/>
+        <position name="leafB0x96afd99f0_pos" unit="mm" x="105.905" y="176.0587" z="-1027.5"/>
+        <rotation name="leafB0x96afd99f0_rot" unit="deg" x="180" y="0" z="0"/>
+      </physvol>
+      <physvol name="biasTubs0x96acf9e00">
+        <volumeref ref="biasTubs0x96b1fc6e0"/>
+        <position name="biasTubs0x96acf9e00_pos" unit="mm" x="0" y="0" z="-598"/>
+      </physvol>
+      <physvol copynumber="1" name="biasTubs0x96afd9b30">
+        <volumeref ref="biasTubs0x96b1fc6e0"/>
+        <position name="biasTubs0x96afd9b30_pos" unit="mm" x="0" y="0" z="-594"/>
+      </physvol>
+      <physvol copynumber="2" name="biasTubs0x96acf9e50">
+        <volumeref ref="biasTubs0x96b1fc6e0"/>
+        <position name="biasTubs0x96acf9e50_pos" unit="mm" x="0" y="0" z="-590"/>
+      </physvol>
+      <physvol copynumber="3" name="biasTubs0x96b0394f0">
+        <volumeref ref="biasTubs0x96b1fc6e0"/>
+        <position name="biasTubs0x96b0394f0_pos" unit="mm" x="0" y="0" z="-586"/>
+      </physvol>
+      <physvol copynumber="4" name="biasTubs0x96b039540">
+        <volumeref ref="biasTubs0x96b1fc6e0"/>
+        <position name="biasTubs0x96b039540_pos" unit="mm" x="0" y="0" z="-582"/>
+      </physvol>
+      <auxiliary auxtype="Color" auxvalue="#80808000"/>
+    </volume>
+    <volume name="WaterTube0x96aeacc80">
+      <materialref ref="G4_WATER0x96af61a40"/>
+      <solidref ref="WaterTube0x96aebc600"/>
+      <auxiliary auxtype="Color" auxvalue="#00ffffcc"/>
+    </volume>
+    <volume name="LV_Sensor0x96624ed00">
+      <materialref ref="G4_POLYSTYRENE0x96af61b80"/>
+      <solidref ref="Sensor0x96ad08780"/>
+      <auxiliary auxtype="Color" auxvalue="#ff260000"/>
+      <auxiliary auxtype="SensDet" auxvalue="Model11SD"/>
+      <auxiliary auxtype="SensDet" auxvalue="Model11SD"/>
+    </volume>
+    <volume name="LV_Coupler0x96624eda0">
+      <materialref ref="G4_PLEXIGLASS0x96af61cc0"/>
+      <solidref ref="Cut0030x96aeace60"/>
+      <auxiliary auxtype="Color" auxvalue="#0433ff59"/>
+    </volume>
+    <volume name="LV_Sensor0x96624ee40">
+      <materialref ref="G4_POLYSTYRENE0x96af61b80"/>
+      <solidref ref="Sensor0x96ad08780"/>
+      <auxiliary auxtype="Color" auxvalue="#ff260000"/>
+      <auxiliary auxtype="SensDet" auxvalue="Model11SD"/>
+      <auxiliary auxtype="SensDet" auxvalue="Model11SD"/>
+    </volume>
+    <volume name="LV_Coupler0x96624eee0">
+      <materialref ref="G4_PLEXIGLASS0x96af61cc0"/>
+      <solidref ref="Cut0030x96aeace60"/>
+      <auxiliary auxtype="Color" auxvalue="#0433ff59"/>
+    </volume>
+    <volume name="LV_Sensor0x96624ef80">
+      <materialref ref="G4_POLYSTYRENE0x96af61b80"/>
+      <solidref ref="Sensor0x96ad08780"/>
+      <auxiliary auxtype="Color" auxvalue="#ff260000"/>
+      <auxiliary auxtype="SensDet" auxvalue="Model11SD"/>
+      <auxiliary auxtype="SensDet" auxvalue="Model11SD"/>
+    </volume>
+    <volume name="LV_Coupler0x96624f020">
+      <materialref ref="G4_PLEXIGLASS0x96af61cc0"/>
+      <solidref ref="Cut0030x96aeace60"/>
+      <auxiliary auxtype="Color" auxvalue="#0433ff59"/>
+    </volume>
+    <volume name="LV_Sensor0x96624f0c0">
+      <materialref ref="G4_POLYSTYRENE0x96af61b80"/>
+      <solidref ref="Sensor0x96ad08780"/>
+      <auxiliary auxtype="Color" auxvalue="#ff260000"/>
+      <auxiliary auxtype="SensDet" auxvalue="Model11SD"/>
+      <auxiliary auxtype="SensDet" auxvalue="Model11SD"/>
+    </volume>
+    <volume name="LV_Coupler0x96624f160">
+      <materialref ref="G4_PLEXIGLASS0x96af61cc0"/>
+      <solidref ref="Cut0030x96aeace60"/>
+      <auxiliary auxtype="Color" auxvalue="#0433ff59"/>
+    </volume>
+    <volume name="LV_Sensor0x96624f200">
+      <materialref ref="G4_POLYSTYRENE0x96af61b80"/>
+      <solidref ref="Sensor0x96ad08780"/>
+      <auxiliary auxtype="Color" auxvalue="#ff260000"/>
+      <auxiliary auxtype="SensDet" auxvalue="Model11SD"/>
+      <auxiliary auxtype="SensDet" auxvalue="Model11SD"/>
+    </volume>
+    <volume name="LV_Coupler0x96624f2a0">
+      <materialref ref="G4_PLEXIGLASS0x96af61cc0"/>
+      <solidref ref="Cut0030x96aeace60"/>
+      <auxiliary auxtype="Color" auxvalue="#0433ff59"/>
+    </volume>
+    <volume name="LV_Sensor0x96624f340">
+      <materialref ref="G4_POLYSTYRENE0x96af61b80"/>
+      <solidref ref="Sensor0x96ad08780"/>
+      <auxiliary auxtype="Color" auxvalue="#ff260000"/>
+      <auxiliary auxtype="SensDet" auxvalue="Model11SD"/>
+      <auxiliary auxtype="SensDet" auxvalue="Model11SD"/>
+    </volume>
+    <volume name="LV_Coupler0x96624f3e0">
+      <materialref ref="G4_PLEXIGLASS0x96af61cc0"/>
+      <solidref ref="Cut0030x96aeace60"/>
+      <auxiliary auxtype="Color" auxvalue="#0433ff59"/>
+    </volume>
+    <volume name="LV_Sensor0x96624f480">
+      <materialref ref="G4_POLYSTYRENE0x96af61b80"/>
+      <solidref ref="Sensor0x96ad08780"/>
+      <auxiliary auxtype="Color" auxvalue="#ff260000"/>
+      <auxiliary auxtype="SensDet" auxvalue="Model11SD"/>
+      <auxiliary auxtype="SensDet" auxvalue="Model11SD"/>
+    </volume>
+    <volume name="LV_Coupler0x96624f520">
+      <materialref ref="G4_PLEXIGLASS0x96af61cc0"/>
+      <solidref ref="Cut0030x96aeace60"/>
+      <auxiliary auxtype="Color" auxvalue="#0433ff59"/>
+    </volume>
+    <volume name="LV_Sensor0x96624f5c0">
+      <materialref ref="G4_POLYSTYRENE0x96af61b80"/>
+      <solidref ref="Sensor0x96ad08780"/>
+      <auxiliary auxtype="Color" auxvalue="#ff260000"/>
+      <auxiliary auxtype="SensDet" auxvalue="Model11SD"/>
+      <auxiliary auxtype="SensDet" auxvalue="Model11SD"/>
+    </volume>
+    <volume name="LV_Coupler0x96624f660">
+      <materialref ref="G4_PLEXIGLASS0x96af61cc0"/>
+      <solidref ref="Cut0030x96aeace60"/>
+      <auxiliary auxtype="Color" auxvalue="#0433ff59"/>
+    </volume>
+    <volume name="world_log0x96aeac780">
+      <materialref ref="G4_AIR0x10bfea4e0"/>
+      <solidref ref="world_geo0x96b204700"/>
+      <physvol name="acceleratorTubs0x96acf8e10">
+        <volumeref ref="accWorldL0x96ac34500"/>
+        <position name="acceleratorTubs0x96acf8e10_pos" unit="mm" x="0" y="0" z="1000"/>
+      </physvol>
+      <physvol name="WaterTube0x96b2086e0">
+        <volumeref ref="WaterTube0x96aeacc80"/>
+        <rotation name="WaterTube0x96b2086e0_rot" unit="deg" x="90" y="0" z="0"/>
+      </physvol>
+      <physvol name="PV_LV_Sensor0x965b44780">
+        <volumeref ref="LV_Sensor0x96624ed00"/>
+        <position name="PV_LV_Sensor0x965b44780_pos" unit="mm" x="0" y="0" z="213"/>
+        <rotation name="PV_LV_Sensor0x965b44780_rot" unit="deg" x="-90" y="0" z="0"/>
+      </physvol>
+      <physvol name="PV_LV_Coupler0x965b44640">
+        <volumeref ref="LV_Coupler0x96624eda0"/>
+        <position name="PV_LV_Coupler0x965b44640_pos" unit="mm" x="0" y="6" z="213"/>
+        <rotation name="PV_LV_Coupler0x965b44640_rot" unit="deg" x="-90" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="1" name="PV_LV_Sensor0x965b44910">
+        <volumeref ref="LV_Sensor0x96624ee40"/>
+        <position name="PV_LV_Sensor0x965b44910_pos" unit="mm" x="150.6" y="0" z="150.6"/>
+        <rotation name="PV_LV_Sensor0x965b44910_rot" unit="deg" x="-90" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="1" name="PV_LV_Coupler0x965b447d0">
+        <volumeref ref="LV_Coupler0x96624eee0"/>
+        <position name="PV_LV_Coupler0x965b447d0_pos" unit="mm" x="150.6" y="6" z="150.6"/>
+        <rotation name="PV_LV_Coupler0x965b447d0_rot" unit="deg" x="-90" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="2" name="PV_LV_Sensor0x965b44aa0">
+        <volumeref ref="LV_Sensor0x96624ef80"/>
+        <position name="PV_LV_Sensor0x965b44aa0_pos" unit="mm" x="213" y="0" z="0"/>
+        <rotation name="PV_LV_Sensor0x965b44aa0_rot" unit="deg" x="-90" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="2" name="PV_LV_Coupler0x965b44960">
+        <volumeref ref="LV_Coupler0x96624f020"/>
+        <position name="PV_LV_Coupler0x965b44960_pos" unit="mm" x="213" y="6" z="-3.67394039744206e-16"/>
+        <rotation name="PV_LV_Coupler0x965b44960_rot" unit="deg" x="-90" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="3" name="PV_LV_Sensor0x965b44c30">
+        <volumeref ref="LV_Sensor0x96624f0c0"/>
+        <position name="PV_LV_Sensor0x965b44c30_pos" unit="mm" x="150.6" y="0" z="-150.6"/>
+        <rotation name="PV_LV_Sensor0x965b44c30_rot" unit="deg" x="-90" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="3" name="PV_LV_Coupler0x965b44af0">
+        <volumeref ref="LV_Coupler0x96624f160"/>
+        <position name="PV_LV_Coupler0x965b44af0_pos" unit="mm" x="150.6" y="6" z="-150.6"/>
+        <rotation name="PV_LV_Coupler0x965b44af0_rot" unit="deg" x="-90" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="4" name="PV_LV_Sensor0x965b44dc0">
+        <volumeref ref="LV_Sensor0x96624f200"/>
+        <position name="PV_LV_Sensor0x965b44dc0_pos" unit="mm" x="0" y="0" z="-213"/>
+        <rotation name="PV_LV_Sensor0x965b44dc0_rot" unit="deg" x="-90" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="4" name="PV_LV_Coupler0x965b44c80">
+        <volumeref ref="LV_Coupler0x96624f2a0"/>
+        <position name="PV_LV_Coupler0x965b44c80_pos" unit="mm" x="0" y="6" z="-213"/>
+        <rotation name="PV_LV_Coupler0x965b44c80_rot" unit="deg" x="-90" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="5" name="PV_LV_Sensor0x965b44f50">
+        <volumeref ref="LV_Sensor0x96624f340"/>
+        <position name="PV_LV_Sensor0x965b44f50_pos" unit="mm" x="-150.6" y="0" z="-150.6"/>
+        <rotation name="PV_LV_Sensor0x965b44f50_rot" unit="deg" x="-90" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="5" name="PV_LV_Coupler0x965b44e10">
+        <volumeref ref="LV_Coupler0x96624f3e0"/>
+        <position name="PV_LV_Coupler0x965b44e10_pos" unit="mm" x="-150.6" y="6" z="-150.6"/>
+        <rotation name="PV_LV_Coupler0x965b44e10_rot" unit="deg" x="-90" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="6" name="PV_LV_Sensor0x965b450e0">
+        <volumeref ref="LV_Sensor0x96624f480"/>
+        <position name="PV_LV_Sensor0x965b450e0_pos" unit="mm" x="-213" y="0" z="0"/>
+        <rotation name="PV_LV_Sensor0x965b450e0_rot" unit="deg" x="-90" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="6" name="PV_LV_Coupler0x965b44fa0">
+        <volumeref ref="LV_Coupler0x96624f520"/>
+        <position name="PV_LV_Coupler0x965b44fa0_pos" unit="mm" x="-213" y="6" z="-3.67394039744206e-16"/>
+        <rotation name="PV_LV_Coupler0x965b44fa0_rot" unit="deg" x="-90" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="7" name="PV_LV_Sensor0x965b45270">
+        <volumeref ref="LV_Sensor0x96624f5c0"/>
+        <position name="PV_LV_Sensor0x965b45270_pos" unit="mm" x="-150.6" y="0" z="150.6"/>
+        <rotation name="PV_LV_Sensor0x965b45270_rot" unit="deg" x="-90" y="0" z="0"/>
+      </physvol>
+      <physvol copynumber="7" name="PV_LV_Coupler0x965b45130">
+        <volumeref ref="LV_Coupler0x96624f660"/>
+        <position name="PV_LV_Coupler0x965b45130_pos" unit="mm" x="-150.6" y="6" z="150.6"/>
+        <rotation name="PV_LV_Coupler0x965b45130_rot" unit="deg" x="-90" y="0" z="0"/>
+      </physvol>
+      <auxiliary auxtype="Color" auxvalue="#008080e6"/>
+    </volume>
+    <volume name="MD1ExportWorldLogical0x96624f700">
+      <materialref ref="G4_Galactic0x96af630c0"/>
+      <solidref ref="MD1ExportWorldSolid0x96d74c620"/>
+      <physvol name="world_log0x96d884050">
+        <volumeref ref="world_log0x96aeac780"/>
+      </physvol>
+    </volume>
+  </structure>
+
+  <setup name="Default" version="1.0">
+    <world ref="MD1ExportWorldLogical0x96624f700"/>
+  </setup>
+
+</gdml>

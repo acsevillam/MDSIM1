@@ -21,7 +21,6 @@
 # Use this open statement to create a .wrl file suitable for
 # viewing in a VRML viewer:
 #/vis/open VRML2FILE
-#
 # Disable auto refresh and quieten vis messages whilst scene and
 # trajectories are established:
 /vis/viewer/set/autoRefresh false
@@ -42,10 +41,11 @@
 #
 # Specify style (surface, wireframe, auxiliary edges,...)
 /vis/viewer/set/style surface
+/vis/viewer/set/edge true
 #/vis/viewer/set/lineSegmentsPerCircle 100
 #/vis/viewer/set/hiddenEdge true
 /vis/viewer/set/hiddenMarker true
-#/vis/viewer/set/auxiliaryEdge true
+/vis/viewer/set/auxiliaryEdge false
 #
 # Draw smooth trajectories at end of event, showing trajectory points
 # as markers 2 pixels wide:

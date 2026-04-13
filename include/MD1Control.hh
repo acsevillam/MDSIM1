@@ -33,6 +33,8 @@ public:
     inline G4int GetPrimaryGeneratorType() const{ return fPrimaryGeneratorType;}
 
     void SetPrimaryGeneratorType(G4int aPrimaryGeneratorType);
+    void CenterViewOnZAxis();
+    void ToggleFocusAxes();
 
 private:
     // Constructor

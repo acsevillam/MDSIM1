@@ -23,6 +23,20 @@
 
 PhantomWaterBoxMessenger::PhantomWaterBoxMessenger(PhantomWaterBox* phantom)
     : G4UImessenger(), fPhantom(phantom), fCurrentPhantomID(0) {
+
+    fSetSideCmd = new G4UIcmdWithADoubleAndUnit("/MultiDetector1/phantoms/waterbox/setSide", this);
+    fSetSideCmd->SetGuidance("Set the full cubic side of the water box phantom.");
+    fSetSideCmd->SetParameterName("side", false);
+    fSetSideCmd->SetUnitCategory("Length");
+    fSetSideCmd->SetRange("side>0.");
+    fSetSideCmd->AvailableForStates(G4State_PreInit);
+
+    fSetSizeCmd = new G4UIcmdWith3VectorAndUnit("/MultiDetector1/phantoms/waterbox/setSize", this);
+    fSetSizeCmd->SetGuidance("Set the full water box size along X, Y and Z.");
+    fSetSizeCmd->SetParameterName("sizeX", "sizeY", "sizeZ", false, false);
+    fSetSizeCmd->SetDefaultUnit("cm");
+    fSetSizeCmd->SetUnitCategory("Length");
+    fSetSizeCmd->AvailableForStates(G4State_PreInit);
     
     fPhantomIDCmd = new G4UIcmdWithAnInteger("/MultiDetector1/phantoms/waterbox/phantomID", this);
     fPhantomIDCmd->SetGuidance("Select phantom ID.");
@@ -91,6 +105,8 @@ PhantomWaterBoxMessenger::PhantomWaterBoxMessenger(PhantomWaterBox* phantom)
 }
 
 PhantomWaterBoxMessenger::~PhantomWaterBoxMessenger() {
+    delete fSetSideCmd;
+    delete fSetSizeCmd;
     delete fPhantomIDCmd;
     delete fTranslateCmd;
     delete fTranslateToCmd;
@@ -103,7 +119,11 @@ PhantomWaterBoxMessenger::~PhantomWaterBoxMessenger() {
 }
 
 void PhantomWaterBoxMessenger::SetNewValue(G4UIcommand* command, G4String newValue) {
-    if (command == fTranslateCmd) {
+    if (command == fSetSideCmd) {
+        fPhantom->SetWaterBoxSide(fSetSideCmd->GetNewDoubleValue(newValue));
+    } else if (command == fSetSizeCmd) {
+        fPhantom->SetWaterBoxSize(fSetSizeCmd->GetNew3VectorValue(newValue));
+    } else if (command == fTranslateCmd) {
         G4ThreeVector position = fTranslateCmd->GetNew3VectorValue(newValue);
         fPhantom->Translate(fCurrentPhantomID, position);
     } else if (command == fTranslateToCmd) {

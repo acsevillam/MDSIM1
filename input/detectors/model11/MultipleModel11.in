@@ -1,0 +1,185 @@
+# Macro file for external model11 detectors plus 8 water cubes on a 29 cm ring
+/control/verbose 0
+/run/verbose 0
+
+##################### G4State_PreInit ###################
+
+# Use the cylindrical water phantom as the default mother volume.
+/MultiDetector1/phantoms/setDefault waterTube
+/MultiDetector1/phantoms/watertube/setRadius 15 cm
+
+# Reserve 8 external model11 placements in air around the water tube.
+/MultiDetector1/detectors/model11/addGeometryTo world_log 0
+/MultiDetector1/detectors/model11/addGeometryTo world_log 1
+/MultiDetector1/detectors/model11/addGeometryTo world_log 2
+/MultiDetector1/detectors/model11/addGeometryTo world_log 3
+/MultiDetector1/detectors/model11/addGeometryTo world_log 4
+/MultiDetector1/detectors/model11/addGeometryTo world_log 5
+/MultiDetector1/detectors/model11/addGeometryTo world_log 6
+/MultiDetector1/detectors/model11/addGeometryTo world_log 7
+
+/MultiDetector1/detectors/model11/detectorID 0
+
+# ================= Model11 settings ===============
+
+/MultiDetector1/detectors/model11/setSplitAtInterface false
+/MultiDetector1/detectors/model11/setImportedGeometryGDML models/detectors/model11/gdml/model11.gdml
+/MultiDetector1/detectors/model11/setImportedGeometryRootAssembly Assembly_Model11
+/MultiDetector1/detectors/model11/addSensitiveVolume LV_Sensor
+/MultiDetector1/detectors/model11/setScintillationYield 10000
+/MultiDetector1/detectors/model11/setBirksConstant 0.126
+/MultiDetector1/detectors/model11/setLightCollectionEfficiency 0.25
+/MultiDetector1/detectors/model11/setDecayTime 2.1 ns
+/MultiDetector1/detectors/model11/setTransportDelay 0.5 ns
+/MultiDetector1/detectors/model11/setTimeJitter 0.1 ns
+/MultiDetector1/detectors/model11/setResolutionScale 1.0
+/MultiDetector1/detectors/model11/setPhotosensorType PMT
+/MultiDetector1/detectors/model11/setPMTQuantumEfficiency 0.25
+/MultiDetector1/detectors/model11/setPMTDynodeCollectionEfficiency 0.90
+/MultiDetector1/detectors/model11/setPMTTransitTime 5.0 ns
+/MultiDetector1/detectors/model11/setPMTTransitTimeSpread 0.3 ns
+/MultiDetector1/detectors/model11/setDoseCalibrationFactor 1.0e-12
+/MultiDetector1/detectors/model11/setDoseCalibrationFactorError 5.0e-14
+
+# Reserve 8 cube placements inside the active water phantom.
+# The copyNo is also the detectorID used by the readout.
+/MultiDetector1/detectors/cube/addGeometryTo WaterTube 0
+/MultiDetector1/detectors/cube/addGeometryTo WaterTube 1
+/MultiDetector1/detectors/cube/addGeometryTo WaterTube 2
+/MultiDetector1/detectors/cube/addGeometryTo WaterTube 3
+/MultiDetector1/detectors/cube/addGeometryTo WaterTube 4
+/MultiDetector1/detectors/cube/addGeometryTo WaterTube 5
+/MultiDetector1/detectors/cube/addGeometryTo WaterTube 6
+/MultiDetector1/detectors/cube/addGeometryTo WaterTube 7
+
+# ================= Cube settings ===============
+
+/MultiDetector1/detectors/cube/setSide 5.0 mm
+/MultiDetector1/detectors/cube/setMaterial G4_WATER
+/MultiDetector1/detectors/cube/setEnvelopeThickness 0.0 mm
+/MultiDetector1/detectors/cube/setEnvelopeMaterial G4_PLEXIGLASS
+/MultiDetector1/detectors/cube/setSplitAtInterface false
+
+# ================= Phase Space settings ===============
+
+/MultiDetector1/beamline/clinac/phsp/clearFiles
+/MultiDetector1/beamline/clinac/phsp/setPrefix beam/Varian_TrueBeam6MV_
+/MultiDetector1/beamline/clinac/setJaw1X 5 cm
+/MultiDetector1/beamline/clinac/setJaw2X 5 cm
+/MultiDetector1/beamline/clinac/setJaw1Y 5 cm
+/MultiDetector1/beamline/clinac/setJaw2Y 5 cm
+/MultiDetector1/beamline/clinac/rotateGantry 0 deg
+/MultiDetector1/beamline/clinac/rotateCollimator 0 deg
+
+##################### Initialization ###################
+
+/run/initialize
+/run/printProgress 10000
+
+##################### G4State_Idle ###################
+
+/MultiDetector1/phantoms/watertube/phantomID 0
+/MultiDetector1/phantoms/watertube/translateTo 0 0 10 cm
+/MultiDetector1/phantoms/watertube/rotateX 90 deg
+
+# External model11 arrangement in air around the phantom.
+# Detector reference positions lie on a 32.6 cm diameter ring (16.3 cm radius),
+# with clockwise numbering starting at the top position when viewed from +Y.
+/MultiDetector1/detectors/model11/detectorID 0
+/MultiDetector1/detectors/model11/translateTo 0 0 6.3 cm
+/MultiDetector1/detectors/model11/rotateX 90 deg
+/MultiDetector1/detectors/model11/rotateZ 0 deg
+
+/MultiDetector1/detectors/model11/detectorID 1
+/MultiDetector1/detectors/model11/translateTo 11.53 0 1.53 cm
+/MultiDetector1/detectors/model11/rotateX 90 deg
+/MultiDetector1/detectors/model11/rotateZ 0 deg
+
+/MultiDetector1/detectors/model11/detectorID 2
+/MultiDetector1/detectors/model11/translateTo 16.3 0 -10 cm
+/MultiDetector1/detectors/model11/rotateX 90 deg
+/MultiDetector1/detectors/model11/rotateZ 0 deg
+
+/MultiDetector1/detectors/model11/detectorID 3
+/MultiDetector1/detectors/model11/translateTo 11.53 0 -21.53 cm
+/MultiDetector1/detectors/model11/rotateX 90 deg
+/MultiDetector1/detectors/model11/rotateZ 0 deg
+
+/MultiDetector1/detectors/model11/detectorID 4
+/MultiDetector1/detectors/model11/translateTo 0 0 -26.3 cm
+/MultiDetector1/detectors/model11/rotateX 90 deg
+/MultiDetector1/detectors/model11/rotateZ 0 deg
+
+/MultiDetector1/detectors/model11/detectorID 5
+/MultiDetector1/detectors/model11/translateTo -11.53 0 -21.53 cm
+/MultiDetector1/detectors/model11/rotateX 90 deg
+/MultiDetector1/detectors/model11/rotateZ 0 deg
+
+/MultiDetector1/detectors/model11/detectorID 6
+/MultiDetector1/detectors/model11/translateTo -16.3 0 -10 cm
+/MultiDetector1/detectors/model11/rotateX 90 deg
+/MultiDetector1/detectors/model11/rotateZ 0 deg
+
+/MultiDetector1/detectors/model11/detectorID 7
+/MultiDetector1/detectors/model11/translateTo -11.53 0 1.53 cm
+/MultiDetector1/detectors/model11/rotateX 90 deg
+/MultiDetector1/detectors/model11/rotateZ 0 deg
+
+# Ring diameter = 29 cm, so detector centers lie at radius 14.5 cm.
+# The cubes are children of WaterTube, so these are local phantom coordinates:
+# local X maps to world X and local Y maps to world Z after the tube rotation.
+# Using translateTo z = -10 cm cancels the cube det_origin (+10 cm) and keeps
+# every cube in the phantom mid-plane (world Y = 0).
+# CopyNo numbering starts at the top position and then advances clockwise when
+# viewed from +Y toward the isocenter.
+/MultiDetector1/detectors/cube/detectorID 0
+/MultiDetector1/detectors/cube/translateTo 0 14.5 -10 cm
+/MultiDetector1/detectors/cube/rotateX 0 deg
+/MultiDetector1/detectors/cube/rotateY 0 deg
+/MultiDetector1/detectors/cube/rotateZ 0 deg
+
+/MultiDetector1/detectors/cube/detectorID 1
+/MultiDetector1/detectors/cube/translateTo 10.253 10.253 -10 cm
+/MultiDetector1/detectors/cube/rotateX 0 deg
+/MultiDetector1/detectors/cube/rotateY 0 deg
+/MultiDetector1/detectors/cube/rotateZ 0 deg
+
+/MultiDetector1/detectors/cube/detectorID 2
+/MultiDetector1/detectors/cube/translateTo 14.5 0 -10 cm
+/MultiDetector1/detectors/cube/rotateX 0 deg
+/MultiDetector1/detectors/cube/rotateY 0 deg
+/MultiDetector1/detectors/cube/rotateZ 0 deg
+
+/MultiDetector1/detectors/cube/detectorID 3
+/MultiDetector1/detectors/cube/translateTo 10.253 -10.253 -10 cm
+/MultiDetector1/detectors/cube/rotateX 0 deg
+/MultiDetector1/detectors/cube/rotateY 0 deg
+/MultiDetector1/detectors/cube/rotateZ 0 deg
+
+/MultiDetector1/detectors/cube/detectorID 4
+/MultiDetector1/detectors/cube/translateTo 0 -14.5 -10 cm
+/MultiDetector1/detectors/cube/rotateX 0 deg
+/MultiDetector1/detectors/cube/rotateY 0 deg
+/MultiDetector1/detectors/cube/rotateZ 0 deg
+
+/MultiDetector1/detectors/cube/detectorID 5
+/MultiDetector1/detectors/cube/translateTo -10.253 -10.253 -10 cm
+/MultiDetector1/detectors/cube/rotateX 0 deg
+/MultiDetector1/detectors/cube/rotateY 0 deg
+/MultiDetector1/detectors/cube/rotateZ 0 deg
+
+/MultiDetector1/detectors/cube/detectorID 6
+/MultiDetector1/detectors/cube/translateTo -14.5 0 -10 cm
+/MultiDetector1/detectors/cube/rotateX 0 deg
+/MultiDetector1/detectors/cube/rotateY 0 deg
+/MultiDetector1/detectors/cube/rotateZ 0 deg
+
+/MultiDetector1/detectors/cube/detectorID 7
+/MultiDetector1/detectors/cube/translateTo -10.253 10.253 -10 cm
+/MultiDetector1/detectors/cube/rotateX 0 deg
+/MultiDetector1/detectors/cube/rotateY 0 deg
+/MultiDetector1/detectors/cube/rotateZ 0 deg
+
+/MultiDetector1/run/SetMU 1
+
+/control/execute mac/scorers1.mac

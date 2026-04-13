@@ -17,6 +17,7 @@
 #include "geometry/base/GenericGeometry.hh"
 #include "G4GeometryManager.hh"
 #include "G4VVisManager.hh"
+#include "G4VisManager.hh"
 #include "G4RunManager.hh"
 #include "G4Exception.hh"
 #include "G4PVPlacement.hh"
@@ -29,6 +30,33 @@ namespace {
 
 G4bool ShouldSkipWorkerGeometryMutation() {
     return G4Threading::IsWorkerThread();
+}
+
+G4bool IsWaterPhantomAlias(const G4String& volumeName) {
+    return volumeName == "WaterBox" || volumeName == "WaterTube";
+}
+
+G4LogicalVolume* ResolvePlacementLogicalVolume(const G4String& volumeName) {
+    auto* logicalVolume = G4LogicalVolumeStore::GetInstance()->GetVolume(volumeName, false);
+    if (logicalVolume != nullptr || !IsWaterPhantomAlias(volumeName)) {
+        return logicalVolume;
+    }
+
+    if (volumeName != "WaterBox") {
+        logicalVolume = G4LogicalVolumeStore::GetInstance()->GetVolume("WaterBox", false);
+        if (logicalVolume != nullptr) {
+            return logicalVolume;
+        }
+    }
+
+    if (volumeName != "WaterTube") {
+        logicalVolume = G4LogicalVolumeStore::GetInstance()->GetVolume("WaterTube", false);
+        if (logicalVolume != nullptr) {
+            return logicalVolume;
+        }
+    }
+
+    return nullptr;
 }
 
 } // namespace
@@ -113,7 +141,7 @@ void GenericGeometry::RebuildPlacement(const G4int& copyNo) {
     if (rotationIt != detRotMat.end() && rotationIt->second != nullptr) {
         rotation = *(rotationIt->second);
     }
-    G4LogicalVolume* logicalVolume = G4LogicalVolumeStore::GetInstance()->GetVolume(motherVolumeName, false);
+    G4LogicalVolume* logicalVolume = ResolvePlacementLogicalVolume(motherVolumeName);
     if (logicalVolume == nullptr) {
         G4Exception("GenericGeometry::RebuildPlacement",
                     "PlacementMotherLogicalVolumeNotFound",
@@ -258,7 +286,7 @@ void GenericGeometry::AddGeometryTo(const G4String& volumeName, const G4int& cop
         detMotherVolumeNames[copyNo] = volumeName;
     }
 
-    G4LogicalVolume* logicalVolume = G4LogicalVolumeStore::GetInstance()->GetVolume(volumeName, false);
+    G4LogicalVolume* logicalVolume = ResolvePlacementLogicalVolume(volumeName);
     if (logicalVolume) {
         auto storedTransform = BuildStoredTransform(copyNo);
         AddGeometry(logicalVolume, &storedTransform, copyNo);
@@ -443,7 +471,8 @@ G4RotationMatrix* GenericGeometry::NewPtrRotMatrix(const G4RotationMatrix& rotat
 
 void GenericGeometry::UpdateGeometry() {
     G4RunManager::GetRunManager()->GeometryHasBeenModified();
-    if (auto* visManager = G4VVisManager::GetConcreteInstance()) {
+    if (auto* visManager = dynamic_cast<G4VisManager*>(G4VVisManager::GetConcreteInstance());
+        visManager != nullptr && visManager->GetCurrentViewer() != nullptr) {
         visManager->NotifyHandlers();
     }
 }
@@ -473,7 +502,7 @@ void GenericGeometry::AssembleRequestedGeometries() {
             continue;
         }
 
-        G4LogicalVolume* logicalVolume = G4LogicalVolumeStore::GetInstance()->GetVolume(volumeName, false);
+        G4LogicalVolume* logicalVolume = ResolvePlacementLogicalVolume(volumeName);
         if (logicalVolume == nullptr) {
             G4Exception("GenericGeometry::AssembleRequestedGeometries",
                         "AddGeometryToError",

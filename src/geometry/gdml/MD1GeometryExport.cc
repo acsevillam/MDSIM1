@@ -3,14 +3,12 @@
 #include <algorithm>
 #include <array>
 #include <filesystem>
-#include <iomanip>
 #include <map>
 #include <set>
 #include <sstream>
 #include <vector>
 
 #include "G4Box.hh"
-#include "G4Colour.hh"
 #include "G4Exception.hh"
 #include "G4GDMLParser.hh"
 #include "G4LogicalVolume.hh"
@@ -25,6 +23,7 @@
 #include "G4VSolid.hh"
 #include "G4VisAttributes.hh"
 
+#include "geometry/gdml/GDMLColorCodec.hh"
 #include "geometry/gdml/GeometryAuxiliaryRegistry.hh"
 #include "geometry/gdml/MD1GeometryExportMessenger.hh"
 
@@ -143,22 +142,6 @@ G4double ComputeHalfLength(const G4double minValue, const G4double maxValue) {
     return std::max(1.0 * mm, 0.5 * span + margin);
 }
 
-G4String FormatColorHex(const G4Colour& color) {
-    auto encodeComponent = [](const G4double value) {
-        const auto clamped = std::clamp(value, 0.0, 1.0);
-        return static_cast<int>(std::lround(clamped * 255.0));
-    };
-
-    std::ostringstream stream;
-    stream << '#'
-           << std::hex << std::nouppercase << std::setw(2) << std::setfill('0')
-           << encodeComponent(color.GetRed())
-           << std::setw(2) << encodeComponent(color.GetGreen())
-           << std::setw(2) << encodeComponent(color.GetBlue())
-           << std::setw(2) << encodeComponent(color.GetAlpha());
-    return stream.str();
-}
-
 G4bool HasAuxiliaryType(const G4GDMLAuxListType& auxiliaries, const G4String& type) {
     return std::any_of(auxiliaries.begin(), auxiliaries.end(), [&type](const auto& aux) {
         return aux.type == type;
@@ -170,13 +153,13 @@ G4GDMLAuxListType BuildExportAuxiliaries(const G4LogicalVolume* logicalVolume) {
     if (const auto* registeredAuxiliaries =
             MD1::GeometryAuxiliaryRegistry::GetInstance()->Find(logicalVolume);
         registeredAuxiliaries != nullptr) {
-        auxiliaries = *registeredAuxiliaries;
+        auxiliaries = MD1::GDMLColorCodec::CopyAuxiliariesWithoutColor(*registeredAuxiliaries);
     }
 
-    if (const auto* visAttributes = logicalVolume->GetVisAttributes();
-        visAttributes != nullptr && !HasAuxiliaryType(auxiliaries, "Color")) {
+    if (const auto* visAttributes = logicalVolume->GetVisAttributes(); visAttributes != nullptr) {
         auxiliaries.push_back(
-            G4GDMLAuxStructType{"Color", FormatColorHex(visAttributes->GetColour()), "", nullptr});
+            G4GDMLAuxStructType{
+                "Color", MD1::GDMLColorCodec::EncodeColor(visAttributes->GetColour()), "", nullptr});
     }
 
     if (const auto* sensitiveDetector = logicalVolume->GetSensitiveDetector();
