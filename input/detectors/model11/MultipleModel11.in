@@ -83,45 +83,47 @@
 /MultiDetector1/phantoms/watertube/rotateX 90 deg
 
 # External model11 arrangement in air around the phantom.
-# Detector reference positions lie on a 32.6 cm diameter ring (16.3 cm radius),
-# with clockwise numbering starting at the top position when viewed from +Y.
+# The current GDML places the largest model11 outer radius at 3.17 mm in the
+# x-z plane after rotateX 90 deg, so a 15.33 cm ring keeps about 0.13 mm of
+# radial clearance to the 15.0 cm water tube while preserving the octagonal
+# layout and clockwise numbering viewed from +Y.
 /MultiDetector1/detectors/model11/detectorID 0
-/MultiDetector1/detectors/model11/translateTo 0 0 6.3 cm
+/MultiDetector1/detectors/model11/translateTo 0 0 5.33 cm
 /MultiDetector1/detectors/model11/rotateX 90 deg
 /MultiDetector1/detectors/model11/rotateZ 0 deg
 
 /MultiDetector1/detectors/model11/detectorID 1
-/MultiDetector1/detectors/model11/translateTo 11.53 0 1.53 cm
+/MultiDetector1/detectors/model11/translateTo 10.83995 0 0.83995 cm
 /MultiDetector1/detectors/model11/rotateX 90 deg
 /MultiDetector1/detectors/model11/rotateZ 0 deg
 
 /MultiDetector1/detectors/model11/detectorID 2
-/MultiDetector1/detectors/model11/translateTo 16.3 0 -10 cm
+/MultiDetector1/detectors/model11/translateTo 15.33 0 -10 cm
 /MultiDetector1/detectors/model11/rotateX 90 deg
 /MultiDetector1/detectors/model11/rotateZ 0 deg
 
 /MultiDetector1/detectors/model11/detectorID 3
-/MultiDetector1/detectors/model11/translateTo 11.53 0 -21.53 cm
+/MultiDetector1/detectors/model11/translateTo 10.83995 0 -20.83995 cm
 /MultiDetector1/detectors/model11/rotateX 90 deg
 /MultiDetector1/detectors/model11/rotateZ 0 deg
 
 /MultiDetector1/detectors/model11/detectorID 4
-/MultiDetector1/detectors/model11/translateTo 0 0 -26.3 cm
+/MultiDetector1/detectors/model11/translateTo 0 0 -25.33 cm
 /MultiDetector1/detectors/model11/rotateX 90 deg
 /MultiDetector1/detectors/model11/rotateZ 0 deg
 
 /MultiDetector1/detectors/model11/detectorID 5
-/MultiDetector1/detectors/model11/translateTo -11.53 0 -21.53 cm
+/MultiDetector1/detectors/model11/translateTo -10.83995 0 -20.83995 cm
 /MultiDetector1/detectors/model11/rotateX 90 deg
 /MultiDetector1/detectors/model11/rotateZ 0 deg
 
 /MultiDetector1/detectors/model11/detectorID 6
-/MultiDetector1/detectors/model11/translateTo -16.3 0 -10 cm
+/MultiDetector1/detectors/model11/translateTo -15.33 0 -10 cm
 /MultiDetector1/detectors/model11/rotateX 90 deg
 /MultiDetector1/detectors/model11/rotateZ 0 deg
 
 /MultiDetector1/detectors/model11/detectorID 7
-/MultiDetector1/detectors/model11/translateTo -11.53 0 1.53 cm
+/MultiDetector1/detectors/model11/translateTo -10.83995 0 0.83995 cm
 /MultiDetector1/detectors/model11/rotateX 90 deg
 /MultiDetector1/detectors/model11/rotateZ 0 deg
 

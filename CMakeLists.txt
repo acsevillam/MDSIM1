@@ -79,6 +79,7 @@ set(MDSIM1_RUNTIME_FILES
   mac/vis_vtk.mac
   mac/vis_vtk_fast.mac
   mac/vis_vtk_offscreen.mac
+  mac/vis_vtk_yz_xge0.mac
   mac/qt_ui.mac
   mac/view_z_vertical.mac
   mac/init.mac

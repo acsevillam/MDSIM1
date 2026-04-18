@@ -4,73 +4,287 @@
     <constant name="HALFPI" value="pi/2"/>
     <constant name="PI" value="1*pi"/>
     <constant name="TWOPI" value="2*pi"/>
-    <position name="center" x="0" y="0" z="0" unit="mm"/>
-    <rotation name="identity" x="0" y="0" z="0"/>
+    <position name="Model11CenterPosition" x="0" y="0" z="0" unit="mm"/>
+    <rotation name="Model11IdentityRotation" x="0" y="0" z="0" unit="deg"/>
+    <rotation name="Model11RotateX90" x="90" y="0" z="0" unit="deg"/>
+    <rotation name="Model11RotateY90" x="0" y="90" z="0" unit="deg"/>
+    <rotation name="Model11RotateNegX90" x="-90" y="0" z="0" unit="deg"/>
+    <rotation name="Model11RotateNegY90" x="0" y="-90" z="0" unit="deg"/>
   </define>
   <materials/>
   <solids>
-    <box name="Model11World" x="100.0" y="100.0" z="100.0" lunit="mm"/>
-    <eltube name="Sensor" dx="0.5" dy="0.5" dz="0.5" lunit="mm"/>
-    <eltube name="GDMLElTube005" dx="0.505" dy="0.505" dz="1.0" lunit="mm"/>
-    <eltube name="GDMLElTube004" dx="0.16" dy="0.16" dz="6.62" lunit="mm"/>
-    <eltube name="GDMLElTube003" dx="0.16" dy="0.16" dz="13.0" lunit="mm"/>
-    <eltube name="GDMLElTube001" dx="2.2" dy="2.2" dz="6.5" lunit="mm"/>
-    <eltube name="GDMLElTube002" dx="2.59" dy="2.59" dz="0.75" lunit="mm"/>
-    <union name="Fuse001">
-      <first ref="GDMLElTube001"/>
-      <second ref="GDMLElTube002"/>
-      <position name="P-GDMLElTube0021" unit="mm" z="-2.75"/>
-      <rotationref ref="identity"/>
+    <box name="Model11WorldSolid" x="100.0" y="100.0" z="100.0" lunit="mm"/>
+    <tube name="Model11SensorSolid" rmin="0.0" rmax="0.5" startphi="0.0" deltaphi="360.0" aunit="deg" z="1.0" lunit="mm"/>
+    <polycone name="CouplerMainBoreWithConeCut" startphi="0.0" deltaphi="360.0" aunit="deg" lunit="mm">
+      <zplane z="-13.0" rmin="0.0" rmax="0.16"/>
+      <zplane z="-6.05" rmin="0.0" rmax="0.16"/>
+      <zplane z="-6.05" rmin="0.0" rmax="0.3000069331865539"/>
+      <zplane z="-5.0" rmin="0.0" rmax="0.162"/>
+      <zplane z="-5.0" rmin="0.0" rmax="0.16"/>
+      <zplane z="13.0" rmin="0.0" rmax="0.16"/>
+    </polycone>
+    <polycone name="CouplerOffsetBoreWithConeCut" startphi="0.0" deltaphi="360.0" aunit="deg" lunit="mm">
+      <zplane z="-6.62" rmin="0.0" rmax="0.16"/>
+      <zplane z="-4.46" rmin="0.0" rmax="0.16"/>
+      <zplane z="-4.46" rmin="0.0" rmax="0.3000069331865539"/>
+      <zplane z="-3.38" rmin="0.0" rmax="0.164"/>
+      <zplane z="-3.38" rmin="0.0" rmax="0.16"/>
+      <zplane z="6.62" rmin="0.0" rmax="0.16"/>
+    </polycone>
+    <tube name="CouplerFrontPocketCut" rmin="0.0" rmax="0.505" startphi="0.0" deltaphi="360.0" aunit="deg" z="2.0" lunit="mm"/>
+    <tube name="CouplerSideCutCylinder" rmin="0.0" rmax="0.3" startphi="0.0" deltaphi="360.0" aunit="deg" z="2.0" lunit="mm"/>
+    <multiUnion name="CouplerAllCutsUnion">
+      <multiUnionNode name="CouplerAllCutsNodeMainBore">
+        <solid ref="CouplerMainBoreWithConeCut"/>
+        <position name="Pos_CouplerMainBoreWithConeCutInAllCuts" unit="mm" z="-0.5"/>
+        <rotationref ref="Model11IdentityRotation"/>
+      </multiUnionNode>
+      <multiUnionNode name="CouplerAllCutsNodeOffsetBore">
+        <solid ref="CouplerOffsetBoreWithConeCut"/>
+        <position name="Pos_CouplerOffsetBoreWithConeCutInAllCuts" unit="mm" x="-1.0" z="-2.12"/>
+        <rotationref ref="Model11IdentityRotation"/>
+      </multiUnionNode>
+      <multiUnionNode name="CouplerAllCutsNodeFrontPocket">
+        <solid ref="CouplerFrontPocketCut"/>
+        <position name="Pos_CouplerFrontPocketCut" unit="mm" z="6.495"/>
+        <rotationref ref="Model11IdentityRotation"/>
+      </multiUnionNode>
+      <multiUnionNode name="CouplerAllCutsNodeSideCutNegX">
+        <solid ref="CouplerSideCutCylinder"/>
+        <position name="Pos_CouplerSideCutNegX" unit="mm" x="-2.7" z="6.0"/>
+        <rotationref ref="Model11RotateNegY90"/>
+      </multiUnionNode>
+      <multiUnionNode name="CouplerAllCutsNodeSideCutPosXFront">
+        <solid ref="CouplerSideCutCylinder"/>
+        <position name="Pos_CouplerSideCutPosXFront" unit="mm" x="2.7" z="4.0"/>
+        <rotationref ref="Model11RotateNegY90"/>
+      </multiUnionNode>
+      <multiUnionNode name="CouplerAllCutsNodeSideCutPosXRear">
+        <solid ref="CouplerSideCutCylinder"/>
+        <position name="Pos_CouplerSideCutPosXRear" unit="mm" x="2.7" z="6.0"/>
+        <rotationref ref="Model11RotateNegY90"/>
+      </multiUnionNode>
+      <multiUnionNode name="CouplerAllCutsNodeSideCutNegY">
+        <solid ref="CouplerSideCutCylinder"/>
+        <position name="Pos_CouplerSideCutNegY" unit="mm" y="-2.7" z="6.0"/>
+        <rotationref ref="Model11RotateNegX90"/>
+      </multiUnionNode>
+      <multiUnionNode name="CouplerAllCutsNodeSideCutPosY">
+        <solid ref="CouplerSideCutCylinder"/>
+        <position name="Pos_CouplerSideCutPosY" unit="mm" y="2.7" z="6.0"/>
+        <rotationref ref="Model11RotateNegX90"/>
+      </multiUnionNode>
+    </multiUnion>
+    <polycone name="CouplerOuterUnion" startphi="0.0" deltaphi="360.0" aunit="deg" lunit="mm">
+      <zplane z="-6.5" rmin="0.0" rmax="2.2"/>
+      <zplane z="-3.5" rmin="0.0" rmax="2.2"/>
+      <zplane z="-3.5" rmin="0.0" rmax="2.59"/>
+      <zplane z="-2.0" rmin="0.0" rmax="2.59"/>
+      <zplane z="-2.0" rmin="0.0" rmax="2.2"/>
+      <zplane z="6.5" rmin="0.0" rmax="2.2"/>
+    </polycone>
+    <subtraction name="CouplerAfterMainCoreCut">
+      <first ref="CouplerOuterUnion"/>
+      <second ref="CouplerMainBoreWithConeCut"/>
+      <position unit="mm" name="Pos_CouplerMainBoreWithConeCut" x="0" y="0" z="-0.5"/>
+      <rotationref ref="Model11IdentityRotation"/>
+    </subtraction>
+    <subtraction name="CouplerCoreSolid">
+      <first ref="CouplerAfterMainCoreCut"/>
+      <second ref="CouplerOffsetBoreWithConeCut"/>
+      <position unit="mm" name="Pos_CouplerOffsetBoreWithConeCut" x="-1.0" y="0" z="-2.12"/>
+      <rotationref ref="Model11IdentityRotation"/>
+    </subtraction>
+    <subtraction name="CouplerAfterFrontPocket">
+      <first ref="CouplerCoreSolid"/>
+      <second ref="CouplerFrontPocketCut"/>
+      <position unit="mm" name="Pos_CouplerFrontPocketCutInCoreSolid" x="0" y="0" z="6.495"/>
+      <rotationref ref="Model11IdentityRotation"/>
+    </subtraction>
+    <subtraction name="CouplerAfterSideCutNegX">
+      <first ref="CouplerAfterFrontPocket"/>
+      <second ref="CouplerSideCutCylinder"/>
+      <position unit="mm" name="Pos_CouplerSideCutNegXInSequentialSolid" x="-2.7" y="0" z="6.0"/>
+      <rotationref ref="Model11RotateNegY90"/>
+    </subtraction>
+    <subtraction name="CouplerAfterSideCutPosXFront">
+      <first ref="CouplerAfterSideCutNegX"/>
+      <second ref="CouplerSideCutCylinder"/>
+      <position unit="mm" name="Pos_CouplerSideCutPosXFrontInSequentialSolid" x="2.7" y="0" z="4.0"/>
+      <rotationref ref="Model11RotateNegY90"/>
+    </subtraction>
+    <subtraction name="CouplerAfterSideCutPosXRear">
+      <first ref="CouplerAfterSideCutPosXFront"/>
+      <second ref="CouplerSideCutCylinder"/>
+      <position unit="mm" name="Pos_CouplerSideCutPosXRearInSequentialSolid" x="2.7" y="0" z="6.0"/>
+      <rotationref ref="Model11RotateNegY90"/>
+    </subtraction>
+    <subtraction name="CouplerAfterSideCutNegY">
+      <first ref="CouplerAfterSideCutPosXRear"/>
+      <second ref="CouplerSideCutCylinder"/>
+      <position unit="mm" name="Pos_CouplerSideCutNegYInSequentialSolid" x="0" y="-2.7" z="6.0"/>
+      <rotationref ref="Model11RotateNegX90"/>
+    </subtraction>
+    <subtraction name="CouplerSolid">
+      <first ref="CouplerAfterSideCutNegY"/>
+      <second ref="CouplerSideCutCylinder"/>
+      <position unit="mm" name="Pos_CouplerSideCutPosYInSequentialSolid" x="0" y="2.7" z="6.0"/>
+      <rotationref ref="Model11RotateNegX90"/>
+    </subtraction>
+    <tube name="CapSideCutCylinder" rmin="0.0" rmax="0.505" startphi="0.0" deltaphi="360.0" aunit="deg" z="2.0" lunit="mm"/>
+    <multiUnion name="CapAllSideCutsUnion">
+      <multiUnionNode name="CapAllSideCutsNodePosY">
+        <solid ref="CapSideCutCylinder"/>
+        <position name="Pos_CapSideCutPosY" unit="mm" y="2.7" z="4.2"/>
+        <rotationref ref="Model11RotateNegX90"/>
+      </multiUnionNode>
+      <multiUnionNode name="CapAllSideCutsNodeNegY">
+        <solid ref="CapSideCutCylinder"/>
+        <position name="Pos_CapSideCutNegY" unit="mm" y="-2.7" z="4.2"/>
+        <rotationref ref="Model11RotateNegX90"/>
+      </multiUnionNode>
+      <multiUnionNode name="CapAllSideCutsNodeNegX">
+        <solid ref="CapSideCutCylinder"/>
+        <position name="Pos_CapSideCutNegX" unit="mm" x="-2.7" z="4.2"/>
+        <rotationref ref="Model11RotateNegY90"/>
+      </multiUnionNode>
+      <multiUnionNode name="CapAllSideCutsNodePosXLower">
+        <solid ref="CapSideCutCylinder"/>
+        <position name="Pos_CapSideCutPosXLower" unit="mm" x="2.7" z="2.2"/>
+        <rotationref ref="Model11RotateNegY90"/>
+      </multiUnionNode>
+      <multiUnionNode name="CapAllSideCutsNodePosXUpper">
+        <solid ref="CapSideCutCylinder"/>
+        <position name="Pos_CapSideCutPosXUpper" unit="mm" x="3.0" z="4.2"/>
+        <rotationref ref="Model11RotateNegY90"/>
+      </multiUnionNode>
+    </multiUnion>
+    <tube name="CapRearPocketCut" rmin="0.0" rmax="2.6" startphi="0.0" deltaphi="360.0" aunit="deg" z="3.5" lunit="mm"/>
+    <tube name="CapMainCavityCut" rmin="0.0" rmax="2.2" startphi="0.0" deltaphi="360.0" aunit="deg" z="11.5" lunit="mm"/>
+    <tube name="CapBodyTube" rmin="0.0" rmax="3.17" startphi="0.0" deltaphi="360.0" aunit="deg" z="10.6" lunit="mm"/>
+    <sphere name="CapDomeSphere" rmin="0.0" rmax="3.17" startphi="0.0" deltaphi="360.0" starttheta="0.0" deltatheta="91.0" aunit="deg" lunit="mm"/>
+    <union name="CapOuterUnion">
+      <first ref="CapBodyTube"/>
+      <second ref="CapDomeSphere"/>
+      <position unit="mm" name="Pos_CapDomeSphereInOuterUnion" z="5.3"/>
+      <rotationref ref="Model11IdentityRotation"/>
     </union>
-    <subtraction name="Cut001">
-      <first ref="Fuse001"/>
-      <second ref="GDMLElTube003"/>
-      <position name="P-GDMLElTube0032" unit="mm" z="-0.5"/>
-      <rotationref ref="identity"/>
+    <subtraction name="CapAfterMainCavity">
+      <first ref="CapOuterUnion"/>
+      <second ref="CapMainCavityCut"/>
+      <position unit="mm" name="Pos_CapMainCavityCut" z="-1.05"/>
+      <rotationref ref="Model11IdentityRotation"/>
     </subtraction>
-    <subtraction name="Cut002">
-      <first ref="Cut001"/>
-      <second ref="GDMLElTube004"/>
-      <position name="P-GDMLElTube0043" unit="mm" x="-1.0" z="-2.119999999999999"/>
-      <rotationref ref="identity"/>
+    <subtraction name="CapAfterRearPocket">
+      <first ref="CapAfterMainCavity"/>
+      <second ref="CapRearPocketCut"/>
+      <position unit="mm" name="Pos_CapRearPocketCut" z="-5.55"/>
+      <rotationref ref="Model11IdentityRotation"/>
     </subtraction>
-    <subtraction name="Cut003">
-      <first ref="Cut002"/>
-      <second ref="GDMLElTube005"/>
-      <position name="P-GDMLElTube0054" unit="mm" z="6.495"/>
-      <rotationref ref="identity"/>
+    <subtraction name="CapSolid">
+      <first ref="CapAfterRearPocket"/>
+      <second ref="CapAllSideCutsUnion"/>
+      <position unit="mm" name="Pos_CapAllSideCutsUnion" x="0" y="0" z="0"/>
+      <rotationref ref="Model11IdentityRotation"/>
+    </subtraction>
+    <tube name="Model11JacketSolid" rmin="0.0" rmax="1.3" startphi="0.0" deltaphi="360.0" aunit="deg" z="19.65" lunit="mm"/>
+    <tube name="BodySidePortCavityCut" rmin="0.0" rmax="0.63" startphi="0.0" deltaphi="360.0" aunit="deg" z="5.0" lunit="mm"/>
+    <tube name="BodyMainCavityCut" rmin="0.0" rmax="2.25" startphi="0.0" deltaphi="360.0" aunit="deg" z="39.2" lunit="mm"/>
+    <tube name="BodyRearStemCavityCut" rmin="0.0" rmax="1.12" startphi="0.0" deltaphi="360.0" aunit="deg" z="39.2" lunit="mm"/>
+    <multiUnion name="BodyCavityCutsUnion">
+      <multiUnionNode name="BodyCavityCutsNodeMain">
+        <solid ref="BodyMainCavityCut"/>
+        <positionref ref="Model11CenterPosition"/>
+        <rotationref ref="Model11IdentityRotation"/>
+      </multiUnionNode>
+      <multiUnionNode name="BodyCavityCutsNodeRearStem">
+        <solid ref="BodyRearStemCavityCut"/>
+        <position name="Pos_BodyRearStemCavityCut" unit="mm" z="-20.0"/>
+        <rotationref ref="Model11IdentityRotation"/>
+      </multiUnionNode>
+      <multiUnionNode name="BodyCavityCutsNodeLeftPort">
+        <solid ref="BodySidePortCavityCut"/>
+        <position name="Pos_BodyLeftPortCavityCut" unit="mm" x="-3.17" z="-17.9"/>
+        <rotationref ref="Model11RotateY90"/>
+      </multiUnionNode>
+      <multiUnionNode name="BodyCavityCutsNodeRightPort">
+        <solid ref="BodySidePortCavityCut"/>
+        <position name="Pos_BodyRightPortCavityCut" unit="mm" x="3.17" z="6.1"/>
+        <rotationref ref="Model11RotateY90"/>
+      </multiUnionNode>
+    </multiUnion>
+    <polycone name="BodyOuterUnion" startphi="0.0" deltaphi="360.0" aunit="deg" lunit="mm">
+      <zplane z="-24.6" rmin="0.0" rmax="2.25"/>
+      <zplane z="-14.6" rmin="0.0" rmax="3.17"/>
+      <zplane z="14.6" rmin="0.0" rmax="3.17"/>
+    </polycone>
+    <subtraction name="BodySolid">
+      <first ref="BodyOuterUnion"/>
+      <second ref="BodyCavityCutsUnion"/>
+      <position name="Pos_BodyCavityCutsUnion" unit="mm" z="5.0"/>
+      <rotationref ref="Model11IdentityRotation"/>
     </subtraction>
   </solids>
   <structure>
     <volume name="LV_Sensor">
       <materialref ref="G4_POLYSTYRENE"/>
-      <solidref ref="Sensor"/>
-      <auxiliary auxtype="Color" auxvalue="#ff260000"/>
+      <solidref ref="Model11SensorSolid"/>
+      <auxiliary auxtype="Color" auxvalue="#fe2600ad"/>
     </volume>
     <volume name="LV_Coupler">
       <materialref ref="G4_PLEXIGLASS"/>
-      <solidref ref="Cut003"/>
-      <auxiliary auxtype="Color" auxvalue="#0433ff00"/>
+      <solidref ref="CouplerSolid"/>
+      <auxiliary auxtype="Color" auxvalue="#72798000"/>
+    </volume>
+    <volume name="LV_Cap">
+      <materialref ref="G4_A-150_TISSUE"/>
+      <solidref ref="CapSolid"/>
+      <auxiliary auxtype="Color" auxvalue="#72798000"/>
+    </volume>
+    <volume name="LV_Jacket">
+      <materialref ref="G4_A-150_TISSUE"/>
+      <solidref ref="Model11JacketSolid"/>
+      <auxiliary auxtype="Color" auxvalue="#808080ad"/>
+    </volume>
+    <volume name="LV_Body">
+      <materialref ref="G4_A-150_TISSUE"/>
+      <solidref ref="BodySolid"/>
+      <auxiliary auxtype="Color" auxvalue="#72798000"/>
     </volume>
     <assembly name="Assembly_Model11">
-      <physvol name="av_1_impr_1_LV_Sensor_pv_0">
+      <physvol name="PV_LV_Sensor">
         <volumeref ref="LV_Sensor"/>
-        <positionref ref="center"/>
-        <rotationref ref="identity"/>
+        <positionref ref="Model11CenterPosition"/>
+        <rotationref ref="Model11IdentityRotation"/>
       </physvol>
-      <physvol name="av_1_impr_1_LV_Coupler_pv_1">
+      <physvol name="PV_LV_Coupler">
         <volumeref ref="LV_Coupler"/>
-        <position name="P-LV_Coupler5" unit="mm" z="-6.0"/>
-        <rotationref ref="identity"/>
+        <position unit="mm" name="Pos_PV_LV_Coupler" z="-6.0"/>
+        <rotationref ref="Model11IdentityRotation"/>
+      </physvol>
+      <physvol name="PV_LV_Cap">
+        <volumeref ref="LV_Cap"/>
+        <position unit="mm" name="Pos_PV_LV_Cap" z="-4.2"/>
+        <rotationref ref="Model11IdentityRotation"/>
+      </physvol>
+      <physvol name="PV_LV_Jacket">
+        <volumeref ref="LV_Jacket"/>
+        <position unit="mm" name="Pos_PV_LV_Jacket" z="-22.325"/>
+        <rotationref ref="Model11IdentityRotation"/>
+      </physvol>
+      <physvol name="PV_LV_Body">
+        <volumeref ref="LV_Body"/>
+        <position name="Pos_PV_LV_Body" unit="mm" z="-24.1"/>
+        <rotationref ref="Model11IdentityRotation"/>
       </physvol>
     </assembly>
     <volume name="LV_Model11World">
       <materialref ref="G4_AIR"/>
-      <solidref ref="Model11World"/>
+      <solidref ref="Model11WorldSolid"/>
       <physvol name="PV_Assembly_Model11">
         <volumeref ref="Assembly_Model11"/>
-        <positionref ref="center"/>
-        <rotationref ref="identity"/>
+        <positionref ref="Model11CenterPosition"/>
+        <rotationref ref="Model11IdentityRotation"/>
       </physvol>
     </volume>
   </structure>
