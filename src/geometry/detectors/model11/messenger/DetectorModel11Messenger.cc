@@ -16,7 +16,7 @@ DetectorModel11Messenger::DetectorModel11Messenger(DetectorModel11* detectorMode
     fSetSplitAtInterfaceCmd =
         new G4UIcmdWithABool("/MultiDetector1/detectors/model11/setSplitAtInterface", this);
     fSetSplitAtInterfaceCmd->SetGuidance(
-        "Keep split-at-interface support disabled for GDML-driven model11 geometry.");
+        "Enable split at the WaterBox top interface for model11 only when using rotateX 90 deg and a flat imported assembly.");
     fSetSplitAtInterfaceCmd->SetParameterName("SplitAtInterface", false);
     fSetSplitAtInterfaceCmd->AvailableForStates(G4State_PreInit);
 

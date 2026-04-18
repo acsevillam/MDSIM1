@@ -9,7 +9,7 @@
 
 # ================= Model11 settings ===============
 
-/MultiDetector1/detectors/model11/setSplitAtInterface false
+/MultiDetector1/detectors/model11/setSplitAtInterface true
 /MultiDetector1/detectors/model11/setImportedGeometryGDML models/detectors/model11/gdml/model11.gdml
 /MultiDetector1/detectors/model11/setImportedGeometryRootAssembly Assembly_Model11
 /MultiDetector1/detectors/model11/addSensitiveVolume LV_Sensor
@@ -48,9 +48,9 @@
 
 /MultiDetector1/run/SetMU 1
 /MultiDetector1/phantoms/waterbox/phantomID 0
-/MultiDetector1/phantoms/waterbox/translateTo 0 0 -10 cm
+/MultiDetector1/phantoms/waterbox/translateTo 0 0 -10 cm # SSD = 100 cm
 /MultiDetector1/detectors/model11/detectorID 0
-/MultiDetector1/detectors/model11/translateTo 0 0 0 cm
 /MultiDetector1/detectors/model11/rotateX 90 deg
+/MultiDetector1/detectors/model11/translateTo 0 0 10 cm # center at the water-air interface
 
 /control/execute mac/scorers1.mac

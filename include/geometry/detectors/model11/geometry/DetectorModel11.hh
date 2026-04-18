@@ -88,13 +88,17 @@ public:
 
 protected:
     G4bool RequiresPlacementRebuild(const G4int& copyNo) const override;
+    void ReleaseDetachedPlacementFrames(const G4int& copyNo,
+                                        std::vector<G4VPhysicalVolume*>& detachedFrames) override;
     void OnAfterPlacementRemoval(const G4int& copyNo) override;
 
 private:
     struct PlacementOwnedResources {
+        std::vector<G4VSolid*> solids;
         std::vector<G4LogicalVolume*> logicalVolumes;
         std::vector<G4VisAttributes*> visAttributes;
         std::vector<G4LogicalVolume*> sensitiveLogicalVolumes;
+        std::vector<G4VPhysicalVolume*> nestedPhysicalVolumes;
     };
 
     Model11DetectorConfig& EnsureDetectorConfig(G4int detectorID);
@@ -103,23 +107,41 @@ private:
     std::shared_ptr<const MD1::GDMLImportedAssembly> LoadImportedGDMLAssembly(
         const Model11DetectorConfig& config) const;
     std::set<G4String> ResolveSensitiveVolumeNames(const Model11DetectorConfig& config) const;
+    void ValidateSensitiveVolumeSelection(const MD1::GDMLImportedAssembly& importedAssembly,
+                                          const std::set<G4String>& sensitiveVolumeNames) const;
+    G4LogicalVolume* CreateImportedLogicalClone(G4LogicalVolume* sourceLogicalVolume,
+                                                const G4String& sourcePhysicalName,
+                                                const MD1::GDMLImportedAssembly& importedAssembly,
+                                                const std::set<G4String>& sensitiveVolumeNames,
+                                                G4VSolid* solid,
+                                                const G4String& clonedLogicalName,
+                                                PlacementOwnedResources& resources,
+                                                G4bool ownSolid);
     G4LogicalVolume* CloneImportedSubtree(G4LogicalVolume* sourceLogicalVolume,
                                           const G4String& sourcePhysicalName,
                                           const MD1::GDMLImportedAssembly& importedAssembly,
                                           const std::set<G4String>& sensitiveVolumeNames,
                                           G4int copyNo,
                                           PlacementOwnedResources& resources);
+    void ValidateSplitPlacementSupport(const MD1::GDMLImportedAssembly& importedAssembly,
+                                       G4LogicalVolume* motherVolume,
+                                       const G4Transform3D& finalTransform,
+                                       G4int copyNo) const;
+    G4bool HasSupportedSplitRotation(const G4RotationMatrix& rotation) const;
     G4bool IsSensitiveVolumeSelected(const std::set<G4String>& sensitiveVolumeNames,
                                      const G4String& logicalVolumeName,
                                      const G4String& physicalVolumeName) const;
     std::set<G4String> CollectReferencedImportedGDMLKeys() const;
     void PruneUnusedImportedGDMLAssemblies();
     void ReleasePlacementResources(const G4int& copyNo);
+    G4VPhysicalVolume* GetWaterPhysicalVolume() const;
     G4VSensitiveDetector* GetCurrentSensitiveDetector() const { return fSensitiveDetector; }
 
     Model11DetectorConfig fDefaultConfig;
     std::map<G4int, Model11DetectorConfig> fDetectorConfigs;
     std::map<G4int, PlacementOwnedResources> fPlacementResources;
+    std::vector<PlacementOwnedResources> fRetiredPlacementResources;
+    std::vector<G4VPhysicalVolume*> fRetiredPlacementFrames;
     std::map<G4int, G4String> fPlacementImportedGDMLKeys;
     mutable MD1::GDMLAssemblyCache fImportedGDMLCache;
     DetectorModel11Messenger* fDetectorModel11Messenger;

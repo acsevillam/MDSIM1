@@ -1,0 +1,45 @@
+/control/verbose 0
+/run/verbose 0
+
+/MultiDetector1/control/SetPrimaryGeneratorType 2
+
+/MultiDetector1/detectors/model11/addGeometryTo WaterBox 0
+/MultiDetector1/detectors/model11/detectorID 0
+/MultiDetector1/detectors/model11/setSplitAtInterface true
+/MultiDetector1/detectors/model11/setImportedGeometryGDML models/detectors/model11/gdml/model11.gdml
+/MultiDetector1/detectors/model11/setImportedGeometryRootAssembly Assembly_Model11
+/MultiDetector1/detectors/model11/addSensitiveVolume LV_Sensor
+/MultiDetector1/detectors/model11/setScintillationYield 10000
+/MultiDetector1/detectors/model11/setBirksConstant 0.126
+/MultiDetector1/detectors/model11/setLightCollectionEfficiency 0.25
+/MultiDetector1/detectors/model11/setDecayTime 2.1 ns
+/MultiDetector1/detectors/model11/setTransportDelay 0.5 ns
+/MultiDetector1/detectors/model11/setTimeJitter 0.1 ns
+/MultiDetector1/detectors/model11/setResolutionScale 1.0
+/MultiDetector1/detectors/model11/setDoseCalibrationFactor 1.0e-12
+/MultiDetector1/detectors/model11/setDoseCalibrationFactorError 5.0e-14
+
+/run/initialize
+
+/gps/particle e-
+/gps/ene/type Mono
+/gps/energy 10 MeV
+/gps/pos/type Point
+/gps/pos/centre 0 0 20 cm
+/gps/direction 0 0 -1
+
+/MultiDetector1/phantoms/waterbox/phantomID 0
+/MultiDetector1/detectors/model11/detectorID 0
+/MultiDetector1/detectors/model11/rotateX 90 deg
+
+/MultiDetector1/detectors/model11/translateTo 0 0 10 cm
+/MultiDetector1/geometry/listPhysicalVolumes PV_LV_
+/run/beamOn 100
+
+/MultiDetector1/detectors/model11/translateTo 0 0 12 cm
+/MultiDetector1/geometry/listPhysicalVolumes PV_LV_
+/run/beamOn 100
+
+/MultiDetector1/detectors/model11/translateTo 0 0 0 cm
+/MultiDetector1/geometry/listPhysicalVolumes PV_LV_
+/run/beamOn 100

@@ -230,6 +230,18 @@ Para la geometría importada de `model11`:
 - el GDML integrado del detector está en `models/detectors/model11/gdml/model11.gdml`
 - los fixtures GDML de CI viven bajo `cmake/tests/data/model11/`
 
+`model11` tambien soporta `split at interface` contra la cara superior del `WaterBox`, pero con restricciones mas estrictas que los detectores basicos:
+
+- el comando de activación es `/MultiDetector1/detectors/model11/setSplitAtInterface true`
+- solo se soporta cuando `model11` se añade a `WaterBox`
+- la rotación soportada es exactamente `/MultiDetector1/detectors/model11/rotateX 90 deg`
+- la interfaz sigue siendo la cara superior en `Z` del `WaterBox`
+- si el detector queda totalmente dentro del agua, se coloca completo en `WaterBox`
+- si queda totalmente fuera, se recoloca completo en `world_log`
+- si cruza la interfaz superior, cada pieza plana del ensamble GDML se recorta y se reparte entre agua y aire
+- no se soportan cruces por caras laterales o por la cara inferior del `WaterBox`
+- no se soportan roots lógicos/físicos anidados que requieran cortar un subárbol GDML; para split se espera un ensamble plano tipo `Assembly_Model11`
+
 Regla práctica:
 
 - `addGeometryTo`: solicita y activa la colocación del detector; también habilita el módulo automáticamente

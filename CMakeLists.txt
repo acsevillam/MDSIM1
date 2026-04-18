@@ -22,6 +22,14 @@ else()
   find_package(Geant4 REQUIRED COMPONENTS gdml)
 endif()
 
+set(MDSIM1_MODEL11_SPLIT_VTK_COMPONENTS
+  CommonCore
+  CommonDataModel
+  FiltersCore
+  FiltersGeneral
+)
+find_package(VTK QUIET COMPONENTS ${MDSIM1_MODEL11_SPLIT_VTK_COMPONENTS})
+
 #----------------------------------------------------------------------------
 # Setup Geant4 include directories and compile definitions
 #
@@ -45,6 +53,15 @@ add_executable(MultiDetector1 MultiDetector1.cc ${MULTIDETECTOR1_SOURCES} ${MULT
 target_include_directories(MultiDetector1 PRIVATE ${PROJECT_SOURCE_DIR}/include)
 target_compile_definitions(MultiDetector1 PRIVATE MDSIM1_DATA_DIR_DEFAULT="${MDSIM1_DATA_DIR}")
 target_link_libraries(MultiDetector1 PRIVATE ${Geant4_LIBRARIES})
+
+if(VTK_FOUND)
+  target_compile_definitions(MultiDetector1 PRIVATE MDSIM1_HAS_VTK_MODEL11_SPLIT=1)
+  target_link_libraries(MultiDetector1 PRIVATE ${VTK_LIBRARIES})
+else()
+  message(WARNING
+    "VTK was not found. model11 dynamic split-at-interface across the WaterBox surface "
+    "will be unavailable at runtime.")
+endif()
 
 add_executable(
   md1_gdml_cache_probe
@@ -91,6 +108,7 @@ set(MDSIM1_RUNTIME_FILES
   mac/tests/idle_cube_split_rebuild.mac
   mac/tests/idle_cylinder_split_rebuild.mac
   mac/tests/idle_sphere_split_rebuild.mac
+  mac/tests/idle_model11_split_rebuild.mac
   mac/tests/cube_signal_smoke.mac
   mac/tests/cube_signal_watertube_smoke.mac
   mac/tests/waterbox_size_messenger_smoke.mac
@@ -498,6 +516,15 @@ add_test(
 )
 
 add_test(
+  NAME mdsim1_model11_split_rebuild
+  COMMAND ${CMAKE_COMMAND}
+          -DEXECUTABLE=$<TARGET_FILE:MultiDetector1>
+          -DWORKING_DIRECTORY=${PROJECT_BINARY_DIR}
+          -DMACRO_PATH=mac/tests/idle_model11_split_rebuild.mac
+          -P ${PROJECT_SOURCE_DIR}/cmake/tests/check_model11_split_rebuild.cmake
+)
+
+add_test(
   NAME mdsim1_model11_imported_geometry_missing_gdml
   COMMAND ${CMAKE_COMMAND}
           -DEXECUTABLE=$<TARGET_FILE:MultiDetector1>
@@ -514,9 +541,18 @@ add_test(
           -DEXECUTABLE=$<TARGET_FILE:MultiDetector1>
           -DWORKING_DIRECTORY=${PROJECT_BINARY_DIR}
           -DMACRO_PATH=mac/tests/model11_imported_geometry_split_unsupported.mac
-          -DEXPECTED_REGEX=DetectorModel11ImportedGeometrySplitUnsupported
+          -DEXPECTED_REGEX=DetectorModel11SplitNestedSubtreeUnsupported
           -DFAILURE_LABEL=model11_split_with_gdml
           -P ${PROJECT_SOURCE_DIR}/cmake/tests/check_expected_failure.cmake
+)
+
+add_test(
+  NAME mdsim1_idle_model11_split_rebuild_mt
+  COMMAND ${CMAKE_COMMAND}
+          -DEXECUTABLE=$<TARGET_FILE:MultiDetector1>
+          -DWORKING_DIRECTORY=${PROJECT_BINARY_DIR}
+          -DMACRO_PATH=mac/tests/idle_model11_split_rebuild.mac
+          -P ${PROJECT_SOURCE_DIR}/cmake/tests/check_idle_model11_split_rebuild_mt.cmake
 )
 
 add_test(
@@ -590,12 +626,14 @@ set_tests_properties(
   mdsim1_idle_cube_split_rebuild_mt
   mdsim1_idle_cylinder_split_rebuild_mt
   mdsim1_idle_sphere_split_rebuild_mt
+  mdsim1_idle_model11_split_rebuild_mt
   mdsim1_cube_signal_smoke
   mdsim1_watertube_geometry_smoke
   mdsim1_cylinder_signal_smoke
   mdsim1_sphere_signal_smoke
   mdsim1_scintcube_signal_smoke
   mdsim1_model11_signal_smoke
+  mdsim1_model11_split_rebuild
   mdsim1_model11_imported_geometry_smoke
   mdsim1_model11_imported_geometry_passive_only_smoke
   mdsim1_model11_imported_geometry_assembly_runtime
@@ -628,6 +666,7 @@ set_tests_properties(
   mdsim1_idle_cube_split_rebuild_mt
   mdsim1_idle_cylinder_split_rebuild_mt
   mdsim1_idle_sphere_split_rebuild_mt
+  mdsim1_idle_model11_split_rebuild_mt
   mdsim1_model11_imported_geometry_invalid_color
   mdsim1_model11_imported_geometry_missing_gdml
   mdsim1_model11_imported_geometry_split_unsupported
@@ -648,6 +687,7 @@ set_tests_properties(
   mdsim1_sphere_signal_smoke
   mdsim1_scintcube_signal_smoke
   mdsim1_model11_signal_smoke
+  mdsim1_model11_split_rebuild
   mdsim1_model11_imported_geometry_smoke
   mdsim1_model11_imported_geometry_passive_only_smoke
   mdsim1_bb7_signal_smoke

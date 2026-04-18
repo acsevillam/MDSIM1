@@ -124,6 +124,31 @@ G4Transform3D GenericGeometry::BuildStoredTransform(const G4int& copyNo) const {
     return G4Transform3D(rotation, position);
 }
 
+void GenericGeometry::DestroyPlacementFrames(const G4int& copyNo,
+                                             const std::vector<G4VPhysicalVolume*>& frames) {
+    std::vector<G4VPhysicalVolume*> detachedFrames;
+    detachedFrames.reserve(frames.size());
+    for (auto* frameVolume : frames) {
+        if (frameVolume != nullptr) {
+            if (auto* motherLogical = frameVolume->GetMotherLogical(); motherLogical != nullptr) {
+                motherLogical->RemoveDaughter(frameVolume);
+            }
+            detachedFrames.push_back(frameVolume);
+        }
+    }
+    ReleaseDetachedPlacementFrames(copyNo, detachedFrames);
+    detFrame.erase(copyNo);
+    detAuxFrames.erase(copyNo);
+    OnAfterPlacementRemoval(copyNo);
+    detPosition.erase(copyNo);
+    auto rotationIt = detRotMat.find(copyNo);
+    if (rotationIt != detRotMat.end()) {
+        delete rotationIt->second;
+        detRotMat.erase(rotationIt);
+    }
+    fAreVolumensAssembled = !detFrame.empty();
+}
+
 void GenericGeometry::RebuildPlacement(const G4int& copyNo) {
     auto motherIt = detMotherVolumeNames.find(copyNo);
     if (motherIt == detMotherVolumeNames.end()) {
@@ -136,6 +161,7 @@ void GenericGeometry::RebuildPlacement(const G4int& copyNo) {
     }
 
     const G4String motherVolumeName = motherIt->second;
+    const auto frames = GetPlacementFrames(copyNo);
     G4RotationMatrix rotation;
     auto rotationIt = detRotMat.find(copyNo);
     if (rotationIt != detRotMat.end() && rotationIt->second != nullptr) {
@@ -152,20 +178,33 @@ void GenericGeometry::RebuildPlacement(const G4int& copyNo) {
     }
 
     const auto transform = BuildStoredTransform(copyNo);
-    RemoveGeometry(copyNo);
+    auto* geoman = G4GeometryManager::GetInstance();
+    geoman->OpenGeometry();
+    DestroyPlacementFrames(copyNo, frames);
     detMotherVolumeNames[copyNo] = motherVolumeName;
     auto transformCopy = transform;
     AddGeometry(logicalVolume, &transformCopy, copyNo);
+    geoman->CloseGeometry();
     auto storedRotationIt = detRotMat.find(copyNo);
     if (storedRotationIt != detRotMat.end()) {
         delete storedRotationIt->second;
         storedRotationIt->second = nullptr;
     }
     detRotMat[copyNo] = NewPtrRotMatrix(rotation);
+    UpdateGeometry();
 }
 
 G4bool GenericGeometry::RequiresPlacementRebuild(const G4int& /*copyNo*/) const {
     return false;
+}
+
+void GenericGeometry::ReleaseDetachedPlacementFrames(
+    const G4int& /*copyNo*/,
+    std::vector<G4VPhysicalVolume*>& detachedFrames) {
+    for (auto* frameVolume : detachedFrames) {
+        delete frameVolume;
+    }
+    detachedFrames.clear();
 }
 
 void GenericGeometry::OnAfterPlacementRemoval(const G4int& /*copyNo*/) {}
@@ -281,15 +320,20 @@ void GenericGeometry::AddGeometryTo(const G4String& volumeName, const G4int& cop
     detMotherVolumeNames[copyNo] = volumeName;
 
     auto frameIt = detFrame.find(copyNo);
-    if (frameIt != detFrame.end()) {
-        RemoveGeometry(copyNo);
-        detMotherVolumeNames[copyNo] = volumeName;
-    }
-
+    const G4bool replacingExistingPlacement = frameIt != detFrame.end();
     G4LogicalVolume* logicalVolume = ResolvePlacementLogicalVolume(volumeName);
     if (logicalVolume) {
         auto storedTransform = BuildStoredTransform(copyNo);
+        auto* geoman = G4GeometryManager::GetInstance();
+        if (replacingExistingPlacement) {
+            geoman->OpenGeometry();
+            DestroyPlacementFrames(copyNo, GetPlacementFrames(copyNo));
+            detMotherVolumeNames[copyNo] = volumeName;
+        }
         AddGeometry(logicalVolume, &storedTransform, copyNo);
+        if (replacingExistingPlacement) {
+            geoman->CloseGeometry();
+        }
         fAreVolumensAssembled = !detFrame.empty();
         UpdateGeometry();
     }
@@ -303,20 +347,16 @@ void GenericGeometry::RemoveGeometry(const G4int& copyNo) {
     auto frames = GetPlacementFrames(copyNo);
     if (!frames.empty()) {
         G4GeometryManager* geoman = G4GeometryManager::GetInstance();
-        geoman->OpenGeometry(frames.front());
-        for (auto* frameVolume : frames) {
-            delete frameVolume;
+        if (frames.size() > 1) {
+            // Placements rebuilt across multiple top-level frames may span
+            // different mothers (for example WaterBox and world_log). Reopen
+            // the full geometry so every affected voxel header is invalidated
+            // before the stale physical volumes are deleted.
+            geoman->OpenGeometry();
+        } else {
+            geoman->OpenGeometry(frames.front());
         }
-        detFrame.erase(copyNo);
-        detAuxFrames.erase(copyNo);
-        OnAfterPlacementRemoval(copyNo);
-        detPosition.erase(copyNo);
-        auto rotationIt = detRotMat.find(copyNo);
-        if (rotationIt != detRotMat.end()) {
-            delete rotationIt->second;
-            detRotMat.erase(rotationIt);
-        }
-        fAreVolumensAssembled = !detFrame.empty();
+        DestroyPlacementFrames(copyNo, frames);
         geoman->CloseGeometry();
         UpdateGeometry();
     }
@@ -512,7 +552,10 @@ void GenericGeometry::AssembleRequestedGeometries() {
         }
 
         auto storedTransform = BuildStoredTransform(copyNo);
+        auto* geoman = G4GeometryManager::GetInstance();
+        geoman->OpenGeometry();
         AddGeometry(logicalVolume, &storedTransform, copyNo);
+        geoman->CloseGeometry();
         geometryAdded = true;
     }
 

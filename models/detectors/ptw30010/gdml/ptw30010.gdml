@@ -1,0 +1,363 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gdml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="https://service-spi.web.cern.ch/service-spi/app/releases/GDML/schema/gdml.xsd">
+  <define>
+    <position name="PTW30010OriginPosition" x="0" y="0" z="0" unit="mm"/>
+    <position name="PTW30010ActiveElectrodePosition" x="0" y="0" z="-0.3" unit="mm"/>
+    <position name="PTW30010SensitiveChamberPosition" x="0" y="0" z="-0.6" unit="mm"/>
+    <position name="PTW30010ActiveGasPosition" x="0" y="0" z="0.6" unit="mm"/>
+    <position name="PTW30010FrontDeadAirCylinderPosition" x="0" y="0" z="-10.6" unit="mm"/>
+    <position name="PTW30010FrontDeadAirConePosition" x="0" y="0" z="-11.8" unit="mm"/>
+    <position name="PTW30010StemPCTFEPosition" x="0" y="0" z="45.15" unit="mm"/>
+    <position name="PTW30010BuildUpCapPosition" x="0" y="0" z="31.375" unit="mm"/>
+    <position name="PTW30010BuildUpCapDetectorCavityPosition" x="0" y="0" z="31.375" unit="mm"/>
+    <rotation name="PTW30010IdentityRotation" x="0" y="0" z="0" unit="deg"/>
+    <rotation name="PTW30010BuildUpCapFlipRotation" x="0" y="180" z="0" unit="deg"/>
+  </define>
+
+  <materials>
+    <element name="PTW30010Carbon" formula="C" Z="6">
+      <atom value="12.011"/>
+    </element>
+    <element name="PTW30010Fluorine" formula="F" Z="9">
+      <atom value="18.998403163"/>
+    </element>
+    <element name="PTW30010Chlorine" formula="Cl" Z="17">
+      <atom value="35.45"/>
+    </element>
+    <material name="PTW30010Air">
+      <D value="1.29" unit="mg/cm3"/>
+      <fraction n="1.0" ref="G4_AIR"/>
+    </material>
+    <material name="PTW30010RigidBodyPlaceholder">
+      <D value="1.19" unit="g/cm3"/>
+      <fraction n="1.0" ref="G4_PLEXIGLASS"/>
+    </material>
+    <material name="PTW30010WallPMMA">
+      <D value="1.19" unit="g/cm3"/>
+      <fraction n="1.0" ref="G4_PLEXIGLASS"/>
+    </material>
+    <material name="PTW30010WallGraphite">
+      <D value="1.85" unit="g/cm3"/>
+      <fraction n="1.0" ref="G4_GRAPHITE"/>
+    </material>
+    <material name="PTW30010ElectrodeAl">
+      <D value="2.7" unit="g/cm3"/>
+      <fraction n="1.0" ref="G4_Al"/>
+    </material>
+    <material name="PTW30010PCTFE">
+      <D value="2.1" unit="g/cm3"/>
+      <composite n="2" ref="PTW30010Carbon"/>
+      <composite n="1" ref="PTW30010Chlorine"/>
+      <composite n="3" ref="PTW30010Fluorine"/>
+    </material>
+  </materials>
+
+  <solids>
+    <box name="PTW30010WorldSolid" x="120" y="120" z="400" lunit="mm"/>
+
+    <cone name="PTW30010TipConeSolid"
+          z="1.2"
+          rmin1="0" rmax1="0"
+          rmin2="0" rmax2="3.475"
+          startphi="0" deltaphi="360"
+          aunit="deg" lunit="mm"/>
+
+    <tube name="PTW30010TipBodySolid"
+          rmin="0" rmax="3.475"
+          z="24.7"
+          startphi="0" deltaphi="360"
+          aunit="deg" lunit="mm"/>
+
+    <tube name="PTW30010StemBodySolid"
+          rmin="0" rmax="4.295"
+          z="53.6"
+          startphi="0" deltaphi="360"
+          aunit="deg" lunit="mm"/>
+
+    <tube name="PTW30010ThreadBodySolid"
+          rmin="0" rmax="5.5"
+          z="9.5"
+          startphi="0" deltaphi="360"
+          aunit="deg" lunit="mm"/>
+
+    <tube name="PTW30010RearBodySolid"
+          rmin="0" rmax="6.3"
+          z="43.6"
+          startphi="0" deltaphi="360"
+          aunit="deg" lunit="mm"/>
+
+    <multiUnion name="PTW30010DetectorOuterSolid">
+      <multiUnionNode name="PTW30010DetectorOuterTipConeNode">
+        <solid ref="PTW30010TipConeSolid"/>
+        <position name="PTW30010DetectorOuterTipConeNodePosition" x="0" y="0" z="-12.4" unit="mm"/>
+        <rotationref ref="PTW30010IdentityRotation"/>
+      </multiUnionNode>
+      <multiUnionNode name="PTW30010DetectorOuterTipNode">
+        <solid ref="PTW30010TipBodySolid"/>
+        <position name="PTW30010DetectorOuterTipNodePosition" x="0" y="0" z="0.55" unit="mm"/>
+        <rotationref ref="PTW30010IdentityRotation"/>
+      </multiUnionNode>
+      <multiUnionNode name="PTW30010DetectorOuterStemNode">
+        <solid ref="PTW30010StemBodySolid"/>
+        <position name="PTW30010DetectorOuterStemNodePosition" x="0" y="0" z="39.7" unit="mm"/>
+        <rotationref ref="PTW30010IdentityRotation"/>
+      </multiUnionNode>
+      <multiUnionNode name="PTW30010DetectorOuterThreadNode">
+        <solid ref="PTW30010ThreadBodySolid"/>
+        <position name="PTW30010DetectorOuterThreadNodePosition" x="0" y="0" z="71.25" unit="mm"/>
+        <rotationref ref="PTW30010IdentityRotation"/>
+      </multiUnionNode>
+      <multiUnionNode name="PTW30010DetectorOuterRearNode">
+        <solid ref="PTW30010RearBodySolid"/>
+        <position name="PTW30010DetectorOuterRearNodePosition" x="0" y="0" z="97.8" unit="mm"/>
+        <rotationref ref="PTW30010IdentityRotation"/>
+      </multiUnionNode>
+    </multiUnion>
+
+    <tube name="PTW30010SensitiveWallPMMATubeSolid"
+          rmin="0" rmax="3.475"
+          z="22.4"
+          startphi="0" deltaphi="360"
+          aunit="deg" lunit="mm"/>
+
+    <cone name="PTW30010SensitiveWallPMMATipConeSolid"
+          z="1.2"
+          rmin1="0" rmax1="0"
+          rmin2="0" rmax2="3.475"
+          startphi="0" deltaphi="360"
+          aunit="deg" lunit="mm"/>
+
+    <union name="PTW30010SensitiveWallPMMASolid">
+      <first ref="PTW30010SensitiveWallPMMATubeSolid"/>
+      <second ref="PTW30010SensitiveWallPMMATipConeSolid"/>
+      <position name="PTW30010SensitiveWallPMMATipConePosition" x="0" y="0" z="-11.8" unit="mm"/>
+      <rotationref ref="PTW30010IdentityRotation"/>
+    </union>
+
+    <tube name="PTW30010SensitiveWallGraphiteTubeSolid"
+          rmin="0" rmax="3.14"
+          z="22.4"
+          startphi="0" deltaphi="360"
+          aunit="deg" lunit="mm"/>
+
+    <cone name="PTW30010SensitiveWallGraphiteTipConeSolid"
+          z="1.2"
+          rmin1="0" rmax1="0"
+          rmin2="0" rmax2="3.14"
+          startphi="0" deltaphi="360"
+          aunit="deg" lunit="mm"/>
+
+    <union name="PTW30010SensitiveWallGraphiteSolid">
+      <first ref="PTW30010SensitiveWallGraphiteTubeSolid"/>
+      <second ref="PTW30010SensitiveWallGraphiteTipConeSolid"/>
+      <position name="PTW30010SensitiveWallGraphiteTipConePosition" x="0" y="0" z="-11.8" unit="mm"/>
+      <rotationref ref="PTW30010IdentityRotation"/>
+    </union>
+
+    <tube name="PTW30010SensitiveGasSolid"
+          rmin="0" rmax="3.05"
+          z="21.2"
+          startphi="0" deltaphi="360"
+          aunit="deg" lunit="mm"/>
+
+    <tube name="PTW30010FrontDeadAirCylinderSolid"
+          rmin="0" rmax="3.05"
+          z="1.2"
+          startphi="0" deltaphi="360"
+          aunit="deg" lunit="mm"/>
+
+    <cone name="PTW30010FrontDeadAirConeSolid"
+          z="1.2"
+          rmin1="0" rmax1="0"
+          rmin2="0" rmax2="3.05"
+          startphi="0" deltaphi="360"
+          aunit="deg" lunit="mm"/>
+
+    <tube name="PTW30010StemPCTFESolid"
+          rmin="0" rmax="3.2"
+          z="69.1"
+          startphi="0" deltaphi="360"
+          aunit="deg" lunit="mm"/>
+
+    <tube name="PTW30010BuildUpCapOuterTubeSolid"
+          rmin="0" rmax="8.2"
+          z="85.7"
+          startphi="0" deltaphi="360"
+          aunit="deg" lunit="mm"/>
+
+    <sphere name="PTW30010BuildUpCapOuterDomeSphereSolid"
+            rmin="0" rmax="8.2"
+            startphi="0" deltaphi="360"
+            starttheta="0" deltatheta="90"
+            aunit="deg" lunit="mm"/>
+
+    <multiUnion name="PTW30010BuildUpCapOuterSolid">
+      <multiUnionNode name="PTW30010BuildUpCapOuterTubeNode">
+        <solid ref="PTW30010BuildUpCapOuterTubeSolid"/>
+        <position name="PTW30010BuildUpCapOuterTubePosition" x="0" y="0" z="-1.775" unit="mm"/>
+        <rotationref ref="PTW30010IdentityRotation"/>
+      </multiUnionNode>
+      <multiUnionNode name="PTW30010BuildUpCapOuterDomeSphereNode">
+        <solid ref="PTW30010BuildUpCapOuterDomeSphereSolid"/>
+        <position name="PTW30010BuildUpCapOuterDomeSpherePosition" x="0" y="0" z="41.075" unit="mm"/>
+        <rotationref ref="PTW30010IdentityRotation"/>
+      </multiUnionNode>
+    </multiUnion>
+
+    <multiUnion name="PTW30010BuildUpCapCavitySolid">
+      <multiUnionNode name="PTW30010BuildUpCapCavityTipConeNode">
+        <solid ref="PTW30010TipConeSolid"/>
+        <position name="PTW30010BuildUpCapCavityTipConePosition" x="0" y="0" z="-12.4" unit="mm"/>
+        <rotationref ref="PTW30010IdentityRotation"/>
+      </multiUnionNode>
+      <multiUnionNode name="PTW30010BuildUpCapCavityTipNode">
+        <solid ref="PTW30010TipBodySolid"/>
+        <position name="PTW30010BuildUpCapCavityTipPosition" x="0" y="0" z="0.55" unit="mm"/>
+        <rotationref ref="PTW30010IdentityRotation"/>
+      </multiUnionNode>
+      <multiUnionNode name="PTW30010BuildUpCapCavityStemNode">
+        <solid ref="PTW30010StemBodySolid"/>
+        <position name="PTW30010BuildUpCapCavityStemPosition" x="0" y="0" z="39.7" unit="mm"/>
+        <rotationref ref="PTW30010IdentityRotation"/>
+      </multiUnionNode>
+      <multiUnionNode name="PTW30010BuildUpCapCavityThreadNode">
+        <solid ref="PTW30010ThreadBodySolid"/>
+        <position name="PTW30010BuildUpCapCavityThreadPosition" x="0" y="0" z="71.25" unit="mm"/>
+        <rotationref ref="PTW30010IdentityRotation"/>
+      </multiUnionNode>
+    </multiUnion>
+
+    <subtraction name="PTW30010BuildUpCapSolid">
+      <first ref="PTW30010BuildUpCapOuterSolid"/>
+      <second ref="PTW30010BuildUpCapCavitySolid"/>
+      <positionref ref="PTW30010BuildUpCapDetectorCavityPosition"/>
+      <rotationref ref="PTW30010BuildUpCapFlipRotation"/>
+    </subtraction>
+
+    <tube name="PTW30010ActiveElectrodeSolid"
+          rmin="0" rmax="0.575"
+          z="23.0"
+          startphi="0" deltaphi="360"
+          aunit="deg" lunit="mm"/>
+
+    <tube name="PTW30010StemElectrodeSolid"
+          rmin="0" rmax="0.575"
+          z="69.1"
+          startphi="0" deltaphi="360"
+          aunit="deg" lunit="mm"/>
+  </solids>
+
+  <structure>
+    <volume name="PTW30010ActiveElectrodeLV">
+      <materialref ref="PTW30010ElectrodeAl"/>
+      <solidref ref="PTW30010ActiveElectrodeSolid"/>
+      <auxiliary auxtype="Color" auxvalue="#c9c9c9ff"/>
+    </volume>
+
+    <volume name="PTW30010StemElectrodeLV">
+      <materialref ref="PTW30010ElectrodeAl"/>
+      <solidref ref="PTW30010StemElectrodeSolid"/>
+      <auxiliary auxtype="Color" auxvalue="#c9c9c9ff"/>
+    </volume>
+
+    <volume name="PTW30010SensitiveGasLV">
+      <materialref ref="PTW30010Air"/>
+      <solidref ref="PTW30010SensitiveGasSolid"/>
+      <auxiliary auxtype="SensDet" auxvalue="PTW30010SensitiveGas"/>
+      <auxiliary auxtype="Color" auxvalue="#ff5a3666"/>
+    </volume>
+
+    <volume name="PTW30010FrontDeadAirCylinderLV">
+      <materialref ref="PTW30010Air"/>
+      <solidref ref="PTW30010FrontDeadAirCylinderSolid"/>
+      <auxiliary auxtype="Color" auxvalue="#d7f5ff20"/>
+    </volume>
+
+    <volume name="PTW30010FrontDeadAirConeLV">
+      <materialref ref="PTW30010Air"/>
+      <solidref ref="PTW30010FrontDeadAirConeSolid"/>
+      <auxiliary auxtype="Color" auxvalue="#d7f5ff20"/>
+    </volume>
+
+    <volume name="PTW30010SensitiveWallGraphiteLV">
+      <materialref ref="PTW30010WallGraphite"/>
+      <solidref ref="PTW30010SensitiveWallGraphiteSolid"/>
+      <auxiliary auxtype="Color" auxvalue="#2d2d2dcc"/>
+      <physvol name="PTW30010ActiveElectrodePV">
+        <volumeref ref="PTW30010ActiveElectrodeLV"/>
+        <positionref ref="PTW30010ActiveElectrodePosition"/>
+      </physvol>
+      <physvol name="PTW30010SensitiveGasPV">
+        <volumeref ref="PTW30010SensitiveGasLV"/>
+        <positionref ref="PTW30010ActiveGasPosition"/>
+      </physvol>
+      <physvol name="PTW30010FrontDeadAirCylinderPV">
+        <volumeref ref="PTW30010FrontDeadAirCylinderLV"/>
+        <positionref ref="PTW30010FrontDeadAirCylinderPosition"/>
+      </physvol>
+      <physvol name="PTW30010FrontDeadAirConePV">
+        <volumeref ref="PTW30010FrontDeadAirConeLV"/>
+        <positionref ref="PTW30010FrontDeadAirConePosition"/>
+      </physvol>
+    </volume>
+
+    <volume name="PTW30010SensitiveWallPMMALV">
+      <materialref ref="PTW30010WallPMMA"/>
+      <solidref ref="PTW30010SensitiveWallPMMASolid"/>
+      <auxiliary auxtype="Color" auxvalue="#8ed9ff44"/>
+      <physvol name="PTW30010SensitiveWallGraphitePV">
+        <volumeref ref="PTW30010SensitiveWallGraphiteLV"/>
+        <positionref ref="PTW30010OriginPosition"/>
+      </physvol>
+    </volume>
+
+    <volume name="PTW30010StemPCTFELV">
+      <materialref ref="PTW30010PCTFE"/>
+      <solidref ref="PTW30010StemPCTFESolid"/>
+      <auxiliary auxtype="Color" auxvalue="#b8d8c8aa"/>
+      <physvol name="PTW30010StemElectrodePV">
+        <volumeref ref="PTW30010StemElectrodeLV"/>
+        <positionref ref="PTW30010OriginPosition"/>
+      </physvol>
+    </volume>
+
+    <volume name="PTW30010BuildUpCapLV">
+      <materialref ref="PTW30010WallPMMA"/>
+      <solidref ref="PTW30010BuildUpCapSolid"/>
+      <auxiliary auxtype="Color" auxvalue="#3aa33ecc"/>
+    </volume>
+
+    <volume name="PTW30010DetectorLV">
+      <materialref ref="PTW30010RigidBodyPlaceholder"/>
+      <solidref ref="PTW30010DetectorOuterSolid"/>
+      <auxiliary auxtype="Color" auxvalue="#6c7b8a55"/>
+      <physvol name="PTW30010SensitiveWallPMMAPV">
+        <volumeref ref="PTW30010SensitiveWallPMMALV"/>
+        <positionref ref="PTW30010SensitiveChamberPosition"/>
+      </physvol>
+      <physvol name="PTW30010StemPCTFEPV">
+        <volumeref ref="PTW30010StemPCTFELV"/>
+        <positionref ref="PTW30010StemPCTFEPosition"/>
+      </physvol>
+    </volume>
+
+    <volume name="PTW30010WorldLV">
+      <materialref ref="PTW30010Air"/>
+      <solidref ref="PTW30010WorldSolid"/>
+      <physvol name="PTW30010DetectorPV">
+        <volumeref ref="PTW30010DetectorLV"/>
+        <positionref ref="PTW30010OriginPosition"/>
+      </physvol>
+      <physvol name="PTW30010BuildUpCapPV">
+        <volumeref ref="PTW30010BuildUpCapLV"/>
+        <positionref ref="PTW30010BuildUpCapPosition"/>
+        <rotationref ref="PTW30010BuildUpCapFlipRotation"/>
+      </physvol>
+    </volume>
+  </structure>
+
+  <setup name="Default" version="1.0">
+    <world ref="PTW30010WorldLV"/>
+  </setup>
+</gdml>

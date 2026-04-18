@@ -206,8 +206,13 @@ protected:
     void AddAuxiliaryFrameVolume(const G4int& copyNo, G4VPhysicalVolume* frameVolume);
     std::vector<G4VPhysicalVolume*> GetPlacementFrames(const G4int& copyNo) const;
     G4Transform3D BuildStoredTransform(const G4int& copyNo) const;
+    void DestroyPlacementFrames(const G4int& copyNo,
+                                const std::vector<G4VPhysicalVolume*>& frames);
     void RebuildPlacement(const G4int& copyNo);
     virtual G4bool RequiresPlacementRebuild(const G4int& copyNo) const;
+    virtual void ReleaseDetachedPlacementFrames(
+        const G4int& copyNo,
+        std::vector<G4VPhysicalVolume*>& detachedFrames);
     virtual void OnAfterPlacementRemoval(const G4int& copyNo);
     G4bool HasPlacementRequest(const G4int& copyNo) const;
     void ThrowMissingPlacementException(const char* methodName,

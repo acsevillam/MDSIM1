@@ -51,6 +51,25 @@ G4bool MatchesPattern(const G4String& value, const G4String& pattern) {
     return pattern.empty() || value.find(pattern) != G4String::npos;
 }
 
+G4bool IsAttachedToMotherLogical(const G4VPhysicalVolume* physicalVolume) {
+    if (physicalVolume == nullptr) {
+        return false;
+    }
+
+    const auto* motherLogical = physicalVolume->GetMotherLogical();
+    if (motherLogical == nullptr) {
+        return true;
+    }
+
+    for (G4int daughterIndex = 0; daughterIndex < motherLogical->GetNoDaughters(); ++daughterIndex) {
+        if (motherLogical->GetDaughter(daughterIndex) == physicalVolume) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 G4String NormalizeOutputPath(const G4String& outputPath) {
     const fs::path requestedPath(outputPath.c_str());
     return fs::absolute(requestedPath).lexically_normal().string();
@@ -209,7 +228,9 @@ const G4VPhysicalVolume* ResolveUniquePhysicalVolume(const G4String& volumeName,
 
     std::vector<const G4VPhysicalVolume*> matchingVolumes;
     for (const auto* physicalVolume : volumeIt->second) {
-        if (physicalVolume != nullptr && physicalVolume->GetCopyNo() == copyNo) {
+        if (physicalVolume != nullptr &&
+            physicalVolume->GetCopyNo() == copyNo &&
+            IsAttachedToMotherLogical(physicalVolume)) {
             matchingVolumes.push_back(physicalVolume);
         }
     }
@@ -221,7 +242,7 @@ const G4VPhysicalVolume* ResolveUniquePhysicalVolume(const G4String& volumeName,
         if (!volumeIt->second.empty()) {
             detail << " Available copyNos:";
             for (const auto* physicalVolume : volumeIt->second) {
-                if (physicalVolume != nullptr) {
+                if (physicalVolume != nullptr && IsAttachedToMotherLogical(physicalVolume)) {
                     detail << " " << physicalVolume->GetCopyNo();
                 }
             }
@@ -233,6 +254,17 @@ const G4VPhysicalVolume* ResolveUniquePhysicalVolume(const G4String& volumeName,
     }
 
     if (matchingVolumes.size() > 1) {
+        std::set<std::tuple<G4String, G4String>> uniquePlacementKinds;
+        for (const auto* physicalVolume : matchingVolumes) {
+            const auto* motherLogical = physicalVolume->GetMotherLogical();
+            uniquePlacementKinds.emplace(
+                physicalVolume->GetLogicalVolume()->GetName(),
+                (motherLogical != nullptr) ? motherLogical->GetName() : "none");
+        }
+        if (uniquePlacementKinds.size() == 1u) {
+            return matchingVolumes.back();
+        }
+
         std::ostringstream detail;
         detail << "Physical volume selection '" << volumeName << "' copyNo " << copyNo
                << " is still ambiguous. Matching logicals:";
@@ -375,6 +407,7 @@ void MD1GeometryExport::ListPhysicalVolumes(const G4String& pattern) const {
     }
 
     const auto filter = TrimValue(pattern);
+    std::set<std::tuple<G4String, G4int, G4String, G4String>> printedPlacements;
     G4cout << "Registered physical volumes:" << G4endl;
     for (const auto& [volumeName, physicalVolumes] : physicalStore->GetMap()) {
         if (!MatchesPattern(volumeName, filter)) {
@@ -382,11 +415,19 @@ void MD1GeometryExport::ListPhysicalVolumes(const G4String& pattern) const {
         }
 
         for (const auto* physicalVolume : physicalVolumes) {
-            if (physicalVolume == nullptr) {
+            if (physicalVolume == nullptr || !IsAttachedToMotherLogical(physicalVolume)) {
                 continue;
             }
 
             const auto* motherLogical = physicalVolume->GetMotherLogical();
+            const auto signature = std::make_tuple(physicalVolume->GetName(),
+                                                   physicalVolume->GetCopyNo(),
+                                                   physicalVolume->GetLogicalVolume()->GetName(),
+                                                   (motherLogical != nullptr) ? motherLogical->GetName()
+                                                                              : G4String("none"));
+            if (!printedPlacements.insert(signature).second) {
+                continue;
+            }
             G4cout << " - " << physicalVolume->GetName()
                    << " copyNo=" << physicalVolume->GetCopyNo()
                    << " logical=" << physicalVolume->GetLogicalVolume()->GetName()

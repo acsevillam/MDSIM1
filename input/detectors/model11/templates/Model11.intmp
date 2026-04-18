@@ -46,7 +46,7 @@
 /MultiDetector1/phantoms/waterbox/phantomID 0
 /MultiDetector1/phantoms/waterbox/translateTo 0 0 **WaterBoxZ** cm
 /MultiDetector1/detectors/model11/detectorID 0
-/MultiDetector1/detectors/model11/translateTo 0 0 **Model11Z** cm
 /MultiDetector1/detectors/model11/rotateX **Model11Angle** deg
+/MultiDetector1/detectors/model11/translateTo 0 0 **Model11Z** cm
 
 /control/execute mac/scorers1.mac

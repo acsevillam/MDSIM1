@@ -1,0 +1,276 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gdml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="https://service-spi.web.cern.ch/service-spi/app/releases/GDML/schema/gdml.xsd">
+  <define>
+    <position name="PTW31021OriginPosition" x="0" y="0" z="0" unit="mm"/>
+    <position name="PTW31021CapPosition" x="0" y="0" z="13.3625" unit="mm"/>
+    <position name="PTW31021RearStemPosition" x="0" y="0" z="35.8625" unit="mm"/>
+    <position name="PTW31021FrontHousingInCapPosition" x="0" y="0" z="0" unit="mm"/>
+    <position name="PTW31021PMMAWallInFrontHousingPosition" x="0" y="0" z="-12.5525" unit="mm"/>
+    <position name="PTW31021StemElectrodeFrontHousingPosition" x="0" y="0" z="1.105" unit="mm"/>
+    <position name="PTW31021GraphiteWallInPMMAWallPosition" x="0" y="0" z="0" unit="mm"/>
+    <position name="PTW31021SensitiveGasInGraphitePosition" x="0" y="0" z="0" unit="mm"/>
+    <position name="PTW31021ActiveElectrodeInGasPosition" x="0" y="0" z="-0.2" unit="mm"/>
+    <position name="PTW31021StemElectrodeRearStemPosition" x="0" y="0" z="0" unit="mm"/>
+    <rotation name="PTW31021IdentityRotation" x="0" y="0" z="0" unit="deg"/>
+  </define>
+
+  <materials>
+    <material name="PTW31021Air">
+      <D value="1.29" unit="mg/cm3"/>
+      <fraction n="1.0" ref="G4_AIR"/>
+    </material>
+    <material name="PTW31021RigidBodyPlaceholder">
+      <D value="1.19" unit="g/cm3"/>
+      <fraction n="1.0" ref="G4_PLEXIGLASS"/>
+    </material>
+    <material name="PTW31021WallPMMA">
+      <D value="1.19" unit="g/cm3"/>
+      <fraction n="1.0" ref="G4_PLEXIGLASS"/>
+    </material>
+    <material name="PTW31021CapPMMA">
+      <D value="1.19" unit="g/cm3"/>
+      <fraction n="1.0" ref="G4_PLEXIGLASS"/>
+    </material>
+    <material name="PTW31021WallGraphite">
+      <D value="1.85" unit="g/cm3"/>
+      <fraction n="1.0" ref="G4_GRAPHITE"/>
+    </material>
+    <material name="PTW31021ElectrodeAl">
+      <D value="2.7" unit="g/cm3"/>
+      <fraction n="1.0" ref="G4_Al"/>
+    </material>
+  </materials>
+
+  <solids>
+    <box name="PTW31021WorldSolid" x="200" y="200" z="200" lunit="mm"/>
+
+    <tube name="PTW31021CapBodyTubeSolid"
+          rmin="0" rmax="6.25"
+          z="27.125"
+          startphi="0" deltaphi="360"
+          aunit="deg" lunit="mm"/>
+    <sphere name="PTW31021CapDomeSphereSolid"
+            rmin="0" rmax="6.25"
+            startphi="0" deltaphi="360"
+            starttheta="90" deltatheta="90"
+            aunit="deg" lunit="mm"/>
+    <union name="PTW31021CapSolid">
+      <first ref="PTW31021CapBodyTubeSolid"/>
+      <second ref="PTW31021CapDomeSphereSolid"/>
+      <position name="PTW31021CapDomeSpherePosition" x="0" y="0" z="-13.5625" unit="mm"/>
+      <rotationref ref="PTW31021IdentityRotation"/>
+    </union>
+
+    <tube name="PTW31021FrontHousingBodyTubeSolid"
+          rmin="0" rmax="3.25"
+          z="27.125"
+          startphi="0" deltaphi="360"
+          aunit="deg" lunit="mm"/>
+    <sphere name="PTW31021FrontHousingDomeSphereSolid"
+            rmin="0" rmax="3.25"
+            startphi="0" deltaphi="360"
+            starttheta="90" deltatheta="90"
+            aunit="deg" lunit="mm"/>
+    <union name="PTW31021FrontHousingSolid">
+      <first ref="PTW31021FrontHousingBodyTubeSolid"/>
+      <second ref="PTW31021FrontHousingDomeSphereSolid"/>
+      <position name="PTW31021FrontHousingDomeSpherePosition" x="0" y="0" z="-13.5625" unit="mm"/>
+      <rotationref ref="PTW31021IdentityRotation"/>
+    </union>
+
+    <tube name="PTW31021SensitiveWallPMMATubeSolid"
+          rmin="0" rmax="3.06"
+          z="2.4"
+          startphi="0" deltaphi="360"
+          aunit="deg" lunit="mm"/>
+    <sphere name="PTW31021SensitiveWallPMMADomeSphereSolid"
+            rmin="0" rmax="3.06"
+            startphi="0" deltaphi="360"
+            starttheta="90" deltatheta="90"
+            aunit="deg" lunit="mm"/>
+    <union name="PTW31021SensitiveWallPMMASolid">
+      <first ref="PTW31021SensitiveWallPMMATubeSolid"/>
+      <second ref="PTW31021SensitiveWallPMMADomeSphereSolid"/>
+      <position name="PTW31021SensitiveWallPMMADomeSpherePosition" x="0" y="0" z="-1.2" unit="mm"/>
+      <rotationref ref="PTW31021IdentityRotation"/>
+    </union>
+
+    <tube name="PTW31021SensitiveWallGraphiteTubeSolid"
+          rmin="0" rmax="2.49"
+          z="2.4"
+          startphi="0" deltaphi="360"
+          aunit="deg" lunit="mm"/>
+    <sphere name="PTW31021SensitiveWallGraphiteDomeSphereSolid"
+            rmin="0" rmax="2.49"
+            startphi="0" deltaphi="360"
+            starttheta="90" deltatheta="90"
+            aunit="deg" lunit="mm"/>
+    <union name="PTW31021SensitiveWallGraphiteSolid">
+      <first ref="PTW31021SensitiveWallGraphiteTubeSolid"/>
+      <second ref="PTW31021SensitiveWallGraphiteDomeSphereSolid"/>
+      <position name="PTW31021SensitiveWallGraphiteDomeSpherePosition" x="0" y="0" z="-1.2" unit="mm"/>
+      <rotationref ref="PTW31021IdentityRotation"/>
+    </union>
+
+    <tube name="PTW31021SensitiveGasTubeSolid"
+          rmin="0" rmax="2.4"
+          z="2.4"
+          startphi="0" deltaphi="360"
+          aunit="deg" lunit="mm"/>
+    <sphere name="PTW31021SensitiveGasDomeSphereSolid"
+            rmin="0" rmax="2.4"
+            startphi="0" deltaphi="360"
+            starttheta="90" deltatheta="90"
+            aunit="deg" lunit="mm"/>
+    <union name="PTW31021SensitiveGasSolid">
+      <first ref="PTW31021SensitiveGasTubeSolid"/>
+      <second ref="PTW31021SensitiveGasDomeSphereSolid"/>
+      <position name="PTW31021SensitiveGasDomeSpherePosition" x="0" y="0" z="-1.2" unit="mm"/>
+      <rotationref ref="PTW31021IdentityRotation"/>
+    </union>
+
+    <tube name="PTW31021ActiveElectrodeSolid"
+          rmin="0" rmax="0.4"
+          z="2.8"
+          startphi="0" deltaphi="360"
+          aunit="deg" lunit="mm"/>
+
+    <tube name="PTW31021StemElectrodeFrontHousingSolid"
+          rmin="0" rmax="0.4"
+          z="24.915"
+          startphi="0" deltaphi="360"
+          aunit="deg" lunit="mm"/>
+
+    <tube name="PTW31021RearStemSolid"
+          rmin="0" rmax="3.5"
+          z="17.875"
+          startphi="0" deltaphi="360"
+          aunit="deg" lunit="mm"/>
+
+    <tube name="PTW31021StemElectrodeRearStemSolid"
+          rmin="0" rmax="0.4"
+          z="17.875"
+          startphi="0" deltaphi="360"
+          aunit="deg" lunit="mm"/>
+  </solids>
+
+  <structure>
+    <volume name="PTW31021ActiveElectrodeLV">
+      <materialref ref="PTW31021ElectrodeAl"/>
+      <solidref ref="PTW31021ActiveElectrodeSolid"/>
+      <auxiliary auxtype="Color" auxvalue="#c9c9c9ff"/>
+    </volume>
+
+    <volume name="PTW31021StemElectrodeFrontHousingLV">
+      <materialref ref="PTW31021ElectrodeAl"/>
+      <solidref ref="PTW31021StemElectrodeFrontHousingSolid"/>
+      <auxiliary auxtype="Color" auxvalue="#c9c9c9ff"/>
+    </volume>
+
+    <volume name="PTW31021StemElectrodeRearStemLV">
+      <materialref ref="PTW31021ElectrodeAl"/>
+      <solidref ref="PTW31021StemElectrodeRearStemSolid"/>
+      <auxiliary auxtype="Color" auxvalue="#c9c9c9ff"/>
+    </volume>
+
+    <volume name="PTW31021SensitiveGasLV">
+      <materialref ref="PTW31021Air"/>
+      <solidref ref="PTW31021SensitiveGasSolid"/>
+      <auxiliary auxtype="SensDet" auxvalue="PTW31021SensitiveGas"/>
+      <auxiliary auxtype="Color" auxvalue="#ff603c66"/>
+      <physvol name="PTW31021ActiveElectrodePV">
+        <volumeref ref="PTW31021ActiveElectrodeLV"/>
+        <positionref ref="PTW31021ActiveElectrodeInGasPosition"/>
+        <rotationref ref="PTW31021IdentityRotation"/>
+      </physvol>
+    </volume>
+
+    <volume name="PTW31021SensitiveWallGraphiteLV">
+      <materialref ref="PTW31021WallGraphite"/>
+      <solidref ref="PTW31021SensitiveWallGraphiteSolid"/>
+      <auxiliary auxtype="Color" auxvalue="#50505088"/>
+      <physvol name="PTW31021SensitiveGasPV">
+        <volumeref ref="PTW31021SensitiveGasLV"/>
+        <positionref ref="PTW31021SensitiveGasInGraphitePosition"/>
+        <rotationref ref="PTW31021IdentityRotation"/>
+      </physvol>
+    </volume>
+
+    <volume name="PTW31021SensitiveWallPMMALV">
+      <materialref ref="PTW31021WallPMMA"/>
+      <solidref ref="PTW31021SensitiveWallPMMASolid"/>
+      <auxiliary auxtype="Color" auxvalue="#d7f5ff26"/>
+      <physvol name="PTW31021SensitiveWallGraphitePV">
+        <volumeref ref="PTW31021SensitiveWallGraphiteLV"/>
+        <positionref ref="PTW31021GraphiteWallInPMMAWallPosition"/>
+        <rotationref ref="PTW31021IdentityRotation"/>
+      </physvol>
+    </volume>
+
+    <volume name="PTW31021FrontHousingLV">
+      <materialref ref="PTW31021RigidBodyPlaceholder"/>
+      <solidref ref="PTW31021FrontHousingSolid"/>
+      <auxiliary auxtype="Color" auxvalue="#7d9fb84d"/>
+      <physvol name="PTW31021SensitiveWallPMMAPV">
+        <volumeref ref="PTW31021SensitiveWallPMMALV"/>
+        <positionref ref="PTW31021PMMAWallInFrontHousingPosition"/>
+        <rotationref ref="PTW31021IdentityRotation"/>
+      </physvol>
+      <physvol name="PTW31021StemElectrodeFrontHousingPV">
+        <volumeref ref="PTW31021StemElectrodeFrontHousingLV"/>
+        <positionref ref="PTW31021StemElectrodeFrontHousingPosition"/>
+        <rotationref ref="PTW31021IdentityRotation"/>
+      </physvol>
+    </volume>
+
+    <volume name="PTW31021CapLV">
+      <materialref ref="PTW31021CapPMMA"/>
+      <solidref ref="PTW31021CapSolid"/>
+      <auxiliary auxtype="Color" auxvalue="#9ec9ff22"/>
+      <physvol name="PTW31021FrontHousingPV">
+        <volumeref ref="PTW31021FrontHousingLV"/>
+        <positionref ref="PTW31021FrontHousingInCapPosition"/>
+        <rotationref ref="PTW31021IdentityRotation"/>
+      </physvol>
+    </volume>
+
+    <volume name="PTW31021RearStemLV">
+      <materialref ref="PTW31021RigidBodyPlaceholder"/>
+      <solidref ref="PTW31021RearStemSolid"/>
+      <auxiliary auxtype="Color" auxvalue="#7d9fb84d"/>
+      <physvol name="PTW31021StemElectrodeRearStemPV">
+        <volumeref ref="PTW31021StemElectrodeRearStemLV"/>
+        <positionref ref="PTW31021StemElectrodeRearStemPosition"/>
+        <rotationref ref="PTW31021IdentityRotation"/>
+      </physvol>
+    </volume>
+
+    <assembly name="PTW31021Assembly">
+      <physvol name="PTW31021CapPV">
+        <volumeref ref="PTW31021CapLV"/>
+        <positionref ref="PTW31021CapPosition"/>
+        <rotationref ref="PTW31021IdentityRotation"/>
+      </physvol>
+      <physvol name="PTW31021RearStemPV">
+        <volumeref ref="PTW31021RearStemLV"/>
+        <positionref ref="PTW31021RearStemPosition"/>
+        <rotationref ref="PTW31021IdentityRotation"/>
+      </physvol>
+    </assembly>
+
+    <volume name="PTW31021WorldLV">
+      <materialref ref="PTW31021Air"/>
+      <solidref ref="PTW31021WorldSolid"/>
+      <physvol name="PTW31021AssemblyPV">
+        <volumeref ref="PTW31021Assembly"/>
+        <positionref ref="PTW31021OriginPosition"/>
+        <rotationref ref="PTW31021IdentityRotation"/>
+      </physvol>
+    </volume>
+  </structure>
+
+  <setup name="PTW31021Setup" version="1.0">
+    <world ref="PTW31021WorldLV"/>
+  </setup>
+</gdml>
